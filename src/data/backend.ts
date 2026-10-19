@@ -1,6 +1,22 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Item, Trip } from '../types'
-import { SEED_ITEMS, SEED_TRIP } from './seed'
+import type { Item, Member, Trip } from '../types'
+import { LOCAL_ME, SEED_ITEMS, SEED_MEMBERS, SEED_TRIP } from './seed'
+
+export interface TripData {
+  trip: Trip
+  items: Item[]
+  members: Member[]
+}
+
+export type Profile = Pick<Member, 'name' | 'avatar' | 'color'>
+
+/** What a link's page says about itself. Any field may be missing. */
+export interface LinkPreview {
+  title: string | null
+  image: string | null
+  lat: number | null
+  lng: number | null
+}
 
 export interface Backend {
   mode: 'local' | 'supabase'
@@ -9,7 +25,12 @@ export interface Backend {
   isUnlocked(): Promise<boolean>
   unlock(password: string, email?: string): Promise<void>
   lock(): Promise<void>
-  load(): Promise<{ trip: Trip; items: Item[] }>
+  /** Email of the signed-in member. */
+  me(): Promise<string>
+  load(): Promise<TripData>
+  saveProfile(profile: Profile): Promise<void>
+  /** Fetches title/image/coordinates for a link via the unfurl edge function. */
+  unfurl(url: string): Promise<LinkPreview | null>
   saveItem(item: Item): Promise<void>
   deleteItem(id: string): Promise<void>
   /** Calls back whenever someone else changes the trip. Returns an unsubscribe function. */
@@ -21,16 +42,19 @@ export interface Backend {
 const LOCAL_KEY = 'iku:v1'
 
 function localBackend(): Backend {
-  const read = (): { trip: Trip; items: Item[] } => {
+  const read = (): TripData => {
     try {
       const raw = localStorage.getItem(LOCAL_KEY)
-      if (raw) return JSON.parse(raw)
+      if (raw) {
+        const data = JSON.parse(raw)
+        return { members: SEED_MEMBERS, ...data }
+      }
     } catch {
       /* fall through to seed */
     }
-    return { trip: SEED_TRIP, items: SEED_ITEMS }
+    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS }
   }
-  const write = (data: { trip: Trip; items: Item[] }) => {
+  const write = (data: TripData) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(data))
     } catch {
@@ -43,12 +67,19 @@ function localBackend(): Backend {
     isUnlocked: async () => true,
     unlock: async () => {},
     lock: async () => {},
+    me: async () => LOCAL_ME,
+    unfurl: async () => null,
     load: async () => read(),
+    saveProfile: async (profile) => {
+      const data = read()
+      write({ ...data, members: data.members.map((m) => (m.email === LOCAL_ME ? { ...m, ...profile } : m)) })
+    },
     saveItem: async (item) => {
       const data = read()
       const i = data.items.findIndex((x) => x.id === item.id)
-      if (i >= 0) data.items[i] = item
-      else data.items.push(item)
+      const stamped = { ...item, createdBy: i >= 0 ? data.items[i].createdBy : LOCAL_ME, updatedBy: LOCAL_ME, updatedAt: new Date().toISOString() }
+      if (i >= 0) data.items[i] = stamped
+      else data.items.push(stamped)
       write(data)
     },
     deleteItem: async (id) => {
@@ -66,6 +97,7 @@ interface ItemRow {
   trip_id: string
   title: string
   url: string | null
+  image_url?: string | null
   note: string | null
   type: Item['type']
   tags: string[]
@@ -78,6 +110,16 @@ interface ItemRow {
   lng: number | null
   sort: number
   created_at: string
+  created_by?: string | null
+  updated_by?: string | null
+  updated_at?: string | null
+}
+
+interface MemberRow {
+  email: string
+  name?: string | null
+  avatar?: string | null
+  color?: string | null
 }
 
 const fromRow = (r: ItemRow): Item => ({
@@ -85,6 +127,7 @@ const fromRow = (r: ItemRow): Item => ({
   tripId: r.trip_id,
   title: r.title,
   url: r.url,
+  imageUrl: r.image_url || null,
   note: r.note,
   type: r.type,
   tags: r.tags ?? [],
@@ -96,7 +139,10 @@ const fromRow = (r: ItemRow): Item => ({
   lat: r.lat,
   lng: r.lng,
   sort: r.sort,
-  createdAt: r.created_at
+  createdAt: r.created_at,
+  createdBy: r.created_by ?? null,
+  updatedBy: r.updated_by ?? null,
+  updatedAt: r.updated_at ?? null
 })
 
 const toRow = (i: Item): ItemRow => ({
@@ -104,6 +150,9 @@ const toRow = (i: Item): ItemRow => ({
   trip_id: i.tripId,
   title: i.title,
   url: i.url,
+  // Only sent when there's something to store, so saving still works before migration 003.
+  // Clearing an image sends '' (read back as no image).
+  ...(i.imageUrl !== null ? { image_url: i.imageUrl } : {}),
   note: i.note,
   type: i.type,
   tags: i.tags,
@@ -134,17 +183,35 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     lock: async () => {
       await sb.auth.signOut()
     },
+    me: async () => (await sb.auth.getSession()).data.session?.user.email ?? '',
     load: async () => {
       // One trip for now: the earliest one. A trip switcher can pick by id later.
       const trips = must(await sb.from('trips').select('*').order('start_date').limit(1)) ?? []
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
       const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
-      const rows = (must(await sb.from('items').select('*').eq('trip_id', trip.id)) ?? []) as ItemRow[]
-      return { trip, items: rows.map(fromRow) }
+      const [rows, memberRows] = await Promise.all([
+        sb.from('items').select('*').eq('trip_id', trip.id).then(must),
+        sb.from('trip_members').select('*').then(must)
+      ])
+      const members = ((memberRows ?? []) as MemberRow[]).map((m) => ({ email: m.email, name: m.name ?? null, avatar: m.avatar ?? null, color: m.color ?? null }))
+      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members }
+    },
+    saveProfile: async (profile) => {
+      const email = (await sb.auth.getSession()).data.session?.user.email
+      const res = await sb.from('trip_members').update(profile).eq('email', email).select()
+      if (res.error) throw new Error(/column/.test(res.error.message) ? 'Run supabase/migrations/002_members.sql first.' : res.error.message)
+      if (!res.data?.length) throw new Error('Couldn’t save your profile. Run supabase/migrations/002_members.sql first.')
     },
     saveItem: async (item) => {
-      must(await sb.from('items').upsert(toRow(item)))
+      const res = await sb.from('items').upsert(toRow(item))
+      if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')
+      must(res)
+    },
+    unfurl: async (url) => {
+      const { data, error } = await sb.functions.invoke('unfurl', { body: { url } })
+      if (error || !data || data.error) return null
+      return { title: data.title ?? null, image: data.image ?? null, lat: data.lat ?? null, lng: data.lng ?? null }
     },
     deleteItem: async (id) => {
       must(await sb.from('items').delete().eq('id', id))
@@ -153,6 +220,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       const ch = sb
         .channel('items-' + tripId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `trip_id=eq.${tripId}` }, onChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_members' }, onChange)
         .subscribe()
       return () => {
         sb.removeChannel(ch)

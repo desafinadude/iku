@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { dayLabel, domainOf, normalizeTag } from '../lib'
-import { ITEM_TYPES, TYPE_COLORS, type Item } from '../types'
+import { useEffect, useRef, useState } from 'react'
+import type { LinkPreview } from '../data/backend'
+import { dayLabel, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { ITEM_TYPES, TYPE_COLORS, type Item, type Member } from '../types'
+import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
 
@@ -9,16 +11,44 @@ interface Props {
   isNew: boolean
   days: string[]
   allTags: string[]
+  members: Member[]
+  onUnfurl: (url: string) => Promise<LinkPreview | null>
   onSave: (item: Item) => void
   onDelete: (id: string) => void
   onClose: () => void
 }
 
-export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClose }: Props) {
+export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSave, onDelete, onClose }: Props) {
   const [draft, setDraft] = useState(item)
   const [tagText, setTagText] = useState('')
   const [geoState, setGeoState] = useState<'idle' | 'busy' | 'none'>('idle')
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
+
+  const [previewState, setPreviewState] = useState<'idle' | 'busy' | 'none'>('idle')
+  const lastFetched = useRef<string | null>(null)
+  const fetchPreview = async (url: string, replaceImage = false) => {
+    if (!isUrl(url)) return
+    lastFetched.current = url
+    const quick = quickPreview(url)
+    setDraft((d) => ({ ...d, imageUrl: (!replaceImage && d.imageUrl) || quick.image || d.imageUrl, lat: d.lat ?? quick.lat, lng: d.lng ?? quick.lng }))
+    setPreviewState('busy')
+    const p = await onUnfurl(url)
+    setDraft((d) => {
+      if (d.url !== url) return d // the link was changed while we waited
+      const placeholderTitle = !d.title.trim() || d.title === domainOf(url)
+      return {
+        ...d,
+        title: placeholderTitle && p?.title ? p.title : d.title,
+        imageUrl: p?.image && (replaceImage || !d.imageUrl) ? p.image : d.imageUrl,
+        lat: d.lat ?? p?.lat ?? null,
+        lng: d.lng ?? p?.lng ?? null
+      }
+    })
+    setPreviewState(p || quick.image ? 'idle' : 'none')
+  }
+  useEffect(() => {
+    if (isNew && item.url) fetchPreview(item.url)
+  }, [])
 
   const addTag = (raw: string) => {
     const t = normalizeTag(raw)
@@ -43,6 +73,8 @@ export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClos
 
   const suggestions = allTags.filter((t) => !draft.tags.includes(t) && t.includes(normalizeTag(tagText).slice(1))).slice(0, 5)
   const domain = domainOf(draft.url)
+  const creator = memberFor(members, item.createdBy)
+  const editor = item.updatedBy && item.updatedBy !== item.createdBy ? memberFor(members, item.updatedBy) : null
 
   return (
     <Sheet
@@ -67,18 +99,47 @@ export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClos
         </>
       }
     >
-      {domain && (
-        <a className="link-preview" href={draft.url!} target="_blank" rel="noreferrer">
-          <Icon name="link" size={16} /> <span>{domain}</span> <span className="muted small">open</span>
-        </a>
+      {!isNew && creator && (
+        <div className="byline">
+          <Avatar member={creator} size={28} />
+          <span>
+            Added by <b>{displayName(creator)}</b> · {shortDate(item.createdAt)}
+            {editor && item.updatedAt && (
+              <span className="muted">
+                {' '}
+                · edited by {displayName(editor)} {shortDate(item.updatedAt)}
+              </span>
+            )}
+          </span>
+        </div>
       )}
+      {draft.imageUrl && <PreviewImage src={draft.imageUrl} onRemove={() => set({ imageUrl: '' })} />}
+      {domain && (
+        <div className="link-row">
+          <a className="link-preview" href={draft.url!} target="_blank" rel="noreferrer">
+            <Icon name="link" size={16} /> <span>{domain}</span>
+          </a>
+          <button type="button" className="secondary-btn" disabled={previewState === 'busy'} onClick={() => fetchPreview(draft.url!, true)}>
+            {previewState === 'busy' ? 'Fetching…' : draft.imageUrl ? 'Refresh preview' : 'Get preview'}
+          </button>
+        </div>
+      )}
+      {previewState === 'busy' && !draft.imageUrl && <div className="preview-loading" aria-live="polite">Fetching preview…</div>}
+      {previewState === 'none' && <span className="muted small">No preview found for this link.</span>}
       <div className="field">
         <label htmlFor="f-title">Title</label>
-        <input id="f-title" value={draft.title} onChange={(e) => set({ title: e.target.value })} autoFocus={isNew} />
+        <input id="f-title" value={draft.title} onChange={(e) => set({ title: e.target.value })} autoFocus={isNew && !item.url} />
       </div>
       <div className="field">
         <label htmlFor="f-url">Link</label>
-        <input id="f-url" type="url" placeholder="https://" value={draft.url ?? ''} onChange={(e) => set({ url: e.target.value || null })} />
+        <input
+          id="f-url"
+          type="url"
+          placeholder="https://"
+          value={draft.url ?? ''}
+          onChange={(e) => set({ url: e.target.value || null })}
+          onBlur={() => draft.url && draft.url !== lastFetched.current && fetchPreview(draft.url, true)}
+        />
       </div>
 
       <fieldset className="group">
@@ -185,5 +246,19 @@ export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClos
         <textarea id="f-note" rows={3} value={draft.note ?? ''} onChange={(e) => set({ note: e.target.value || null })} />
       </div>
     </Sheet>
+  )
+}
+
+function PreviewImage({ src, onRemove }: { src: string; onRemove: () => void }) {
+  const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [src])
+  if (broken) return null
+  return (
+    <div className="sheet-image">
+      <img src={src} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+      <button type="button" className="sheet-image-remove" aria-label="Remove image" onClick={onRemove}>
+        <Icon name="close" size={16} />
+      </button>
+    </div>
   )
 }

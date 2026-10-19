@@ -1,5 +1,6 @@
-import { EMPTY_FILTERS, ITEM_TYPES, TYPE_COLORS, statusOf, type Filters, type Item, type Status } from '../types'
-import { matches } from '../lib'
+import { EMPTY_FILTERS, ITEM_TYPES, TYPE_COLORS, statusOf, type Filters, type Item, type Member, type Status } from '../types'
+import { displayName, matches } from '../lib'
+import { Avatar } from './Avatar'
 import { toggle } from './FilterBar'
 import { Sheet } from './Sheet'
 
@@ -7,6 +8,7 @@ interface Props {
   filters: Filters
   items: Item[]
   allTags: string[]
+  members: Member[]
   onChange: (f: Filters) => void
   onClose: () => void
 }
@@ -17,7 +19,7 @@ const STATUSES: { id: Status; label: string }[] = [
   { id: 'booked', label: 'Booked' }
 ]
 
-export function FilterSheet({ filters, items, allTags, onChange, onClose }: Props) {
+export function FilterSheet({ filters, items, allTags, members, onChange, onClose }: Props) {
   const shown = items.filter((x) => matches(x, filters)).length
   return (
     <Sheet
@@ -47,6 +49,22 @@ export function FilterSheet({ filters, items, allTags, onChange, onClose }: Prop
           })}
         </div>
       </fieldset>
+      {members.length > 1 && (
+        <fieldset className="group">
+          <legend>Added by</legend>
+          <div className="chip-wrap">
+            {members.map((m) => {
+              const on = filters.people.includes(m.email)
+              return (
+                <button key={m.email} className={`chip chip-person${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, people: toggle(filters.people, m.email) })}>
+                  <Avatar member={m} size={24} />
+                  {displayName(m)} <span className="chip-count">{items.filter((x) => x.createdBy === m.email).length}</span>
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+      )}
       <fieldset className="group">
         <legend>Type</legend>
         <div className="chip-wrap">

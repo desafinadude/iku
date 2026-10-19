@@ -1,4 +1,4 @@
--- Iku schema. Run in the Supabase SQL editor.
+-- Iku schema. Run in the Supabase SQL editor, then every file in supabase/migrations/ in order.
 
 create table if not exists public.trips (
   id uuid primary key default gen_random_uuid(),

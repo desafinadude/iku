@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Item, Trip } from '../types'
-import type { Backend } from './backend'
+import type { Item, Member, Trip } from '../types'
+import type { Backend, Profile } from './backend'
 
 export function useTrip(backend: Backend, enabled: boolean) {
   const [trip, setTrip] = useState<Trip | null>(null)
   const [items, setItems] = useState<Item[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [me, setMe] = useState('')
   const [error, setError] = useState<string | null>(null)
   const itemsRef = useRef(items)
   itemsRef.current = items
 
   const reload = useCallback(async () => {
     try {
-      const data = await backend.load()
+      const [data, email] = await Promise.all([backend.load(), backend.me()])
       setTrip(data.trip)
       setItems(data.items)
+      setMembers(data.members)
+      setMe(email)
       setError(null)
     } catch (e) {
       setError((e as Error).message)
@@ -68,5 +72,18 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [save]
   )
 
-  return { trip, items, error, setError, save, remove, moveTo }
+  const saveProfile = useCallback(
+    async (profile: Profile) => {
+      setMembers((ms) => ms.map((m) => (m.email === me ? { ...m, ...profile } : m)))
+      try {
+        await backend.saveProfile(profile)
+      } catch (e) {
+        await reload() // undo the optimistic change; reload clears errors, so report after it
+        setError((e as Error).message)
+      }
+    },
+    [backend, me, reload]
+  )
+
+  return { trip, items, members, me, error, setError, save, remove, moveTo, saveProfile }
 }

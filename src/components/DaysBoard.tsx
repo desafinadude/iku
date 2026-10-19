@@ -1,19 +1,20 @@
 import { useDroppable } from '@dnd-kit/core'
 import { byTime, dayLabel } from '../lib'
-import type { Item } from '../types'
+import type { Item, Member } from '../types'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
 
 interface Props {
   days: string[]
   items: Item[]
+  members: Member[]
   selectedDay: string
   onSelectDay: (day: string) => void
   onOpen: (item: Item) => void
   onAdd: (day: string) => void
 }
 
-export function DaysBoard({ days, items, selectedDay, onSelectDay, onOpen, onAdd }: Props) {
+export function DaysBoard({ days, items, members, selectedDay, onSelectDay, onOpen, onAdd }: Props) {
   return (
     <section aria-label="Days" className="pane pane-days">
       <div className="pane-head">
@@ -27,6 +28,7 @@ export function DaysBoard({ days, items, selectedDay, onSelectDay, onOpen, onAdd
             day={day}
             index={i}
             items={items.filter((x) => x.day === day).sort(byTime)}
+            members={members}
             selected={day === selectedDay}
             onSelect={() => onSelectDay(day)}
             onOpen={onOpen}
@@ -42,6 +44,7 @@ function DayColumn(props: {
   day: string
   index: number
   items: Item[]
+  members: Member[]
   selected: boolean
   onSelect: () => void
   onOpen: (item: Item) => void
@@ -61,7 +64,7 @@ function DayColumn(props: {
       </button>
       <div className="day-col-items">
         {props.items.map((item) => (
-          <ItemCard key={item.id} item={item} variant="plan" onOpen={props.onOpen} />
+          <ItemCard key={item.id} item={item} members={props.members} variant="plan" onOpen={props.onOpen} />
         ))}
         {props.items.length === 0 && <div className="drop-hint">Drop ideas here</div>}
         <button className="ghost-btn" onClick={props.onAdd}>
