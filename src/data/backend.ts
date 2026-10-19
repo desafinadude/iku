@@ -172,6 +172,7 @@ interface ItemRow {
   day: string | null
   end_day?: string | null
   time: string | null
+  end_time?: string | null
   booked: boolean
   booking_ref: string | null
   place: string | null
@@ -243,6 +244,7 @@ const fromRow = (r: ItemRow): Item => ({
   day: r.day,
   endDay: r.end_day ?? null,
   time: r.time ? r.time.slice(0, 5) : null,
+  endTime: r.end_time ? r.end_time.slice(0, 5) : null,
   booked: r.booked,
   bookingRef: r.booking_ref,
   place: r.place,
@@ -256,7 +258,7 @@ const fromRow = (r: ItemRow): Item => ({
   updatedAt: r.updated_at ?? null
 })
 
-const toRow = (i: Item, hasEndDay: boolean): ItemRow => ({
+const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean): ItemRow => ({
   id: i.id,
   trip_id: i.tripId,
   title: i.title,
@@ -271,6 +273,8 @@ const toRow = (i: Item, hasEndDay: boolean): ItemRow => ({
   // end_day only exists after migration 004; leave it out before that so saving keeps working.
   ...(hasEndDay ? { end_day: i.endDay } : {}),
   time: i.time,
+  // end_time only exists after migration 007.
+  ...(hasEndTime ? { end_time: i.endTime } : {}),
   booked: i.booked,
   booking_ref: i.bookingRef,
   place: i.place,
@@ -289,6 +293,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
   }
   const files = () => sb.storage.from('attachments')
   let hasEndDay = false
+  let hasEndTime = false
   let attachments: Attachment[] = []
   return {
     mode: 'supabase',
@@ -309,13 +314,15 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
       const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
-      const [rows, memberRows, attachmentRes, endDayProbe, labelRes] = await Promise.all([
+      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
         sb.from('attachments').select('*').eq('trip_id', trip.id), // missing before migration 004
         sb.from('items').select('end_day').limit(1),
-        sb.from('labels').select('*').eq('trip_id', trip.id) // missing before migration 006
+        sb.from('labels').select('*').eq('trip_id', trip.id), // missing before migration 006
+        sb.from('items').select('end_time').limit(1)
       ])
+      hasEndTime = !endTimeProbe.error
       const labels = labelRes.error ? [] : ((labelRes.data ?? []) as LabelRow[]).map(fromLabelRow)
       hasEndDay = !endDayProbe.error
       attachments = attachmentRes.error ? [] : ((attachmentRes.data ?? []) as AttachmentRow[]).map(fromAttachmentRow)
@@ -330,7 +337,8 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     },
     saveItem: async (item) => {
       if (item.endDay && !hasEndDay) throw new Error('Run supabase/migrations/004_attachments_and_spans.sql to save multi-day entries.')
-      const res = await sb.from('items').upsert(toRow(item, hasEndDay))
+      if (item.endTime && !hasEndTime) throw new Error('Run supabase/migrations/007_end_time.sql to save end times.')
+      const res = await sb.from('items').upsert(toRow(item, hasEndDay, hasEndTime))
       if (res.error && /items_type_check/.test(res.error.message)) throw new Error('Run supabase/migrations/006_labels.sql to use your own types.')
       if (res.error && /place_id/.test(res.error.message)) throw new Error('Run supabase/migrations/005_google_places.sql to save Google places.')
       if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')

@@ -3,12 +3,12 @@ export type ItemType = string
 
 /** Built-in types, used until a trip customises its own. */
 export const DEFAULT_TYPES: { name: string; color: string; icon: string }[] = [
-  { name: 'Food', color: '#B4461F', icon: 'food' },
-  { name: 'Sight', color: '#0E6B60', icon: 'landmark' },
-  { name: 'Stay', color: '#3A5BA0', icon: 'bed' },
+  { name: 'Food', color: '#B4461F', icon: 'restaurant' },
+  { name: 'Sight', color: '#0E6B60', icon: 'photo_camera' },
+  { name: 'Stay', color: '#3A5BA0', icon: 'hotel' },
   { name: 'Transport', color: '#5F4FA0', icon: 'train' },
-  { name: 'Nature', color: '#3F6B22', icon: 'mountain' },
-  { name: 'Shop', color: '#8A5A0B', icon: 'shop' }
+  { name: 'Nature', color: '#3F6B22', icon: 'landscape' },
+  { name: 'Shop', color: '#8A5A0B', icon: 'shopping_bag' }
 ]
 
 /** Colours offered for types and tags. Each keeps white icons and text readable. */
@@ -48,6 +48,8 @@ export interface Item {
   endDay: string | null
   /** HH:MM */
   time: string | null
+  /** HH:MM, optional; how long the entry runs in the hour-by-hour view. */
+  endTime: string | null
   booked: boolean
   bookingRef: string | null
   place: string | null

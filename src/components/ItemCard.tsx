@@ -6,6 +6,7 @@ import { LabelIconView } from '../labels/LabelIconView'
 import type { Item, Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
+import { TagChips } from './TagChips'
 
 interface Props {
   item: Item
@@ -16,15 +17,17 @@ interface Props {
   /** The day column this card is shown in (for multi-day labels). */
   day?: string
   fileCount?: number
+  /** Show tags on the repeated (later-day) cards of multi-day entries. */
+  tagsOnRepeats?: boolean
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0 }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false }: Props) {
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
   const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
-  const { typeStyle, tagStyle } = useLabels()
+  const { typeStyle } = useLabels()
   const c = typeStyle(item.type)
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
@@ -44,6 +47,11 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         if (e.key === 'Enter') onOpen(item)
       }}
     >
+      {variant === 'plan' && image && !continuing && (
+        <div className="card-photo card-photo-plan">
+          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
+        </div>
+      )}
       {variant === 'pin' && image && (
         <div className="card-photo">
           <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
@@ -78,27 +86,12 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
             </span>
           )}
         </div>
-        {variant === 'plan' && image ? (
-          <div className="card-title-row">
-            <div className="card-title">{item.title}</div>
-            <img className="card-thumb" src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
-          </div>
-        ) : (
-          <div className="card-title">{item.title}</div>
-        )}
+        <div className="card-title">{item.title}</div>
         {item.note && !continuing && <div className="card-note">{item.note}</div>}
-        {!continuing && (item.tags.length > 0 || creator) && (
+        {(!continuing || (tagsOnRepeats && item.tags.length > 0)) && (item.tags.length > 0 || creator) && (
           <div className="tag-row">
-            {item.tags.map((t) => {
-              const st = tagStyle(t)
-              return (
-                <span key={t} className="tag" style={st.color ? { background: st.bg!, color: st.color } : undefined}>
-                  {st.icon && <LabelIconView name={st.icon} size={11} />}
-                  {t}
-                </span>
-              )
-            })}
-            {creator && (
+            <TagChips tags={item.tags} small={continuing} />
+            {creator && !continuing && (
               <span className="card-creator">
                 <Avatar member={creator} size={20} />
               </span>

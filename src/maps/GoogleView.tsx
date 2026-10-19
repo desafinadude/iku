@@ -56,11 +56,11 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick }: MapVie
         <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} title={p.title} onClick={() => onPinClick(p.id)}>
           {p.idea ? (
             <span className="map-pin map-pin-idea" style={{ borderColor: p.color, color: p.color }}>
-              <LabelIconView name={p.icon} size={12} />
+              <LabelIconView name={p.icon} size={14} />
             </span>
           ) : (
             <span className="map-pin" style={{ background: p.color, color: '#fff' }}>
-              <LabelIconView name={p.icon} size={16} />
+              <LabelIconView name={p.icon} size={18} />
               {p.label && <b className="pin-num">{p.label}</b>}
             </span>
           )}

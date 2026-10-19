@@ -2,15 +2,15 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
-import { iconSvg } from '../labels/icons'
+import { iconHtml } from '../labels/icons'
 import type { MapPin, MapViewProps } from './types'
 
 function icon(pin: MapPin) {
   return pin.idea
-    ? L.divIcon({ className: '', html: `<span class="map-pin map-pin-idea" style="border-color:${pin.color};color:${pin.color}">${iconSvg(pin.icon, 12, 'currentColor')}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })
+    ? L.divIcon({ className: '', html: `<span class="map-pin map-pin-idea" style="border-color:${pin.color};color:${pin.color}">${iconHtml(pin.icon, 14, 'currentColor')}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })
     : L.divIcon({
         className: '',
-        html: `<span class="map-pin" style="background:${pin.color}">${iconSvg(pin.icon, 16, '#fff')}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}</span>`,
+        html: `<span class="map-pin" style="background:${pin.color}">${iconHtml(pin.icon, 18, '#fff')}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}</span>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16]
       })

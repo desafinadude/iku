@@ -196,3 +196,13 @@ export async function prepareUpload(file: File): Promise<File> {
     return file
   }
 }
+
+export function toMinutes(hhmm: string) {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + (m || 0)
+}
+
+export function fromMinutes(mins: number) {
+  const m = Math.max(0, Math.min(mins, 23 * 60 + 59))
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+}

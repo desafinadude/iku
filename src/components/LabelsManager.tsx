@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { LABEL_ICON_NAMES } from '../labels/icons'
+import { iconName, SUGGESTED_ICONS } from '../labels/icons'
 import { LabelIconView } from '../labels/LabelIconView'
-import { tint, useLabels, type TagStyle } from '../labels/LabelsContext'
+import { useLabels, type TagStyle } from '../labels/LabelsContext'
 import { normalizeTag, uid } from '../lib'
 import { LABEL_COLORS, type Item, type Label } from '../types'
 import { Icon } from './Icon'
@@ -32,6 +32,7 @@ export function LabelsManager({ tripId, items, initialTab = 'type', onSave, onDe
   const [draft, setDraft] = useState<Draft | null>(null)
   const [moveTo, setMoveTo] = useState('')
   const [busy, setBusy] = useState(false)
+  const [iconQuery, setIconQuery] = useState('')
 
   const typeRows = labels.filter((l) => l.kind === 'type')
   const rowFor = (kind: Label['kind'], name: string) => labels.find((l) => l.kind === kind && l.name === name)
@@ -109,7 +110,7 @@ export function LabelsManager({ tripId, items, initialTab = 'type', onSave, onDe
     <div className="label-editor">
       <div className="label-preview">
         <span className="label-swatch" style={{ background: draft.color ?? '#e3e5e0', color: draft.color ? '#fff' : 'var(--ink-2)' }}>
-          <LabelIconView name={draft.icon ?? 'pin'} size={20} />
+          <LabelIconView name={draft.icon} size={24} />
         </span>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor="label-name">{tab === 'type' ? 'Type name' : 'Tag'}</label>
@@ -129,26 +130,46 @@ export function LabelsManager({ tripId, items, initialTab = 'type', onSave, onDe
       </fieldset>
       <fieldset className="group">
         <legend>Icon</legend>
+        <div className="icon-search">
+          <label className="sr-only" htmlFor="icon-q">Search icons</label>
+          <input
+            id="icon-q"
+            placeholder="Search, or type any name from fonts.google.com/icons"
+            value={iconQuery}
+            onChange={(e) => setIconQuery(e.target.value.toLowerCase().trim().replace(/\s+/g, '_'))}
+          />
+          <a className="small" href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank" rel="noreferrer">
+            Browse all
+          </a>
+        </div>
         <div className="icon-grid">
-          {tab === 'tag' && (
+          {tab === 'tag' && !iconQuery && (
             <button type="button" className={`icon-choice${!draft.icon ? ' is-on' : ''}`} aria-label="No icon" aria-pressed={!draft.icon} onClick={() => setDraft({ ...draft, icon: null })}>
               <span className="small">none</span>
             </button>
           )}
-          {LABEL_ICON_NAMES.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={`icon-choice${draft.icon === name ? ' is-on' : ''}`}
-              style={draft.icon === name && draft.color ? { background: tint(draft.color, 0.16), borderColor: draft.color, color: draft.color } : undefined}
-              aria-label={name}
-              title={name}
-              aria-pressed={draft.icon === name}
-              onClick={() => setDraft({ ...draft, icon: name })}
-            >
-              <LabelIconView name={name} size={20} />
-            </button>
-          ))}
+          {[
+            // A typed name that isn't suggested is offered as-is (any Material Symbol works).
+            ...(iconQuery && /^[a-z0-9_]+$/.test(iconQuery) && !SUGGESTED_ICONS.includes(iconQuery) ? [iconQuery] : []),
+            ...SUGGESTED_ICONS.filter((n) => !iconQuery || n.includes(iconQuery)),
+            ...(draft.icon && !SUGGESTED_ICONS.includes(iconName(draft.icon)) && !iconQuery ? [iconName(draft.icon)] : [])
+          ].map((name) => {
+            const on = iconName(draft.icon) === name
+            return (
+              <button
+                key={name}
+                type="button"
+                className={`icon-choice${on ? ' is-on' : ''}`}
+                style={on && draft.color ? { background: draft.color, borderColor: draft.color, color: '#fff' } : undefined}
+                aria-label={name.replace(/_/g, ' ')}
+                title={name}
+                aria-pressed={on}
+                onClick={() => setDraft({ ...draft, icon: name })}
+              >
+                <LabelIconView name={name} size={22} />
+              </button>
+            )
+          })}
         </div>
       </fieldset>
       {draft.original && tab === 'type' && usage('type', draft.original) > 0 && (
@@ -223,11 +244,12 @@ export function LabelsManager({ tripId, items, initialTab = 'type', onSave, onDe
                 className="label-row"
                 onClick={() => {
                   setMoveTo('')
-                  setDraft({ original: s.name, name: s.name, color: s.color, icon: s.icon ?? (tab === 'type' ? 'pin' : null) })
+                  setIconQuery('')
+                  setDraft({ original: s.name, name: s.name, color: s.color, icon: s.icon ?? (tab === 'type' ? 'location_on' : null) })
                 }}
               >
                 <span className="label-swatch" style={{ background: s.color ?? '#eef0ec', color: s.color ? '#fff' : 'var(--ink-2)' }}>
-                  {s.icon ? <LabelIconView name={s.icon} size={18} /> : <span className="small">#</span>}
+                  {s.icon ? <LabelIconView name={s.icon} size={20} /> : <span className="small">#</span>}
                 </span>
                 <span className="label-name">{s.name}</span>
                 <span className="muted small">{s.count ? `${s.count} ${s.count === 1 ? 'entry' : 'entries'}` : 'unused'}</span>

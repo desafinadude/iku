@@ -50,13 +50,15 @@ export function FilterBar({ filters, items, topTags, onChange, onMore }: Props) 
           const on = filters.tags.includes(tag)
           const st = tagStyle(tag)
           return (
-            <button key={tag} className={`chip chip-tag${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}>
-              {st.icon && (
-                <span className="chip-icon" style={{ color: on ? undefined : (st.color ?? undefined) }}>
-                  <LabelIconView name={st.icon} size={14} />
-                </span>
-              )}
-              {!st.icon && st.color && <span className="dot" style={{ background: st.color }} />}
+            <button
+              key={tag}
+              className={`chip chip-tag${on ? ' is-on-dark' : ''}${st.color ? ' chip-solid' : ''}`}
+              style={st.color ? { background: st.color, borderColor: st.color } : undefined}
+              aria-pressed={on}
+              onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}
+            >
+              {on && st.color && <Icon name="check" size={14} strokeWidth={2.6} />}
+              {st.icon && <LabelIconView name={st.icon} size={15} />}
               {tag}
             </button>
           )

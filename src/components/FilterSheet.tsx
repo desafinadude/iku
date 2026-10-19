@@ -1,8 +1,10 @@
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
+import type { Prefs } from '../usePrefs'
 import { EMPTY_FILTERS, statusOf, type Filters, type Item, type Member, type Status } from '../types'
 import { displayName, matches } from '../lib'
 import { Avatar } from './Avatar'
+import { Icon } from './Icon'
 import { toggle } from './FilterBar'
 import { Sheet } from './Sheet'
 
@@ -12,6 +14,8 @@ interface Props {
   allTags: string[]
   members: Member[]
   onManage: () => void
+  prefs: Prefs
+  onPrefs: (patch: Partial<Prefs>) => void
   onChange: (f: Filters) => void
   onClose: () => void
 }
@@ -22,7 +26,7 @@ const STATUSES: { id: Status; label: string }[] = [
   { id: 'booked', label: 'Booked' }
 ]
 
-export function FilterSheet({ filters, items, allTags, members, onManage, onChange, onClose }: Props) {
+export function FilterSheet({ filters, items, allTags, members, onManage, prefs, onPrefs, onChange, onClose }: Props) {
   const { types, tagStyle } = useLabels()
   const shown = items.filter((x) => matches(x, filters)).length
   return (
@@ -92,19 +96,38 @@ export function FilterSheet({ filters, items, allTags, members, onManage, onChan
             const on = filters.tags.includes(tag)
             const st = tagStyle(tag)
             return (
-              <button key={tag} className={`chip${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}>
-                {st.icon && (
-                  <span className="chip-icon" style={{ color: on ? undefined : (st.color ?? undefined) }}>
-                    <LabelIconView name={st.icon} size={14} />
-                  </span>
-                )}
-                {!st.icon && st.color && <span className="dot" style={{ background: st.color }} />}
+              <button
+                key={tag}
+                className={`chip${on ? ' is-on-dark' : ''}${st.color ? ' chip-solid' : ''}`}
+                style={st.color ? { background: st.color, borderColor: st.color } : undefined}
+                aria-pressed={on}
+                onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}
+              >
+                {on && st.color && <Icon name="check" size={14} strokeWidth={2.6} />}
+                {st.icon && <LabelIconView name={st.icon} size={15} />}
                 {tag} <span className="chip-count">{items.filter((x) => x.tags.includes(tag)).length}</span>
               </button>
             )
           })}
           {allTags.length === 0 && <span className="muted">No tags yet.</span>}
         </div>
+      </fieldset>
+      <fieldset className="group">
+        <legend>Display</legend>
+        <label className="switch-row">
+          <span>
+            <b>Hide repeats on later days</b>
+            <span className="muted small">Show a multi-day entry (like a hotel) only on its first day</span>
+          </span>
+          <input type="checkbox" checked={prefs.hideRepeats} onChange={(e) => onPrefs({ hideRepeats: e.target.checked })} />
+        </label>
+        <label className="switch-row" style={{ marginTop: 8 }}>
+          <span>
+            <b>Show tags on repeats</b>
+            <span className="muted small">Keep all tags visible on every day of a multi-day entry</span>
+          </span>
+          <input type="checkbox" checked={prefs.tagsOnRepeats} disabled={prefs.hideRepeats} onChange={(e) => onPrefs({ tagsOnRepeats: e.target.checked })} />
+        </label>
       </fieldset>
       <button type="button" className="secondary-btn manage-btn" onClick={onManage}>
         Manage types &amp; tags: colours, icons, names
