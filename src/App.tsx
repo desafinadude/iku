@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
 import { DaysBoard } from './components/DaysBoard'
+import { DocsPane } from './components/DocsPane'
+import { FileViewer } from './components/FileViewer'
+import { Sheet } from './components/Sheet'
 import { FilterBar } from './components/FilterBar'
 import { FilterSheet } from './components/FilterSheet'
 import { Icon, type IconName } from './components/Icon'
@@ -14,13 +17,13 @@ import { Unlock } from './components/Unlock'
 import { createBackend } from './data/backend'
 import { useTrip } from './data/useTrip'
 import { domainOf, isUrl, matches, tripDays, tripRange, uid } from './lib'
-import { EMPTY_FILTERS, type Filters, type Item } from './types'
+import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
 const backend = createBackend()
 
-type Tab = 'ideas' | 'days' | 'map'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | null
+type Tab = 'ideas' | 'days' | 'map' | 'docs'
+type SheetState = { kind: 'item'; item: Item; isNew: boolean } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -43,7 +46,22 @@ export default function App() {
 }
 
 function Planner() {
-  const { trip, items, members, me, error, setError, save, remove, moveTo, saveProfile } = useTrip(backend, true)
+  const {
+    trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
+    save, remove, moveTo, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+  } = useTrip(backend, true)
+  const [online, setOnline] = useState(() => navigator.onLine)
+  useEffect(() => {
+    const on = () => setOnline(navigator.onLine)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', on)
+    return () => {
+      window.removeEventListener('online', on)
+      window.removeEventListener('offline', on)
+    }
+  }, [])
+  const canEdit = online && !offlineSince
+  const [viewing, setViewing] = useState<Attachment | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
   const [tab, setTab] = useState<Tab>('ideas')
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -93,6 +111,7 @@ function Planner() {
     type: 'Sight',
     tags: [],
     day: null,
+    endDay: null,
     time: null,
     booked: false,
     bookingRef: null,
@@ -117,12 +136,26 @@ function Planner() {
     setDragging(null)
     const target = e.over?.id
     if (!target) return
-    const id = String(e.active.id)
+    const id = String(e.active.id).split('@')[0]
     if (target === 'ideas') moveTo(id, null)
     else if (String(target).startsWith('day:')) moveTo(id, String(target).slice(4))
   }
 
-  const ideasPane = <IdeasPane ideas={ideas} members={members} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
+  const docsProps = {
+    attachments,
+    items,
+    members,
+    offlineIds,
+    online: canEdit,
+    uploading: uploading > 0,
+    onUpload: (files: File[]) => upload(null, files),
+    onOpenFile: setViewing,
+    onDeleteFile: deleteAttachment,
+    onToggleOffline: toggleOffline,
+    onOpenItem: (item: Item) => setSheet({ kind: 'item', item, isNew: false })
+  }
+
+  const ideasPane = <IdeasPane ideas={ideas} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -139,6 +172,12 @@ function Planner() {
           <span className="muted">{tripRange(trip)}</span>
         </div>
         <span className="spacer" />
+        {wide && (
+          <button className="secondary-btn docs-btn" onClick={() => setSheet({ kind: 'docs' })}>
+            <Icon name="paperclip" size={16} /> Docs
+            {attachments.length > 0 && <span className="chip-count">{attachments.length}</span>}
+          </button>
+        )}
         {meMember && (
           <button className="member-stack" aria-label="Trip members and your profile" onClick={() => setSheet({ kind: 'profile', welcome: false })}>
             {[meMember, ...members.filter((m) => m.email !== me)].slice(0, 4).map((m) => (
@@ -154,7 +193,16 @@ function Planner() {
         )}
       </header>
 
-      {(wide || tab !== 'days') && <FilterBar filters={filters} items={items} topTags={allTags.slice(0, 4)} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
+      {(offlineSince || !online) && (
+        <div className="offline-bar" role="status">
+          <Icon name="offline" size={16} />
+          {offlineSince
+            ? `Offline: showing what was synced ${new Date(offlineSince).toLocaleString('en', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}. Files saved on this device still open.`
+            : 'You’re offline. Changes won’t save until you’re back online.'}
+        </div>
+      )}
+
+      {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} topTags={allTags.slice(0, 4)} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
 
       {error && (
         <div className="error-bar" role="alert">
@@ -170,13 +218,20 @@ function Planner() {
           {wide ? (
             <>
               {ideasPane}
-              <DaysBoard days={days} items={visible} members={members} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })} />
+              <DaysBoard days={days} items={visible} members={members} attachments={attachments} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })} />
               {mapPane}
             </>
           ) : tab === 'ideas' ? (
             ideasPane
           ) : tab === 'days' ? (
-            <DayPlan tripName={trip.name} days={days} items={visible} members={members} selectedDay={selectedDay} unplannedCount={unplannedCount} onSelectDay={setSelectedDay} onOpen={open} onShowIdeas={() => setTab('ideas')} />
+            <DayPlan tripName={trip.name} days={days} items={visible} members={members} attachments={attachments} selectedDay={selectedDay} unplannedCount={unplannedCount} onSelectDay={setSelectedDay} onOpen={open} onShowIdeas={() => setTab('ideas')} />
+          ) : tab === 'docs' ? (
+            <section aria-label="Docs" className="pane pane-docs">
+              <div className="pane-head">
+                <h2>Docs</h2>
+              </div>
+              <DocsPane {...docsProps} />
+            </section>
           ) : (
             mapPane
           )}
@@ -196,7 +251,8 @@ function Planner() {
               [
                 ['ideas', 'Ideas', 'ideas'],
                 ['days', 'Days', 'days'],
-                ['map', 'Map', 'map']
+                ['map', 'Map', 'map'],
+                ['docs', 'Docs', 'paperclip']
               ] as [Tab, string, IconName][]
             ).map(([id, label, icon]) => (
               <button key={id} className={tab === id ? 'is-on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
@@ -217,10 +273,19 @@ function Planner() {
           allTags={allTags}
           members={members}
           onUnfurl={backend.unfurl}
+          attachments={attachments.filter((a) => a.itemId === sheet.item.id)}
+          offlineIds={offlineIds}
+          online={canEdit}
+          uploading={uploading > 0}
+          onUpload={(files) => upload(sheet.item.id, files)}
+          onOpenFile={setViewing}
+          onDeleteFile={deleteAttachment}
+          onToggleOffline={toggleOffline}
           onClose={() => setSheet(null)}
-          onSave={(item) => {
-            save(item)
+          onSave={async (item, pendingFiles) => {
             setSheet(null)
+            // Files need the entry to exist first.
+            if ((await save(item)) && pendingFiles.length) upload(item.id, pendingFiles)
           }}
           onDelete={(id) => {
             remove(id)
@@ -246,6 +311,12 @@ function Planner() {
           }}
         />
       )}
+      {sheet?.kind === 'docs' && (
+        <Sheet title="Docs" onClose={() => setSheet(null)}>
+          <DocsPane {...docsProps} />
+        </Sheet>
+      )}
+      {viewing && <FileViewer attachment={viewing} getUrl={fileUrl} onClose={() => setViewing(null)} />}
     </div>
   )
 }

@@ -1,18 +1,19 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useState } from 'react'
-import type { Item, Member } from '../types'
+import type { Attachment, Item, Member } from '../types'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
 
 interface Props {
   ideas: Item[]
   members: Member[]
+  attachments: Attachment[]
   totalIdeas: number
   onCapture: (text: string) => void
   onOpen: (item: Item) => void
 }
 
-export function IdeasPane({ ideas, members, totalIdeas, onCapture, onOpen }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onOpen }: Props) {
   const [text, setText] = useState('')
   const { setNodeRef, isOver } = useDroppable({ id: 'ideas' })
 
@@ -56,7 +57,7 @@ export function IdeasPane({ ideas, members, totalIdeas, onCapture, onOpen }: Pro
       </form>
       <div className="masonry">
         {ideas.map((item) => (
-          <ItemCard key={item.id} item={item} members={members} variant="pin" onOpen={onOpen} />
+          <ItemCard key={item.id} item={item} members={members} variant="pin" fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
         ))}
         {ideas.length === 0 && <p className="empty">Nothing here. Paste a link above to start collecting.</p>}
       </div>

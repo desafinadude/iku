@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LinkPreview } from '../data/backend'
-import { dayLabel, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
-import { ITEM_TYPES, TYPE_COLORS, type Item, type Member } from '../types'
+import { addDays, dayLabel, daysBetween, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { ITEM_TYPES, TYPE_COLORS, type Attachment, type Item, type Member } from '../types'
+import { AttachmentList, type PendingFile } from './AttachmentList'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -13,13 +14,24 @@ interface Props {
   allTags: string[]
   members: Member[]
   onUnfurl: (url: string) => Promise<LinkPreview | null>
-  onSave: (item: Item) => void
+  attachments: Attachment[]
+  offlineIds: Set<string>
+  online: boolean
+  uploading: boolean
+  onUpload: (files: File[]) => void
+  onOpenFile: (a: Attachment) => void
+  onDeleteFile: (a: Attachment) => void
+  onToggleOffline: (a: Attachment) => void
+  /** Files picked before a new entry existed are handed over to upload after saving. */
+  onSave: (item: Item, pendingFiles: File[]) => void
   onDelete: (id: string) => void
   onClose: () => void
 }
 
-export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSave, onDelete, onClose }: Props) {
+export function ItemSheet(props: Props) {
+  const { item, isNew, days, allTags, members, onUnfurl, onSave, onDelete, onClose } = props
   const [draft, setDraft] = useState(item)
+  const [pending, setPending] = useState<PendingFile[]>([])
   const [tagText, setTagText] = useState('')
   const [geoState, setGeoState] = useState<'idle' | 'busy' | 'none'>('idle')
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
@@ -93,8 +105,8 @@ export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSav
               <Icon name="trash" />
             </button>
           )}
-          <button className="primary-btn wide" disabled={!draft.title.trim()} onClick={() => onSave({ ...draft, title: draft.title.trim() })}>
-            {draft.day ? 'Save to ' + dayLabel(draft.day).dow + ' ' + dayLabel(draft.day).num : 'Save to Ideas'}
+          <button className="primary-btn wide" disabled={!draft.title.trim()} onClick={() => onSave({ ...draft, title: draft.title.trim() }, pending.map((p) => p.file))}>
+            {draft.day ? 'Save to ' + dayLabel(draft.day).dow + ' ' + dayLabel(draft.day).num + (draft.endDay ? '–' + dayLabel(draft.endDay).num : '') : 'Save to Ideas'}
           </button>
         </>
       }
@@ -193,7 +205,7 @@ export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSav
       <fieldset className="group">
         <legend>When</legend>
         <div className="when-strip">
-          <button type="button" className={`when-pill${!draft.day ? ' is-on' : ''}`} aria-pressed={!draft.day} onClick={() => set({ day: null })}>
+          <button type="button" className={`when-pill${!draft.day ? ' is-on' : ''}`} aria-pressed={!draft.day} onClick={() => set({ day: null, endDay: null })}>
             <span className="small">Later</span>
             <b>Ideas</b>
           </button>
@@ -201,7 +213,16 @@ export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSav
             const l = dayLabel(d)
             const on = draft.day === d
             return (
-              <button key={d} type="button" className={`when-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ day: d })}>
+              <button
+                key={d}
+                type="button"
+                className={`when-pill${on ? ' is-on' : ''}${draft.day && draft.endDay && d > draft.day && d <= draft.endDay ? ' is-span' : ''}`}
+                aria-pressed={on}
+                onClick={() =>
+                  // Keep the length of a multi-day entry when its start moves.
+                  set({ day: d, endDay: draft.day && draft.endDay ? addDays(d, daysBetween(draft.day, draft.endDay)) : null })
+                }
+              >
                 <span className="small">{l.dow}</span>
                 <b>{l.num}</b>
               </button>
@@ -211,9 +232,41 @@ export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSav
       </fieldset>
 
       {draft.day && (
+        <fieldset className="group">
+          <legend>{draft.type === 'Stay' ? 'Check-out' : 'Until'}</legend>
+          <div className="when-strip">
+            <button type="button" className={`when-pill${!draft.endDay ? ' is-on' : ''}`} aria-pressed={!draft.endDay} onClick={() => set({ endDay: null })}>
+              <span className="small">One</span>
+              <b>day</b>
+            </button>
+            {days
+              .filter((d) => d > draft.day!)
+              .map((d) => {
+                const l = dayLabel(d)
+                const on = draft.endDay === d
+                const n = daysBetween(draft.day!, d)
+                return (
+                  <button key={d} type="button" className={`when-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ endDay: d })} title={draft.type === 'Stay' ? `${n} ${n === 1 ? 'night' : 'nights'}` : `${n + 1} days`}>
+                    <span className="small">{l.dow}</span>
+                    <b>{l.num}</b>
+                  </button>
+                )
+              })}
+          </div>
+          {draft.endDay && (
+            <span className="muted small">
+              {draft.type === 'Stay'
+                ? `${daysBetween(draft.day, draft.endDay)} nights · shows on every day of the stay`
+                : `${daysBetween(draft.day, draft.endDay) + 1} days · shows on each of them`}
+            </span>
+          )}
+        </fieldset>
+      )}
+
+      {draft.day && (
         <div className="field-row">
           <div className="field">
-            <label htmlFor="f-time">Time</label>
+            <label htmlFor="f-time">{draft.type === 'Stay' && draft.endDay ? 'Check-in time' : 'Time'}</label>
             <input id="f-time" type="time" value={draft.time ?? ''} onChange={(e) => set({ time: e.target.value || null })} />
           </div>
           <label className="check">
@@ -244,6 +297,28 @@ export function ItemSheet({ item, isNew, days, allTags, members, onUnfurl, onSav
       <div className="field">
         <label htmlFor="f-note">Notes</label>
         <textarea id="f-note" rows={3} value={draft.note ?? ''} onChange={(e) => set({ note: e.target.value || null })} />
+      </div>
+
+      <div className="group">
+        <h3 className="group-title">Attachments</h3>
+        <AttachmentList
+          attachments={props.attachments}
+          pending={pending}
+          members={members}
+          offlineIds={props.offlineIds}
+          uploading={props.uploading}
+          canAdd={props.online}
+          emptyText="Tickets, confirmations, PDFs or photos."
+          onAdd={(files) => {
+            // Existing entries upload straight away; new ones wait until the entry is saved.
+            if (isNew) setPending((ps) => [...ps, ...files.map((file) => ({ key: crypto.randomUUID(), file }))])
+            else props.onUpload(files)
+          }}
+          onRemovePending={(key) => setPending((ps) => ps.filter((p) => p.key !== key))}
+          onOpen={props.onOpenFile}
+          onDelete={props.onDeleteFile}
+          onToggleOffline={props.onToggleOffline}
+        />
       </div>
     </Sheet>
   )

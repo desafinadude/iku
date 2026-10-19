@@ -2,7 +2,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
-import { byTime, dayLabel } from '../lib'
+import { dayLabel, itemsForDay } from '../lib'
 import { TYPE_COLORS, type Item } from '../types'
 import { Icon } from './Icon'
 
@@ -65,7 +65,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
 
   const scopeAll = expanded && allDays
   const stops = useMemo(
-    () => (scopeAll ? items.filter((x) => x.day) : items.filter((x) => x.day === selectedDay).sort(byTime)).filter(located),
+    () => (scopeAll ? items.filter((x) => x.day) : itemsForDay(items, selectedDay)).filter(located),
     [items, selectedDay, scopeAll]
   )
   const ideas = useMemo(() => (showIdeas ? items.filter((x) => !x.day).filter(located) : []), [items, showIdeas])

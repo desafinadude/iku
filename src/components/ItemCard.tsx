@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import { useState } from 'react'
-import { domainOf } from '../lib'
+import { domainOf, spanLabel } from '../lib'
 import { TYPE_COLORS, type Item, type Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
@@ -11,11 +11,17 @@ interface Props {
   variant: 'pin' | 'plan'
   onOpen: (item: Item) => void
   draggable?: boolean
+  /** The day column this card is shown in (for multi-day labels). */
+  day?: string
+  fileCount?: number
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0 }: Props) {
+  // A multi-day entry shows in several columns; only its first day's card can be dragged.
+  const continuing = !!day && !!item.day && day !== item.day
+  const span = day ? spanLabel(item, day) : null
   const creator = memberFor(members, item.createdBy)
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled: !draggable })
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
   const c = TYPE_COLORS[item.type]
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
@@ -24,7 +30,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true }: P
   return (
     <article
       ref={setNodeRef}
-      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}`}
+      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}`}
       {...listeners}
       {...attributes}
       role="button"
@@ -50,11 +56,18 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true }: P
       )}
       <div className="card-body">
         <div className="card-meta">
-          {variant === 'plan' && item.time && <span className="card-time">{item.time}</span>}
+          {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
+          {span && <span className="span-label">{span}</span>}
           <span className="type-label" style={{ color: c.fg, background: variant === 'plan' ? c.bg : undefined }}>
             {variant === 'pin' && <span className="dot" style={{ background: c.fg }} />}
             {item.type}
           </span>
+          {fileCount > 0 && (
+            <span className="file-badge" aria-label={`${fileCount} attachments`}>
+              <Icon name="paperclip" size={13} />
+              {fileCount}
+            </span>
+          )}
           {item.booked && (
             <span className="booked">
               <Icon name="check" size={13} strokeWidth={2.4} />
@@ -70,8 +83,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true }: P
         ) : (
           <div className="card-title">{item.title}</div>
         )}
-        {item.note && <div className="card-note">{item.note}</div>}
-        {(item.tags.length > 0 || creator) && (
+        {item.note && !continuing && <div className="card-note">{item.note}</div>}
+        {!continuing && (item.tags.length > 0 || creator) && (
           <div className="tag-row">
             {item.tags.map((t) => (
               <span key={t} className="tag">

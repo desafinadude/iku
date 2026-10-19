@@ -30,6 +30,8 @@ export interface Item {
   tags: string[]
   /** YYYY-MM-DD; null means it is still an unplanned idea. */
   day: string | null
+  /** Last day for multi-day entries (inclusive; check-out day for a stay), else null. */
+  endDay: string | null
   /** HH:MM */
   time: string | null
   booked: boolean
@@ -73,3 +75,16 @@ export interface Filters {
 }
 
 export const EMPTY_FILTERS: Filters = { search: '', types: [], tags: [], statuses: [], people: [], matchAllTags: false }
+
+export interface Attachment {
+  id: string
+  tripId: string
+  /** null = a trip-wide document. */
+  itemId: string | null
+  path: string
+  name: string
+  mime: string | null
+  size: number | null
+  createdBy: string | null
+  createdAt: string
+}
