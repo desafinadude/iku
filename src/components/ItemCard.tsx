@@ -1,0 +1,67 @@
+import { useDraggable } from '@dnd-kit/core'
+import { domainOf } from '../lib'
+import { TYPE_COLORS, type Item } from '../types'
+import { Icon } from './Icon'
+
+interface Props {
+  item: Item
+  variant: 'pin' | 'plan'
+  onOpen: (item: Item) => void
+  draggable?: boolean
+}
+
+export function ItemCard({ item, variant, onOpen, draggable = true }: Props) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled: !draggable })
+  const c = TYPE_COLORS[item.type]
+  const domain = domainOf(item.url)
+
+  return (
+    <article
+      ref={setNodeRef}
+      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}`}
+      {...listeners}
+      {...attributes}
+      role="button"
+      tabIndex={0}
+      aria-label={`${item.title}, ${item.type}${item.day ? '' : ', unplanned'}`}
+      onClick={() => onOpen(item)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onOpen(item)
+      }}
+    >
+      {variant === 'pin' && domain && (
+        <div className="card-media" style={{ background: c.bg }}>
+          <span className="card-domain" style={{ color: c.fg }}>
+            {domain}
+          </span>
+        </div>
+      )}
+      <div className="card-body">
+        <div className="card-meta">
+          {variant === 'plan' && item.time && <span className="card-time">{item.time}</span>}
+          <span className="type-label" style={{ color: c.fg, background: variant === 'plan' ? c.bg : undefined }}>
+            {variant === 'pin' && <span className="dot" style={{ background: c.fg }} />}
+            {item.type}
+          </span>
+          {item.booked && (
+            <span className="booked">
+              <Icon name="check" size={13} strokeWidth={2.4} />
+              Booked
+            </span>
+          )}
+        </div>
+        <div className="card-title">{item.title}</div>
+        {item.note && <div className="card-note">{item.note}</div>}
+        {item.tags.length > 0 && (
+          <div className="tag-row">
+            {item.tags.map((t) => (
+              <span key={t} className="tag">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}
