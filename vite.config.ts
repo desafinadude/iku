@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // GitHub Pages serves the app from /<repo>/; the deploy workflow sets BASE_PATH.
+  base: process.env.BASE_PATH || '/',
   // Accept both Vite-style and Next/Vercel-style public env names.
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   plugins: [
@@ -18,7 +20,8 @@ export default defineConfig({
         background_color: '#F4F4F1',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
+        start_url: '.',
+        scope: '.',
         icons: [
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
         ]

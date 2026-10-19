@@ -4,8 +4,10 @@ import { SEED_ITEMS, SEED_TRIP } from './seed'
 
 export interface Backend {
   mode: 'local' | 'supabase'
+  /** True when the unlock screen must ask for the email as well as the password. */
+  asksEmail: boolean
   isUnlocked(): Promise<boolean>
-  unlock(password: string): Promise<void>
+  unlock(password: string, email?: string): Promise<void>
   lock(): Promise<void>
   load(): Promise<{ trip: Trip; items: Item[] }>
   saveItem(item: Item): Promise<void>
@@ -37,6 +39,7 @@ function localBackend(): Backend {
   }
   return {
     mode: 'local',
+    asksEmail: false,
     isUnlocked: async () => true,
     unlock: async () => {},
     lock: async () => {},
@@ -115,17 +118,18 @@ const toRow = (i: Item): ItemRow => ({
   created_at: i.createdAt
 })
 
-function supabaseBackend(sb: SupabaseClient, tripEmail: string): Backend {
+function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Backend {
   const must = <T>(res: { data: T; error: { message: string } | null }) => {
     if (res.error) throw new Error(res.error.message)
     return res.data
   }
   return {
     mode: 'supabase',
+    asksEmail: !tripEmail,
     isUnlocked: async () => !!(await sb.auth.getSession()).data.session,
-    unlock: async (password) => {
-      const { error } = await sb.auth.signInWithPassword({ email: tripEmail, password })
-      if (error) throw new Error('That password didn’t work.')
+    unlock: async (password, email) => {
+      const { error } = await sb.auth.signInWithPassword({ email: (tripEmail ?? email ?? '').trim(), password })
+      if (error) throw new Error(tripEmail ? 'That password didn’t work.' : 'That email and password didn’t work.')
     },
     lock: async () => {
       await sb.auth.signOut()
@@ -164,6 +168,6 @@ export function createBackend(): Backend {
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     env.VITE_SUPABASE_ANON_KEY) as string | undefined
   const email = (env.VITE_TRIP_EMAIL || env.NEXT_PUBLIC_TRIP_EMAIL) as string | undefined
-  if (url && key && email) return supabaseBackend(createClient(url, key), email)
+  if (url && key) return supabaseBackend(createClient(url, key), email || undefined)
   return localBackend()
 }

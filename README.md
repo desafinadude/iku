@@ -17,9 +17,17 @@ With no environment variables set it runs in **local mode**: sample trip data is
 2. In **Authentication → Users → Add user**, create one user for the trip (e.g. `trip@yourdomain.com`) with the password you'll share with fellow travellers. Tick "Auto confirm".
 3. Run the two inserts at the bottom of `schema.sql`: your trip, and that email in `trip_members`. Only listed emails can see the trip.
 4. In **Authentication → Sign In / Providers**, turn off "Allow new users to sign up".
-5. Copy `.env.example` to `.env` and fill in the URL, publishable key and trip email. `VITE_*` or `NEXT_PUBLIC_*` names both work.
+5. Copy `.env.example` to `.env` and fill in the URL and publishable key. `VITE_*` or `NEXT_PUBLIC_*` names both work.
 
-The app then shows the unlock screen, asking only for the trip password. Row-level security means nothing can be read without that sign-in, and changes sync live between devices.
+The app then shows the unlock screen, asking for email and password. If you also set `VITE_TRIP_EMAIL`, it asks only for the password, but that email is then readable in the published site. Row-level security means nothing can be read without that sign-in, and changes sync live between devices.
+
+## Deploy to GitHub Pages
+
+`.github/workflows/deploy.yml` builds and publishes on every push to `main`.
+
+1. Repo **Settings → Pages → Source: GitHub Actions**.
+2. Repo **Settings → Secrets and variables → Actions → Variables**: add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (optionally `VITE_TRIP_EMAIL`). These are public by design. Never add the Supabase secret key.
+3. Push to `main`, or run the workflow from the Actions tab. The site is at `https://<user>.github.io/<repo>/`.
 
 ## Structure
 
