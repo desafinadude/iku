@@ -56,9 +56,22 @@ Run `supabase/migrations/004_attachments_and_spans.sql` to create the bucket, it
 
 Entries can run across several days (a hotel stay, a car rental, a multi-day hike). Set **From** and **To** (**Check-in** and **Check-out** for stays) with the date pickers; leave **To** empty for a single day. The entry shows on every day it covers, labelled "Check-in · 3 nights", "Night 2 of 3" and "Check-out" for stays, or "Day 2 of 3" for anything else. Dragging it to another day keeps its length.
 
-## Place search
+## Maps: Google, with an OpenStreetMap fallback
 
-The Place field suggests matches as you type, using [Photon](https://photon.komoot.io), an OpenStreetMap search built for type-ahead. It's free and needs no key, and results near the selected day's stops come first. Picking one puts the entry on the map. (Nominatim's usage policy doesn't allow search-as-you-type, so it isn't used. Google Places would find more businesses, but it needs a billed API key, which would be visible in the published site.)
+With a Google Maps key, the map is Google Maps, and the Place field searches Google Places. Entries picked from Google show live details (rating, today's hours, website, phone). Every entry with a location gets **Google Maps** and **Directions** links, with or without a key.
+
+Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Photon](https://photon.komoot.io) search instead, automatically.
+
+**Setting up the key**
+1. In [Google Cloud console](https://console.cloud.google.com), create a project and turn on billing. Google's monthly free usage covers a trip planner comfortably.
+2. Under **APIs & Services → Library**, enable **Maps JavaScript API** and **Places API (New)**.
+3. Under **APIs & Services → Credentials**, create an API key and restrict it:
+   - **Application restrictions → Websites:** `https://desafinadude.github.io/*` and `http://localhost:5173/*`.
+   - **API restrictions:** Maps JavaScript API and Places API (New) only.
+4. Optional: under **APIs & Services → Quotas**, cap daily requests so a surprise bill is impossible.
+5. Optional: under **Map Management**, create a Map ID (JavaScript, vector) and set `VITE_GOOGLE_MAP_ID`.
+6. Put the key in `.env.production` as `VITE_GOOGLE_MAPS_API_KEY=…` and push. The key is visible in the published site; the website restriction is what keeps it from working anywhere else.
+7. Run `supabase/migrations/005_google_places.sql`, so entries remember their Google place.
 
 ## Trip members
 

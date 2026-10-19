@@ -1,0 +1,98 @@
+import { useMapsLibrary } from '@vis.gl/react-google-maps'
+import { useCallback, useRef } from 'react'
+
+export interface PlaceHit {
+  name: string
+  detail: string
+  lat: number
+  lng: number
+  placeId: string | null
+}
+
+export interface Suggestion {
+  id: string
+  name: string
+  detail: string
+  resolve: () => Promise<PlaceHit>
+}
+
+export type Near = { lat: number; lng: number } | null
+export type SuggestFn = (q: string, near: Near, signal: AbortSignal) => Promise<Suggestion[]>
+
+interface PhotonFeature {
+  geometry: { coordinates: [number, number] }
+  properties: Record<string, string | undefined>
+}
+
+// Photon (komoot): OpenStreetMap search built for search-as-you-type, no key needed.
+// Used when there's no Google key. (Nominatim's usage policy doesn't allow autocomplete.)
+export const photonSuggest: SuggestFn = async (q, near, signal) => {
+  const params = new URLSearchParams({ q, limit: '6', lang: 'en' })
+  if (near) {
+    params.set('lat', String(near.lat))
+    params.set('lon', String(near.lng))
+  }
+  const res = await fetch(`https://photon.komoot.io/api/?${params}`, { signal })
+  const body = (await res.json()) as { features: PhotonFeature[] }
+  const seen = new Set<string>()
+  return body.features
+    .map((f) => {
+      const p = f.properties
+      const name = p.name ?? [p.housenumber, p.street].filter(Boolean).join(' ')
+      const detail = [p.name ? [p.street, p.housenumber].filter(Boolean).join(' ') : '', p.district, p.city ?? p.county, p.country].filter(Boolean).join(', ')
+      const hit: PlaceHit = { name, detail, lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], placeId: null }
+      return { id: `${name}|${hit.lat.toFixed(5)}|${hit.lng.toFixed(5)}`, name, detail, resolve: async () => hit }
+    })
+    .filter((s) => {
+      if (!s.name || seen.has(s.id)) return false
+      seen.add(s.id)
+      return true
+    })
+}
+
+/** Google Places (New) autocomplete. Returns null until the Places library has loaded. */
+export function useGoogleSuggest(): SuggestFn | null {
+  const places = useMapsLibrary('places')
+  // One session token per search-then-pick, which Google bills as a single session.
+  const token = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+
+  const suggest = useCallback<SuggestFn>(
+    async (q, near, signal) => {
+      if (!places) return []
+      token.current ??= new places.AutocompleteSessionToken()
+      const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: q,
+        sessionToken: token.current,
+        language: 'en',
+        ...(near ? { locationBias: { center: near, radius: 50_000 } } : {})
+      })
+      if (signal.aborted) return []
+      return suggestions
+        .map((s) => s.placePrediction)
+        .filter((p): p is google.maps.places.PlacePrediction => !!p)
+        .map((p) => {
+          const name = p.mainText?.text ?? p.text.text
+          const detail = p.secondaryText?.text ?? ''
+          return {
+            id: p.placeId,
+            name,
+            detail,
+            resolve: async () => {
+              const place = p.toPlace()
+              await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] })
+              token.current = null
+              return {
+                name: place.displayName ?? name,
+                detail: place.formattedAddress ?? detail,
+                lat: place.location!.lat(),
+                lng: place.location!.lng(),
+                placeId: place.id
+              }
+            }
+          }
+        })
+    },
+    [places]
+  )
+  return places ? suggest : null
+}

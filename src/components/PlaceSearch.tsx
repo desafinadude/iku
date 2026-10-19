@@ -1,57 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
+import { useGoogleOk } from '../maps/config'
+import { photonSuggest, useGoogleSuggest, type Near, type PlaceHit, type SuggestFn, type Suggestion } from '../maps/places'
 import { Icon } from './Icon'
-
-export interface PlaceHit {
-  name: string
-  detail: string
-  lat: number
-  lng: number
-}
 
 interface Props {
   value: string
   lat: number | null
   lng: number | null
-  /** Results near this point rank first (e.g. the middle of the trip's stops). */
-  near: { lat: number; lng: number } | null
+  /** Results near this point rank first (e.g. the selected day's stops). */
+  near: Near
   onChange: (place: string | null) => void
   onPick: (hit: PlaceHit) => void
   onClearLocation: () => void
 }
 
-interface PhotonFeature {
-  geometry: { coordinates: [number, number] }
-  properties: Record<string, string | undefined>
+/** Google Places search when a key is configured, otherwise Photon (OpenStreetMap). */
+export function PlaceSearch(props: Props) {
+  return useGoogleOk() ? <GooglePlaceSearch {...props} /> : <PlaceSearchField {...props} suggest={photonSuggest} source="OpenStreetMap" />
 }
 
-// Photon (komoot) is built for search-as-you-type over OpenStreetMap data. Nominatim's
-// usage policy doesn't allow autocomplete, so we don't use it here.
-async function searchPlaces(q: string, near: Props['near'], signal: AbortSignal): Promise<PlaceHit[]> {
-  const params = new URLSearchParams({ q, limit: '6', lang: 'en' })
-  if (near) {
-    params.set('lat', String(near.lat))
-    params.set('lon', String(near.lng))
-  }
-  const res = await fetch(`https://photon.komoot.io/api/?${params}`, { signal })
-  const body = (await res.json()) as { features: PhotonFeature[] }
-  const seen = new Set<string>()
-  return body.features
-    .map((f) => {
-      const p = f.properties
-      const name = p.name ?? [p.housenumber, p.street].filter(Boolean).join(' ') ?? ''
-      const detail = [p.name ? [p.street, p.housenumber].filter(Boolean).join(' ') : '', p.district, p.city ?? p.county, p.country].filter(Boolean).join(', ')
-      return { name, detail, lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }
-    })
-    .filter((h) => {
-      const key = `${h.name}|${h.lat.toFixed(4)}|${h.lng.toFixed(4)}`
-      if (!h.name || seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+function GooglePlaceSearch(props: Props) {
+  const suggest = useGoogleSuggest()
+  return <PlaceSearchField {...props} suggest={suggest} source="Google" />
 }
 
-export function PlaceSearch({ value, lat, lng, near, onChange, onPick, onClearLocation }: Props) {
-  const [hits, setHits] = useState<PlaceHit[]>([])
+function PlaceSearchField({ value, lat, lng, near, onChange, onPick, onClearLocation, suggest, source }: Props & { suggest: SuggestFn | null; source: string }) {
+  const [hits, setHits] = useState<Suggestion[]>([])
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<'idle' | 'busy' | 'none' | 'error'>('idle')
   const typed = useRef(false)
@@ -64,7 +38,7 @@ export function PlaceSearch({ value, lat, lng, near, onChange, onPick, onClearLo
 
   useEffect(() => {
     const q = value.trim()
-    if (!typed.current || q.length < 3) {
+    if (!typed.current || q.length < 3 || !suggest) {
       setHits([])
       return
     }
@@ -72,7 +46,8 @@ export function PlaceSearch({ value, lat, lng, near, onChange, onPick, onClearLo
     const t = setTimeout(async () => {
       setState('busy')
       try {
-        const found = await searchPlaces(q, near, ctrl.signal)
+        const found = await suggest(q, near, ctrl.signal)
+        if (ctrl.signal.aborted) return
         setHits(found)
         setOpen(true)
         setState(found.length ? 'idle' : 'none')
@@ -84,7 +59,7 @@ export function PlaceSearch({ value, lat, lng, near, onChange, onPick, onClearLo
       clearTimeout(t)
       ctrl.abort()
     }
-  }, [value, near])
+  }, [value, near, suggest])
 
   return (
     <div className="field place-search">
@@ -93,7 +68,7 @@ export function PlaceSearch({ value, lat, lng, near, onChange, onPick, onClearLo
         <Icon name="search" size={16} />
         <input
           id="f-place"
-          placeholder="Search for a place or address"
+          placeholder={`Search ${source} for a place or address`}
           autoComplete="off"
           value={value}
           onChange={(e) => {
@@ -113,16 +88,20 @@ export function PlaceSearch({ value, lat, lng, near, onChange, onPick, onClearLo
       {open && hits.length > 0 && (
         <ul ref={listRef} className="place-hits" role="listbox" aria-label="Places">
           {hits.map((h) => (
-            <li key={`${h.name}-${h.lat}-${h.lng}`}>
+            <li key={h.id}>
               <button
                 type="button"
                 role="option"
                 aria-selected={false}
-                onClick={() => {
+                onClick={async () => {
                   typed.current = false
                   setOpen(false)
                   setHits([])
-                  onPick(h)
+                  try {
+                    onPick(await h.resolve())
+                  } catch {
+                    setState('error')
+                  }
                 }}
               >
                 <Icon name="pin" size={16} />

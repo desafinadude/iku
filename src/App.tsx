@@ -125,6 +125,7 @@ function Planner() {
     booked: false,
     bookingRef: null,
     place: null,
+    placeId: null,
     lat: null,
     lng: null,
     sort: Date.now(),

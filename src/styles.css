@@ -309,3 +309,10 @@ h1, h2 { margin: 0; }
 .place-hits button > svg { margin-top: 2px; color: var(--accent); flex: none; }
 .place-hits button > span { display: flex; flex-direction: column; min-width: 0; }
 .link-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+.map-loading { display: grid; place-items: center; color: var(--muted); font-size: 14px; background: #ecebe4; }
+.place-info { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--ground); }
+.place-rating { font-weight: 600; font-size: 15px; }
+.place-rating span[aria-hidden] { color: #b7791f; }
+.place-links { display: flex; gap: 14px; flex-wrap: wrap; }
+.maps-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.maps-links .secondary-btn { text-decoration: none; color: var(--ink); }
