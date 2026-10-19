@@ -3,6 +3,7 @@ import type { LinkPreview } from '../data/backend'
 import { addDays, dayLabel, daysBetween, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { ITEM_TYPES, TYPE_COLORS, type Attachment, type Item, type Member } from '../types'
 import { AttachmentList, type PendingFile } from './AttachmentList'
+import { PlaceSearch } from './PlaceSearch'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -14,6 +15,9 @@ interface Props {
   allTags: string[]
   members: Member[]
   onUnfurl: (url: string) => Promise<LinkPreview | null>
+  /** Day to use when switching an idea onto the plan. */
+  defaultDay: string
+  near: { lat: number; lng: number } | null
   attachments: Attachment[]
   offlineIds: Set<string>
   online: boolean
@@ -33,7 +37,6 @@ export function ItemSheet(props: Props) {
   const [draft, setDraft] = useState(item)
   const [pending, setPending] = useState<PendingFile[]>([])
   const [tagText, setTagText] = useState('')
-  const [geoState, setGeoState] = useState<'idle' | 'busy' | 'none'>('idle')
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
 
   const [previewState, setPreviewState] = useState<'idle' | 'busy' | 'none'>('idle')
@@ -68,20 +71,6 @@ export function ItemSheet(props: Props) {
     setTagText('')
   }
 
-  const findPlace = async () => {
-    const q = draft.place || draft.title
-    if (!q) return
-    setGeoState('busy')
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`)
-      const hits = (await res.json()) as { lat: string; lon: string; display_name: string }[]
-      if (!hits.length) return setGeoState('none')
-      set({ lat: Number(hits[0].lat), lng: Number(hits[0].lon), place: draft.place || hits[0].display_name.split(',').slice(0, 2).join(',') })
-      setGeoState('idle')
-    } catch {
-      setGeoState('none')
-    }
-  }
 
   const suggestions = allTags.filter((t) => !draft.tags.includes(t) && t.includes(normalizeTag(tagText).slice(1))).slice(0, 5)
   const domain = domainOf(draft.url)
@@ -204,64 +193,63 @@ export function ItemSheet(props: Props) {
 
       <fieldset className="group">
         <legend>When</legend>
-        <div className="when-strip">
-          <button type="button" className={`when-pill${!draft.day ? ' is-on' : ''}`} aria-pressed={!draft.day} onClick={() => set({ day: null, endDay: null })}>
-            <span className="small">Later</span>
-            <b>Ideas</b>
+        <div className="seg" role="group" aria-label="When">
+          <button type="button" className={!draft.day ? 'is-on' : ''} aria-pressed={!draft.day} onClick={() => set({ day: null, endDay: null })}>
+            Unplanned idea
           </button>
-          {days.map((d) => {
-            const l = dayLabel(d)
-            const on = draft.day === d
-            return (
-              <button
-                key={d}
-                type="button"
-                className={`when-pill${on ? ' is-on' : ''}${draft.day && draft.endDay && d > draft.day && d <= draft.endDay ? ' is-span' : ''}`}
-                aria-pressed={on}
-                onClick={() =>
-                  // Keep the length of a multi-day entry when its start moves.
-                  set({ day: d, endDay: draft.day && draft.endDay ? addDays(d, daysBetween(draft.day, draft.endDay)) : null })
-                }
-              >
-                <span className="small">{l.dow}</span>
-                <b>{l.num}</b>
-              </button>
-            )
-          })}
+          <button type="button" className={draft.day ? 'is-on' : ''} aria-pressed={!!draft.day} onClick={() => !draft.day && set({ day: props.defaultDay })}>
+            On the plan
+          </button>
         </div>
-      </fieldset>
-
-      {draft.day && (
-        <fieldset className="group">
-          <legend>{draft.type === 'Stay' ? 'Check-out' : 'Until'}</legend>
-          <div className="when-strip">
-            <button type="button" className={`when-pill${!draft.endDay ? ' is-on' : ''}`} aria-pressed={!draft.endDay} onClick={() => set({ endDay: null })}>
-              <span className="small">One</span>
-              <b>day</b>
-            </button>
-            {days
-              .filter((d) => d > draft.day!)
-              .map((d) => {
-                const l = dayLabel(d)
-                const on = draft.endDay === d
-                const n = daysBetween(draft.day!, d)
-                return (
-                  <button key={d} type="button" className={`when-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ endDay: d })} title={draft.type === 'Stay' ? `${n} ${n === 1 ? 'night' : 'nights'}` : `${n + 1} days`}>
-                    <span className="small">{l.dow}</span>
-                    <b>{l.num}</b>
+        {draft.day && (
+          <div className="date-row">
+            <div className="field">
+              <label htmlFor="f-from">{draft.endDay ? (draft.type === 'Stay' ? 'Check-in' : 'From') : 'Date'}</label>
+              <input
+                id="f-from"
+                type="date"
+                min={days[0]}
+                max={days[days.length - 1]}
+                value={draft.day}
+                onChange={(e) => {
+                  const d = e.target.value
+                  if (!d) return
+                  // Keep the length of a multi-day entry when its start moves.
+                  set({ day: d, endDay: draft.endDay ? addDays(d, daysBetween(draft.day!, draft.endDay)) : null })
+                }}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="f-to">{draft.type === 'Stay' ? 'Check-out' : 'To'}</label>
+              <div className="input-with-btn">
+                <input
+                  id="f-to"
+                  type="date"
+                  min={addDays(draft.day, 1)}
+                  max={days[days.length - 1]}
+                  value={draft.endDay ?? ''}
+                  onChange={(e) => set({ endDay: e.target.value && e.target.value > draft.day! ? e.target.value : null })}
+                />
+                {draft.endDay && (
+                  <button type="button" className="icon-btn" aria-label="Make it a single day" onClick={() => set({ endDay: null })}>
+                    <Icon name="close" size={16} />
                   </button>
-                )
-              })}
+                )}
+              </div>
+            </div>
           </div>
-          {draft.endDay && (
-            <span className="muted small">
-              {draft.type === 'Stay'
-                ? `${daysBetween(draft.day, draft.endDay)} nights · shows on every day of the stay`
-                : `${daysBetween(draft.day, draft.endDay) + 1} days · shows on each of them`}
-            </span>
-          )}
-        </fieldset>
-      )}
+        )}
+        {draft.day && (
+          <span className="muted small">
+            {dayLabel(draft.day).dow} {dayLabel(draft.day).num} {dayLabel(draft.day).month}
+            {draft.endDay
+              ? draft.type === 'Stay'
+                ? ` → ${dayLabel(draft.endDay).dow} ${dayLabel(draft.endDay).num} · ${daysBetween(draft.day, draft.endDay)} nights`
+                : ` → ${dayLabel(draft.endDay).dow} ${dayLabel(draft.endDay).num} · ${daysBetween(draft.day, draft.endDay) + 1} days`
+              : ' · leave “To” empty for a single day'}
+          </span>
+        )}
+      </fieldset>
 
       {draft.day && (
         <div className="field-row">
@@ -281,18 +269,15 @@ export function ItemSheet(props: Props) {
         </div>
       )}
 
-      <div className="field">
-        <label htmlFor="f-place">Place</label>
-        <div className="input-with-btn">
-          <input id="f-place" placeholder="Address or place name" value={draft.place ?? ''} onChange={(e) => set({ place: e.target.value || null })} />
-          <button type="button" className="secondary-btn" onClick={findPlace} disabled={geoState === 'busy'}>
-            <Icon name="pin" size={16} /> {geoState === 'busy' ? 'Finding…' : 'Find'}
-          </button>
-        </div>
-        <span className="muted small">
-          {geoState === 'none' ? 'Couldn’t find that place. Try a fuller address.' : draft.lat != null ? `On the map (${draft.lat.toFixed(4)}, ${draft.lng?.toFixed(4)})` : 'Not on the map yet'}
-        </span>
-      </div>
+      <PlaceSearch
+        value={draft.place ?? ''}
+        lat={draft.lat}
+        lng={draft.lng}
+        near={props.near}
+        onChange={(place) => set({ place })}
+        onPick={(h) => set({ place: h.detail ? `${h.name}, ${h.detail.split(', ').slice(-2).join(', ')}` : h.name, lat: h.lat, lng: h.lng })}
+        onClearLocation={() => set({ lat: null, lng: null })}
+      />
 
       <div className="field">
         <label htmlFor="f-note">Notes</label>
