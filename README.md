@@ -54,7 +54,11 @@ Run `supabase/migrations/004_attachments_and_spans.sql` to create the bucket, it
 
 ## Multi-day entries
 
-Entries can run across several days (a hotel stay, a car rental, a multi-day hike). Pick an end day under **Check-out** / **Until**. The entry shows on every day it covers, labelled "Check-in · 3 nights", "Night 2 of 3" and "Check-out" for stays, or "Day 2 of 3" for anything else. Dragging it to another day keeps its length.
+Entries can run across several days (a hotel stay, a car rental, a multi-day hike). Set **From** and **To** (**Check-in** and **Check-out** for stays) with the date pickers; leave **To** empty for a single day. The entry shows on every day it covers, labelled "Check-in · 3 nights", "Night 2 of 3" and "Check-out" for stays, or "Day 2 of 3" for anything else. Dragging it to another day keeps its length.
+
+## Place search
+
+The Place field suggests matches as you type, using [Photon](https://photon.komoot.io), an OpenStreetMap search built for type-ahead. It's free and needs no key, and results near the selected day's stops come first. Picking one puts the entry on the map. (Nominatim's usage policy doesn't allow search-as-you-type, so it isn't used. Google Places would find more businesses, but it needs a billed API key, which would be visible in the published site.)
 
 ## Trip members
 

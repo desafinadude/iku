@@ -106,7 +106,7 @@ h1, h2 { margin: 0; }
 .card-media { height: 84px; display: flex; align-items: flex-end; padding: 8px; }
 .card-domain { font-size: 11px; font-weight: 600; background: rgba(255,255,255,.85); padding: 3px 7px; border-radius: 6px; }
 .card-body { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-.card-meta { display: flex; align-items: center; gap: 6px; }
+.card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
 .card-time { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .type-label { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 6px; border-radius: 5px; }
 .card-pin .type-label { padding: 0; }
@@ -133,10 +133,10 @@ h1, h2 { margin: 0; }
 .pane-dayplan { overflow-y: auto; }
 .dayplan-head { display: flex; flex-direction: column; gap: 4px; }
 .dayplan-head h1 { font-size: 24px; }
-.day-strip, .when-strip { display: flex; gap: 6px; overflow-x: auto; margin: 8px -12px 0; padding: 0 12px 2px; scrollbar-width: none; }
-.day-pill, .when-pill { flex: none; min-width: 48px; height: 60px; padding: 0 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.day-pill b, .when-pill b { font-family: var(--display); font-size: 18px; }
-.day-pill.is-on, .when-pill.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.day-strip { display: flex; gap: 6px; overflow-x: auto; margin: 8px -12px 0; padding: 0 12px 2px; scrollbar-width: none; }
+.day-pill { flex: none; min-width: 48px; height: 60px; padding: 0 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.day-pill b { font-family: var(--display); font-size: 18px; }
+.day-pill.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .pill-dot { width: 4px; height: 4px; border-radius: 50%; }
 .pill-dot.has { background: var(--accent); }
 .day-pill.is-on .pill-dot.has { background: #fff; }
@@ -193,7 +193,6 @@ h1, h2 { margin: 0; }
 .suggest { min-height: 32px; padding: 0 10px; border: 1px dashed #b9beb8; border-radius: 8px; background: var(--surface); font-size: 13px; }
 .link-preview { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-dark); text-decoration: none; font-weight: 600; }
 .link-preview .muted { margin-left: auto; }
-.when-strip { margin: 0 -20px; padding: 0 20px 2px; }
 .switch-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--ground); }
 .switch-row > span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 
@@ -259,7 +258,6 @@ h1, h2 { margin: 0; }
 .card.is-continuing { background: #f7f8f5; border-style: dashed; cursor: pointer; }
 .card.is-continuing .card-body { padding: 8px 10px; gap: 4px; }
 .card.is-continuing .card-title { font-size: 13px; color: var(--ink-2); }
-.when-pill.is-span { background: var(--accent-soft); border-color: var(--drop-line); }
 
 /* ---------- Attachments ---------- */
 .file-badge { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--ink-2); }
@@ -294,3 +292,20 @@ h1, h2 { margin: 0; }
 .viewer-body img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .viewer-body iframe { width: 100%; height: 100%; border: 0; background: #fff; border-radius: 8px; }
 .viewer-body .muted { color: #b9beb8; text-align: center; }
+
+/* ---------- Dates & places in the entry sheet ---------- */
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--soft); border-radius: 12px; margin-bottom: 10px; }
+.seg button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-2); font-size: 14px; }
+.seg button.is-on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.date-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 6px; }
+.date-row input[type=date] { font-variant-numeric: tabular-nums; }
+.date-row .icon-btn { width: 48px; height: 48px; }
+.place-input { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); }
+.place-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.field .place-input input { border: 0; box-shadow: none !important; padding: 0; min-height: 46px; flex: 1; min-width: 0; color: var(--ink); }
+.place-hits { list-style: none; margin: 0; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 6px 16px rgba(23,32,29,.08); }
+.place-hits button { width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 10px; min-height: 48px; border: 0; border-radius: 8px; background: transparent; text-align: left; color: var(--ink); }
+.place-hits button:hover, .place-hits button:focus-visible { background: var(--ground); }
+.place-hits button > svg { margin-top: 2px; color: var(--accent); flex: none; }
+.place-hits button > span { display: flex; flex-direction: column; min-width: 0; }
+.link-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }

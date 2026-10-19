@@ -16,7 +16,7 @@ import { ProfileSheet } from './components/ProfileSheet'
 import { Unlock } from './components/Unlock'
 import { createBackend } from './data/backend'
 import { useTrip } from './data/useTrip'
-import { domainOf, isUrl, matches, tripDays, tripRange, uid } from './lib'
+import { domainOf, isUrl, matches, onDay, tripDays, tripRange, uid } from './lib'
 import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
@@ -92,6 +92,15 @@ function Planner() {
     setWelcomed(true)
     if (!meMember.name) setSheet({ kind: 'profile', welcome: true })
   }, [members, meMember, welcomed])
+
+  // Where place searches should look first: the selected day's stops, else the whole trip.
+  const near = useMemo(() => {
+    const located = items.filter((x) => x.lat != null && x.lng != null)
+    const today = located.filter((x) => selectedDay && onDay(x, selectedDay))
+    const pts = today.length ? today : located
+    if (!pts.length) return null
+    return { lat: pts.reduce((n, x) => n + x.lat!, 0) / pts.length, lng: pts.reduce((n, x) => n + x.lng!, 0) / pts.length }
+  }, [items, selectedDay])
 
   const visible = useMemo(() => items.filter((x) => matches(x, filters)), [items, filters])
   const ideas = visible.filter((x) => !x.day).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -273,6 +282,8 @@ function Planner() {
           allTags={allTags}
           members={members}
           onUnfurl={backend.unfurl}
+          defaultDay={selectedDay}
+          near={near}
           attachments={attachments.filter((a) => a.itemId === sheet.item.id)}
           offlineIds={offlineIds}
           online={canEdit}
