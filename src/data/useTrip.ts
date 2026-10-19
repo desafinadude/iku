@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, daysBetween } from '../lib'
-import type { Attachment, Item, Member, Trip } from '../types'
+import type { Attachment, Item, Label, Member, Trip } from '../types'
 import type { Backend, Profile } from './backend'
 import { getFile, loadSnapshot, removeFile, saveFile, saveSnapshot, savedFileIds } from './offline'
 
@@ -9,6 +9,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
   const [items, setItems] = useState<Item[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [labels, setLabels] = useState<Label[]>([])
   const [me, setMe] = useState('')
   const [error, setError] = useState<string | null>(null)
   /** Set when showing the last synced copy because the network is down. */
@@ -25,6 +26,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
       setItems(data.items)
       setMembers(data.members)
       setAttachments(data.attachments)
+      setLabels(data.labels)
       setMe(email)
       setError(null)
       setOfflineSince(null)
@@ -36,6 +38,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
         setItems(snap.items)
         setMembers(snap.members)
         setAttachments(snap.attachments ?? [])
+        setLabels(snap.labels ?? [])
         setMe(await backend.me().catch(() => ''))
         setOfflineSince(snap.savedAt)
       } else {
@@ -181,7 +184,39 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [backend]
   )
 
+  /** Runs a label change, then reloads so entries and styles match the database. */
+  const labelOp = useCallback(
+    async (op: () => Promise<void>) => {
+      try {
+        await op()
+        await reload()
+      } catch (e) {
+        await reload()
+        setError((e as Error).message)
+      }
+    },
+    [reload]
+  )
+  const saveLabels = useCallback(
+    (ls: Label[]) => {
+      setLabels((cur) => {
+        const byId = new Map(cur.map((l) => [l.id, l]))
+        ls.forEach((l) => byId.set(l.id, l))
+        return [...byId.values()]
+      })
+      return labelOp(() => backend.saveLabels(ls))
+    },
+    [backend, labelOp]
+  )
+  const deleteLabel = useCallback((id: string) => labelOp(() => backend.deleteLabel(id)), [backend, labelOp])
+  const renameLabel = useCallback(
+    (kind: Label['kind'], from: string, to: string) => labelOp(() => backend.renameLabel(trip!.id, kind, from, to)),
+    [backend, labelOp, trip]
+  )
+  const deleteTag = useCallback((tag: string) => labelOp(() => backend.deleteTag(trip!.id, tag)), [backend, labelOp, trip])
+
   return {
+    labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   }

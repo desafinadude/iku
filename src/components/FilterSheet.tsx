@@ -1,4 +1,6 @@
-import { EMPTY_FILTERS, ITEM_TYPES, TYPE_COLORS, statusOf, type Filters, type Item, type Member, type Status } from '../types'
+import { useLabels } from '../labels/LabelsContext'
+import { LabelIconView } from '../labels/LabelIconView'
+import { EMPTY_FILTERS, statusOf, type Filters, type Item, type Member, type Status } from '../types'
 import { displayName, matches } from '../lib'
 import { Avatar } from './Avatar'
 import { toggle } from './FilterBar'
@@ -9,6 +11,7 @@ interface Props {
   items: Item[]
   allTags: string[]
   members: Member[]
+  onManage: () => void
   onChange: (f: Filters) => void
   onClose: () => void
 }
@@ -19,7 +22,8 @@ const STATUSES: { id: Status; label: string }[] = [
   { id: 'booked', label: 'Booked' }
 ]
 
-export function FilterSheet({ filters, items, allTags, members, onChange, onClose }: Props) {
+export function FilterSheet({ filters, items, allTags, members, onManage, onChange, onClose }: Props) {
+  const { types, tagStyle } = useLabels()
   const shown = items.filter((x) => matches(x, filters)).length
   return (
     <Sheet
@@ -68,11 +72,13 @@ export function FilterSheet({ filters, items, allTags, members, onChange, onClos
       <fieldset className="group">
         <legend>Type</legend>
         <div className="chip-wrap">
-          {ITEM_TYPES.map((t) => {
+          {types.map((s) => s.name).map((t) => {
             const on = filters.types.includes(t)
             return (
               <button key={t} className={`chip${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, types: toggle(filters.types, t) })}>
-                <span className="dot" style={{ background: TYPE_COLORS[t].fg }} />
+                <span className="chip-icon" style={{ color: on ? undefined : types.find((s) => s.name === t)!.color }}>
+                  <LabelIconView name={types.find((s) => s.name === t)!.icon} size={15} />
+                </span>
                 {t} <span className="chip-count">{items.filter((x) => x.type === t).length}</span>
               </button>
             )
@@ -84,8 +90,15 @@ export function FilterSheet({ filters, items, allTags, members, onChange, onClos
         <div className="chip-wrap">
           {allTags.map((tag) => {
             const on = filters.tags.includes(tag)
+            const st = tagStyle(tag)
             return (
               <button key={tag} className={`chip${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}>
+                {st.icon && (
+                  <span className="chip-icon" style={{ color: on ? undefined : (st.color ?? undefined) }}>
+                    <LabelIconView name={st.icon} size={14} />
+                  </span>
+                )}
+                {!st.icon && st.color && <span className="dot" style={{ background: st.color }} />}
                 {tag} <span className="chip-count">{items.filter((x) => x.tags.includes(tag)).length}</span>
               </button>
             )
@@ -93,6 +106,9 @@ export function FilterSheet({ filters, items, allTags, members, onChange, onClos
           {allTags.length === 0 && <span className="muted">No tags yet.</span>}
         </div>
       </fieldset>
+      <button type="button" className="secondary-btn manage-btn" onClick={onManage}>
+        Manage types &amp; tags: colours, icons, names
+      </button>
       <label className="switch-row">
         <span>
           <b>Match all tags</b>

@@ -1,7 +1,9 @@
 import { useDraggable } from '@dnd-kit/core'
 import { useState } from 'react'
 import { domainOf, spanLabel } from '../lib'
-import { TYPE_COLORS, type Item, type Member } from '../types'
+import { useLabels } from '../labels/LabelsContext'
+import { LabelIconView } from '../labels/LabelIconView'
+import type { Item, Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 
@@ -22,7 +24,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const span = day ? spanLabel(item, day) : null
   const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
-  const c = TYPE_COLORS[item.type]
+  const { typeStyle, tagStyle } = useLabels()
+  const c = typeStyle(item.type)
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
   const image = item.imageUrl && !imgBroken ? item.imageUrl : null
@@ -49,7 +52,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       )}
       {variant === 'pin' && !image && domain && (
         <div className="card-media" style={{ background: c.bg }}>
-          <span className="card-domain" style={{ color: c.fg }}>
+          <span className="card-domain" style={{ color: c.color }}>
             {domain}
           </span>
         </div>
@@ -58,8 +61,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         <div className="card-meta">
           {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
           {span && <span className="span-label">{span}</span>}
-          <span className="type-label" style={{ color: c.fg, background: variant === 'plan' ? c.bg : undefined }}>
-            {variant === 'pin' && <span className="dot" style={{ background: c.fg }} />}
+          <span className="type-label" style={{ color: c.color, background: variant === 'plan' ? c.bg : undefined }}>
+            <LabelIconView name={c.icon} size={12} />
             {item.type}
           </span>
           {fileCount > 0 && (
@@ -86,11 +89,15 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         {item.note && !continuing && <div className="card-note">{item.note}</div>}
         {!continuing && (item.tags.length > 0 || creator) && (
           <div className="tag-row">
-            {item.tags.map((t) => (
-              <span key={t} className="tag">
-                {t}
-              </span>
-            ))}
+            {item.tags.map((t) => {
+              const st = tagStyle(t)
+              return (
+                <span key={t} className="tag" style={st.color ? { background: st.bg!, color: st.color } : undefined}>
+                  {st.icon && <LabelIconView name={st.icon} size={11} />}
+                  {t}
+                </span>
+              )
+            })}
             {creator && (
               <span className="card-creator">
                 <Avatar member={creator} size={20} />

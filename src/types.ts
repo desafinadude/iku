@@ -1,14 +1,28 @@
-export type ItemType = 'Food' | 'Sight' | 'Stay' | 'Transport' | 'Nature' | 'Shop'
+/** A type name, e.g. 'Food'. Trips can add their own types in the manager. */
+export type ItemType = string
 
-export const ITEM_TYPES: ItemType[] = ['Food', 'Sight', 'Stay', 'Transport', 'Nature', 'Shop']
+/** Built-in types, used until a trip customises its own. */
+export const DEFAULT_TYPES: { name: string; color: string; icon: string }[] = [
+  { name: 'Food', color: '#B4461F', icon: 'food' },
+  { name: 'Sight', color: '#0E6B60', icon: 'landmark' },
+  { name: 'Stay', color: '#3A5BA0', icon: 'bed' },
+  { name: 'Transport', color: '#5F4FA0', icon: 'train' },
+  { name: 'Nature', color: '#3F6B22', icon: 'mountain' },
+  { name: 'Shop', color: '#8A5A0B', icon: 'shop' }
+]
 
-export const TYPE_COLORS: Record<ItemType, { fg: string; bg: string }> = {
-  Food: { fg: '#B4461F', bg: '#FBEDE6' },
-  Sight: { fg: '#0E6B60', bg: '#E2F1EC' },
-  Stay: { fg: '#3A5BA0', bg: '#E8EEF8' },
-  Transport: { fg: '#5F4FA0', bg: '#EEEBF7' },
-  Nature: { fg: '#3F6B22', bg: '#EAF2E2' },
-  Shop: { fg: '#8A5A0B', bg: '#F7EEDC' }
+/** Colours offered for types and tags. Each keeps white icons and text readable. */
+export const LABEL_COLORS = ['#B4461F', '#C2410C', '#8A5A0B', '#3F6B22', '#0E6B60', '#0F6E8C', '#3A5BA0', '#5F4FA0', '#A23B72', '#B42318', '#4A5550', '#17201D']
+
+/** Style for a type or a tag, stored per trip. */
+export interface Label {
+  id: string
+  tripId: string
+  kind: 'type' | 'tag'
+  name: string
+  color: string | null
+  icon: string | null
+  sort: number
 }
 
 export interface Trip {

@@ -2,12 +2,18 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
+import { iconSvg } from '../labels/icons'
 import type { MapPin, MapViewProps } from './types'
 
 function icon(pin: MapPin) {
   return pin.idea
-    ? L.divIcon({ className: '', html: '<span class="map-pin map-pin-idea"></span>', iconSize: [18, 18], iconAnchor: [9, 9] })
-    : L.divIcon({ className: '', html: `<span class="map-pin" style="background:${pin.color}">${pin.label}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] })
+    ? L.divIcon({ className: '', html: `<span class="map-pin map-pin-idea" style="border-color:${pin.color};color:${pin.color}">${iconSvg(pin.icon, 12, 'currentColor')}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })
+    : L.divIcon({
+        className: '',
+        html: `<span class="map-pin" style="background:${pin.color}">${iconSvg(pin.icon, 16, '#fff')}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}</span>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      })
 }
 
 function FitTo({ points, fitKey }: { points: [number, number][]; fitKey: string }) {

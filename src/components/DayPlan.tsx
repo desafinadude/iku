@@ -1,5 +1,7 @@
 import { dayLabel, itemsForDay, onDay, spanLabel } from '../lib'
-import { TYPE_COLORS, type Attachment, type Item, type Member } from '../types'
+import { useLabels } from '../labels/LabelsContext'
+import { LabelIconView } from '../labels/LabelIconView'
+import type { Attachment, Item, Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 
@@ -18,6 +20,7 @@ interface Props {
 
 /** Portrait (phone) view of a single day. */
 export function DayPlan({ tripName, days, items, members, attachments, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
+  const { typeStyle } = useLabels()
   const today = itemsForDay(items, selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
@@ -47,7 +50,7 @@ export function DayPlan({ tripName, days, items, members, attachments, selectedD
       </div>
       <ol className="timeline">
         {today.map((item, i) => {
-          const c = TYPE_COLORS[item.type]
+          const c = typeStyle(item.type)
           const creator = memberFor(members, item.createdBy)
           const span = spanLabel(item, selectedDay)
           const continuing = item.day !== selectedDay
@@ -56,13 +59,16 @@ export function DayPlan({ tripName, days, items, members, attachments, selectedD
             <li key={item.id}>
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
               <button className="tl-card" onClick={() => onOpen(item)}>
-                <span className="tl-num" style={{ background: c.fg }}>
+                <span className="tl-num" style={{ background: c.color }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">
                   <b>{item.title}</b>
                   {span && <span className="span-label">{span}</span>}
-                  <span className="muted small">
+                  <span className="muted small tl-type">
+                    <span style={{ color: c.color }}>
+                      <LabelIconView name={c.icon} size={13} />
+                    </span>{' '}
                     {item.type}
                     {item.tags.length ? ' · ' + item.tags.join(' ') : ''}
                     {files > 0 && (

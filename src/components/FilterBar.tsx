@@ -1,5 +1,7 @@
 import { activeFilterCount } from '../lib'
-import { ITEM_TYPES, TYPE_COLORS, type Filters, type Item, type ItemType } from '../types'
+import { useLabels } from '../labels/LabelsContext'
+import { LabelIconView } from '../labels/LabelIconView'
+import type { Filters, Item, ItemType } from '../types'
 import { Icon } from './Icon'
 
 interface Props {
@@ -15,6 +17,7 @@ export function toggle<T>(list: T[], v: T) {
 }
 
 export function FilterBar({ filters, items, topTags, onChange, onMore }: Props) {
+  const { types, tagStyle } = useLabels()
   const count = (t: ItemType) => items.filter((x) => x.type === t).length
   const active = activeFilterCount(filters)
   return (
@@ -30,11 +33,13 @@ export function FilterBar({ filters, items, topTags, onChange, onMore }: Props) 
         />
       </label>
       <div className="chip-scroll">
-        {ITEM_TYPES.filter((t) => count(t) > 0).map((t) => {
+        {types.map((s) => s.name).filter((t) => count(t) > 0).map((t) => {
           const on = filters.types.includes(t)
           return (
             <button key={t} className={`chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, types: toggle(filters.types, t) })}>
-              <span className="dot" style={{ background: TYPE_COLORS[t].fg }} />
+              <span className="chip-icon" style={{ color: types.find((s) => s.name === t)!.color }}>
+                <LabelIconView name={types.find((s) => s.name === t)!.icon} size={15} />
+              </span>
               {t}
               <span className="chip-count">{count(t)}</span>
             </button>
@@ -43,8 +48,15 @@ export function FilterBar({ filters, items, topTags, onChange, onMore }: Props) 
         <span className="divider" aria-hidden="true" />
         {topTags.map((tag) => {
           const on = filters.tags.includes(tag)
+          const st = tagStyle(tag)
           return (
             <button key={tag} className={`chip chip-tag${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}>
+              {st.icon && (
+                <span className="chip-icon" style={{ color: on ? undefined : (st.color ?? undefined) }}>
+                  <LabelIconView name={st.icon} size={14} />
+                </span>
+              )}
+              {!st.icon && st.color && <span className="dot" style={{ background: st.color }} />}
               {tag}
             </button>
           )

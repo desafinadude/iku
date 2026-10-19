@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon } from './Icon'
 
 interface Props {
@@ -11,9 +11,12 @@ interface Props {
 
 /** Bottom sheet on phones, centered dialog on wider screens. */
 export function Sheet({ title, onClose, children, footer, headerAction }: Props) {
+  const ref = useRef<HTMLElement>(null)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      // With sheets stacked, Escape closes only the top one.
+      const sheets = document.querySelectorAll('.sheet')
+      if (e.key === 'Escape' && sheets[sheets.length - 1] === ref.current) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -21,7 +24,7 @@ export function Sheet({ title, onClose, children, footer, headerAction }: Props)
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <section role="dialog" aria-modal="true" aria-label={title} className="sheet" onClick={(e) => e.stopPropagation()}>
+      <section ref={ref} role="dialog" aria-modal="true" aria-label={title} className="sheet" onClick={(e) => e.stopPropagation()}>
         <header className="sheet-head">
           <h2>{title}</h2>
           {headerAction}
