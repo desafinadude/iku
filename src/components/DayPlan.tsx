@@ -2,6 +2,8 @@ import { dayLabel, itemsForDay, onDay, spanLabel } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
+import type { Prefs } from '../usePrefs'
+import { TagChips } from './TagChips'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 
@@ -11,6 +13,7 @@ interface Props {
   items: Item[]
   members: Member[]
   attachments: Attachment[]
+  prefs: Prefs
   selectedDay: string
   unplannedCount: number
   onSelectDay: (day: string) => void
@@ -19,9 +22,9 @@ interface Props {
 }
 
 /** Portrait (phone) view of a single day. */
-export function DayPlan({ tripName, days, items, members, attachments, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
+export function DayPlan({ tripName, days, items, members, attachments, prefs, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
   const { typeStyle } = useLabels()
-  const today = itemsForDay(items, selectedDay)
+  const today = itemsForDay(items, selectedDay).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
   return (
@@ -58,7 +61,10 @@ export function DayPlan({ tripName, days, items, members, attachments, selectedD
           return (
             <li key={item.id}>
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
-              <button className="tl-card" onClick={() => onOpen(item)}>
+              <button className={`tl-card${item.imageUrl && !continuing ? ' has-image' : ''}`} onClick={() => onOpen(item)}>
+                {item.imageUrl && !continuing && (
+                  <img className="tl-photo" src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                )}
                 <span className="tl-num" style={{ background: c.color }}>
                   {i + 1}
                 </span>
@@ -70,7 +76,6 @@ export function DayPlan({ tripName, days, items, members, attachments, selectedD
                       <LabelIconView name={c.icon} size={13} />
                     </span>{' '}
                     {item.type}
-                    {item.tags.length ? ' · ' + item.tags.join(' ') : ''}
                     {files > 0 && (
                       <span className="file-badge">
                         {' '}
@@ -79,6 +84,11 @@ export function DayPlan({ tripName, days, items, members, attachments, selectedD
                       </span>
                     )}
                   </span>
+                  {(!continuing || prefs.tagsOnRepeats) && item.tags.length > 0 && (
+                    <span className="tag-row">
+                      <TagChips tags={item.tags} small />
+                    </span>
+                  )}
                   {item.booked && (
                     <span className="tl-booking">
                       <Icon name="ticket" size={16} /> <b>Booked</b>
@@ -86,7 +96,6 @@ export function DayPlan({ tripName, days, items, members, attachments, selectedD
                     </span>
                   )}
                 </span>
-                {item.imageUrl && <img className="tl-thumb" src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = 'none')} />}
                 {creator && <Avatar member={creator} size={22} />}
               </button>
             </li>

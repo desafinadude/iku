@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { addDays, daysBetween } from '../lib'
+import { addDays, daysBetween, fromMinutes, toMinutes } from '../lib'
 import type { Attachment, Item, Label, Member, Trip } from '../types'
 import type { Backend, Profile } from './backend'
 import { getFile, loadSnapshot, removeFile, saveFile, saveSnapshot, savedFileIds } from './offline'
@@ -111,6 +111,18 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [save]
   )
 
+  /** Drops an entry onto an hour: sets its day and start time, keeping its length. */
+  const moveToSlot = useCallback(
+    (id: string, day: string, time: string) => {
+      const item = itemsRef.current.find((x) => x.id === id)
+      if (!item) return
+      const mins = item.time && item.endTime ? toMinutes(item.endTime) - toMinutes(item.time) : null
+      const endDay = item.day && item.endDay ? addDays(day, daysBetween(item.day, item.endDay)) : null
+      save({ ...item, day, endDay, time, endTime: mins && mins > 0 ? fromMinutes(toMinutes(time) + mins) : null })
+    },
+    [save]
+  )
+
   const saveProfile = useCallback(
     async (profile: Profile) => {
       setMembers((ms) => ms.map((m) => (m.email === me ? { ...m, ...profile } : m)))
@@ -218,6 +230,6 @@ export function useTrip(backend: Backend, enabled: boolean) {
   return {
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, moveToSlot, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   }
 }

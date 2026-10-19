@@ -41,12 +41,12 @@ export function LabelsProvider({ labels, items, children }: { labels: Label[]; i
   const api = useMemo<LabelsApi>(() => {
     const typeRows = labels.filter((l) => l.kind === 'type').sort((a, b) => a.sort - b.sort)
     const base = typeRows.length
-      ? typeRows.map((l) => ({ name: l.name, color: l.color ?? NEUTRAL, icon: l.icon ?? 'pin' }))
+      ? typeRows.map((l) => ({ name: l.name, color: l.color ?? NEUTRAL, icon: l.icon ?? 'location_on' }))
       : DEFAULT_TYPES
     const types: Style[] = base.map((t) => ({ ...t, bg: tint(t.color) }))
     // Entries may use a type that has no style yet (e.g. renamed elsewhere): still show it.
     for (const name of new Set(items.map((x) => x.type))) {
-      if (!types.some((t) => t.name === name)) types.push({ name, color: NEUTRAL, bg: tint(NEUTRAL), icon: 'pin' })
+      if (!types.some((t) => t.name === name)) types.push({ name, color: NEUTRAL, bg: tint(NEUTRAL), icon: 'location_on' })
     }
     const byType = new Map(types.map((t) => [t.name, t]))
 
@@ -61,7 +61,7 @@ export function LabelsProvider({ labels, items, children }: { labels: Label[]; i
 
     return {
       types,
-      typeStyle: (name) => byType.get(name) ?? { name, color: NEUTRAL, bg: tint(NEUTRAL), icon: 'pin' },
+      typeStyle: (name) => byType.get(name) ?? { name, color: NEUTRAL, bg: tint(NEUTRAL), icon: 'location_on' },
       tagStyle,
       tags: tagNames.map(tagStyle),
       labels

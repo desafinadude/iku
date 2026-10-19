@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LinkPreview } from '../data/backend'
-import { addDays, dayLabel, daysBetween, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { addDays, dayLabel, daysBetween, fromMinutes, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
@@ -277,9 +277,31 @@ export function ItemSheet(props: Props) {
       {draft.day && (
         <div className="field-row">
           <div className="field">
-            <label htmlFor="f-time">{draft.type === 'Stay' && draft.endDay ? 'Check-in time' : 'Time'}</label>
-            <input id="f-time" type="time" value={draft.time ?? ''} onChange={(e) => set({ time: e.target.value || null })} />
+            <label htmlFor="f-time">{draft.type === 'Stay' && draft.endDay ? 'Check-in' : 'From'}</label>
+            <input
+              id="f-time"
+              type="time"
+              value={draft.time ?? ''}
+              onChange={(e) => {
+                const time = e.target.value || null
+                // Keep the duration when the start time moves.
+                const mins = draft.time && draft.endTime ? toMinutes(draft.endTime) - toMinutes(draft.time) : null
+                set({ time, endTime: time && mins && mins > 0 ? fromMinutes(toMinutes(time) + mins) : time ? draft.endTime : null })
+              }}
+            />
           </div>
+          {!(draft.type === 'Stay' && draft.endDay) && (
+            <div className="field">
+              <label htmlFor="f-end-time">Until</label>
+              <input
+                id="f-end-time"
+                type="time"
+                disabled={!draft.time}
+                value={draft.endTime ?? ''}
+                onChange={(e) => set({ endTime: e.target.value && draft.time && e.target.value > draft.time ? e.target.value : null })}
+              />
+            </div>
+          )}
           <label className="check">
             <input type="checkbox" checked={draft.booked} onChange={(e) => set({ booked: e.target.checked })} /> Booked
           </label>

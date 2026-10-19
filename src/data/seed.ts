@@ -24,6 +24,7 @@ function item(type: ItemType, title: string, o: Partial<Item> = {}): Item {
     day: null,
     endDay: null,
     time: null,
+    endTime: null,
     booked: false,
     bookingRef: null,
     place: null,

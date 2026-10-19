@@ -182,8 +182,8 @@ h1, h2 { margin: 0; }
 .field > label { margin-bottom: 0; }
 .field input, .field textarea, .tag-input { min-height: 48px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; font-size: 16px; background: var(--surface); outline: 0; width: 100%; }
 .field input:focus, .field textarea:focus, .tag-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.field-row { display: flex; gap: 12px; align-items: flex-end; }
-.field-row .field { flex: 1; }
+.field-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.field-row .field { flex: 1 1 120px; }
 .check { display: flex; align-items: center; gap: 8px; min-height: 48px; font-weight: 600; }
 .check input, .switch-row input { width: 20px; height: 20px; accent-color: var(--accent); }
 .input-with-btn { display: flex; gap: 8px; }
@@ -347,3 +347,89 @@ h1, h2 { margin: 0; }
 .label-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .danger-text { color: var(--danger); }
 .field select { min-height: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 16px; background: var(--surface); }
+
+/* ---------- Material Symbols ---------- */
+.msr { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; display: inline-block; width: 1em; height: 1em; overflow: hidden; flex: none; -webkit-font-smoothing: antialiased; font-feature-settings: 'liga'; font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+.msr.filled { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+.map-pin .msr { display: block; }
+.tag-solid { color: #fff; font-weight: 600; }
+.chip-solid { color: #fff; font-weight: 600; }
+.chip-solid .chip-count { color: rgba(255,255,255,.85); }
+.chip-solid.is-on-dark { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.icon-search { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.icon-search input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; }
+.icon-grid { max-height: 232px; overflow-y: auto; padding: 2px; }
+
+/* ---------- Images on days ---------- */
+.card-photo-plan img { max-height: 120px; height: 120px; }
+.tl-card.has-image { flex-wrap: wrap; padding-top: 0; overflow: hidden; }
+.tl-photo { width: calc(100% + 24px); margin: 0 -12px 4px; height: 140px; object-fit: cover; display: block; flex: none; background: var(--soft); }
+.tag-small { font-size: 11px; padding: 1px 6px; }
+.tl-body .tag-row { margin-top: 2px; }
+@media (max-width: 1200px) { .hide-narrow { display: none; } }
+
+/* ---------- Hour by hour ---------- */
+.pane-hours { flex: 1; }
+.hours-head { align-items: center; flex-wrap: wrap; }
+.nav-btn { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--line); }
+.nav-btn:disabled { opacity: .4; }
+.hours-scroll { flex: 1; min-height: 0; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.all-day { display: flex; gap: 8px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--ground); position: sticky; top: 0; z-index: 3; }
+.all-day-label { width: 52px; flex: none; font-size: 12px; color: var(--muted); padding-top: 8px; text-align: right; }
+.all-day-items { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.all-day-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 36px; padding: 4px 10px; border: 0; border-radius: 8px; color: #fff; text-align: left; font-size: 14px; }
+.all-day-item.is-repeat { opacity: .75; }
+.all-day-span { font-size: 12px; background: rgba(255,255,255,.22); padding: 1px 6px; border-radius: 5px; }
+.on-solid .tag:not(.tag-solid) { background: rgba(255,255,255,.85); }
+.on-solid .tag-solid { box-shadow: 0 0 0 1px rgba(255,255,255,.6); }
+.hour-grid { position: relative; }
+.hour-slot { position: absolute; left: 0; right: 0; border-top: 1px solid #eceee9; }
+.hour-slot.is-over { background: var(--drop); }
+.hour-label { position: absolute; left: 8px; top: -8px; font-size: 11px; color: var(--muted); background: var(--surface); padding: 0 2px; font-variant-numeric: tabular-nums; }
+.hour-slot:first-child .hour-label { top: 2px; }
+.hour-add { position: absolute; left: 60px; right: 0; top: 0; bottom: 0; border: 0; background: transparent; cursor: copy; }
+.hour-add:hover { background: rgba(14,107,96,.05); }
+.hour-event { position: absolute; z-index: 2; display: flex; gap: 8px; padding: 4px 8px; border: 0; border-left: 4px solid; border-radius: 8px; overflow: hidden; cursor: grab; box-shadow: 0 1px 2px rgba(23,32,29,.08); box-sizing: border-box; }
+.hour-event.is-dragging { opacity: .4; }
+.hour-event-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+.hour-event-body b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hour-event.is-tall .hour-event-body b { white-space: normal; }
+.hour-event-time { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hour-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; flex: none; }
+.now-line { position: absolute; left: 56px; right: 0; height: 2px; background: #B42318; z-index: 4; }
+.now-line::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #B42318; }
+
+/* ---------- Month calendar ---------- */
+.pane-month { flex: 1; }
+.month-scroll { flex: 1; min-height: 0; overflow: auto; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; min-width: 560px; }
+.month-dow { background: var(--ground); padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.month-cell { background: var(--surface); min-height: 118px; padding: 4px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.month-cell.is-outside { background: #f7f8f5; }
+.month-cell.is-outside .month-date { color: #b9beb8; }
+.month-cell.is-selected { box-shadow: inset 0 0 0 2px var(--accent); }
+.month-cell.is-over { background: var(--drop); }
+.month-date { align-self: flex-start; min-width: 28px; height: 26px; padding: 0 6px; border: 0; border-radius: 13px; background: transparent; font-weight: 600; font-size: 13px; }
+.month-date:not(:disabled):hover { background: var(--soft); }
+.month-items { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.month-item, .month-bar, .month-more { display: flex; align-items: center; gap: 4px; min-height: 22px; padding: 1px 4px; border: 0; border-radius: 5px; background: transparent; font-size: 12px; text-align: left; min-width: 0; width: 100%; }
+.month-item:hover { background: var(--soft); }
+.month-item img { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; flex: none; }
+.month-icon { display: inline-flex; flex: none; }
+.month-time { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.month-title, .month-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.month-bar { color: #fff; font-weight: 600; border-radius: 0; margin: 0 -5px; width: calc(100% + 10px); padding: 1px 9px; }
+.month-bar.is-start { border-top-left-radius: 5px; border-bottom-left-radius: 5px; margin-left: 0; width: calc(100% + 5px); }
+.month-bar.is-end { border-top-right-radius: 5px; border-bottom-right-radius: 5px; margin-right: 0; width: calc(100% + 5px); }
+.month-bar.is-start.is-end { width: 100%; }
+.month-more { color: var(--accent); font-weight: 600; }
+.is-narrow .month-grid { min-width: 0; }
+.is-narrow .month-cell { min-height: 84px; }
+.is-narrow .month-time { display: none; }
+.view-switch { margin: 0 4px; }
+.days-tab { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.days-tab > * { min-width: 0; }
+.days-tab-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.days-tab-bar .icon-btn { width: 40px; height: 40px; }
+.days-tab .pane { flex: 1; min-height: 0; }
+.pane-days .pane-head { align-items: center; }
