@@ -10,6 +10,14 @@ export interface TripData {
 
 export type Profile = Pick<Member, 'name' | 'avatar' | 'color'>
 
+/** What a link's page says about itself. Any field may be missing. */
+export interface LinkPreview {
+  title: string | null
+  image: string | null
+  lat: number | null
+  lng: number | null
+}
+
 export interface Backend {
   mode: 'local' | 'supabase'
   /** True when the unlock screen must ask for the email as well as the password. */
@@ -21,6 +29,8 @@ export interface Backend {
   me(): Promise<string>
   load(): Promise<TripData>
   saveProfile(profile: Profile): Promise<void>
+  /** Fetches title/image/coordinates for a link via the unfurl edge function. */
+  unfurl(url: string): Promise<LinkPreview | null>
   saveItem(item: Item): Promise<void>
   deleteItem(id: string): Promise<void>
   /** Calls back whenever someone else changes the trip. Returns an unsubscribe function. */
@@ -58,6 +68,7 @@ function localBackend(): Backend {
     unlock: async () => {},
     lock: async () => {},
     me: async () => LOCAL_ME,
+    unfurl: async () => null,
     load: async () => read(),
     saveProfile: async (profile) => {
       const data = read()
@@ -86,6 +97,7 @@ interface ItemRow {
   trip_id: string
   title: string
   url: string | null
+  image_url?: string | null
   note: string | null
   type: Item['type']
   tags: string[]
@@ -115,6 +127,7 @@ const fromRow = (r: ItemRow): Item => ({
   tripId: r.trip_id,
   title: r.title,
   url: r.url,
+  imageUrl: r.image_url || null,
   note: r.note,
   type: r.type,
   tags: r.tags ?? [],
@@ -137,6 +150,9 @@ const toRow = (i: Item): ItemRow => ({
   trip_id: i.tripId,
   title: i.title,
   url: i.url,
+  // Only sent when there's something to store, so saving still works before migration 003.
+  // Clearing an image sends '' (read back as no image).
+  ...(i.imageUrl !== null ? { image_url: i.imageUrl } : {}),
   note: i.note,
   type: i.type,
   tags: i.tags,
@@ -188,7 +204,14 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!res.data?.length) throw new Error('Couldn’t save your profile. Run supabase/migrations/002_members.sql first.')
     },
     saveItem: async (item) => {
-      must(await sb.from('items').upsert(toRow(item)))
+      const res = await sb.from('items').upsert(toRow(item))
+      if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')
+      must(res)
+    },
+    unfurl: async (url) => {
+      const { data, error } = await sb.functions.invoke('unfurl', { body: { url } })
+      if (error || !data || data.error) return null
+      return { title: data.title ?? null, image: data.image ?? null, lat: data.lat ?? null, lng: data.lng ?? null }
     },
     deleteItem: async (id) => {
       must(await sb.from('items').delete().eq('id', id))

@@ -68,6 +68,7 @@ export function DayPlan({ tripName, days, items, members, selectedDay, unplanned
                     </span>
                   )}
                 </span>
+                {item.imageUrl && <img className="tl-thumb" src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = 'none')} />}
                 {creator && <Avatar member={creator} size={22} />}
               </button>
             </li>

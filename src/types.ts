@@ -23,6 +23,8 @@ export interface Item {
   tripId: string
   title: string
   url: string | null
+  /** Preview image from the link (og:image), or null. */
+  imageUrl: string | null
   note: string | null
   type: ItemType
   tags: string[]

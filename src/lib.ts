@@ -108,3 +108,30 @@ export async function avatarFromFile(file: File, size = 160): Promise<string> {
   bitmap.close()
   return canvas.toDataURL('image/jpeg', 0.82)
 }
+
+/**
+ * Previews that need no server: YouTube thumbnails from the video id, and
+ * coordinates from Google Maps links (".../@35.6812,139.7671,15z" or "?q=lat,lng").
+ */
+export function quickPreview(url: string): { image: string | null; lat: number | null; lng: number | null } {
+  let image: string | null = null
+  let lat: number | null = null
+  let lng: number | null = null
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\.|^m\./, '')
+    const yt =
+      host === 'youtu.be' ? u.pathname.slice(1) : host.endsWith('youtube.com') ? (u.searchParams.get('v') ?? u.pathname.match(/\/(?:shorts|embed|live)\/([\w-]{6,})/)?.[1]) : null
+    if (yt) image = `https://i.ytimg.com/vi/${yt.split('/')[0]}/hqdefault.jpg`
+    if (/(^|\.)google\.[a-z.]+$/.test(host) || host === 'maps.app.goo.gl') {
+      const m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ?? (u.searchParams.get('q') ?? u.searchParams.get('ll') ?? '').match(/^(-?\d+\.\d+),\s*(-?\d+\.\d+)$/)
+      if (m) {
+        lat = Number(m[1])
+        lng = Number(m[2])
+      }
+    }
+  } catch {
+    /* not a URL */
+  }
+  return { image, lat, lng }
+}

@@ -18,6 +18,7 @@ function item(type: ItemType, title: string, o: Partial<Item> = {}): Item {
     title,
     type,
     url: null,
+    imageUrl: null,
     note: null,
     tags: [],
     day: null,

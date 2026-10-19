@@ -88,6 +88,7 @@ function Planner() {
     tripId: trip.id,
     title: '',
     url: null,
+    imageUrl: null,
     note: null,
     type: 'Sight',
     tags: [],
@@ -122,7 +123,7 @@ function Planner() {
   }
 
   const ideasPane = <IdeasPane ideas={ideas} members={members} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
-  const mapPane = <MapPane items={visible} selectedDay={selectedDay} onOpen={open} />
+  const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
     <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
@@ -215,6 +216,7 @@ function Planner() {
           days={days}
           allTags={allTags}
           members={members}
+          onUnfurl={backend.unfurl}
           onClose={() => setSheet(null)}
           onSave={(item) => {
             save(item)

@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core'
+import { useState } from 'react'
 import { domainOf } from '../lib'
 import { TYPE_COLORS, type Item, type Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
@@ -17,6 +18,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true }: P
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled: !draggable })
   const c = TYPE_COLORS[item.type]
   const domain = domainOf(item.url)
+  const [imgBroken, setImgBroken] = useState(false)
+  const image = item.imageUrl && !imgBroken ? item.imageUrl : null
 
   return (
     <article
@@ -32,7 +35,13 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true }: P
         if (e.key === 'Enter') onOpen(item)
       }}
     >
-      {variant === 'pin' && domain && (
+      {variant === 'pin' && image && (
+        <div className="card-photo">
+          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
+          {domain && <span className="card-domain card-domain-over">{domain}</span>}
+        </div>
+      )}
+      {variant === 'pin' && !image && domain && (
         <div className="card-media" style={{ background: c.bg }}>
           <span className="card-domain" style={{ color: c.fg }}>
             {domain}
@@ -53,7 +62,14 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true }: P
             </span>
           )}
         </div>
-        <div className="card-title">{item.title}</div>
+        {variant === 'plan' && image ? (
+          <div className="card-title-row">
+            <div className="card-title">{item.title}</div>
+            <img className="card-thumb" src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
+          </div>
+        ) : (
+          <div className="card-title">{item.title}</div>
+        )}
         {item.note && <div className="card-note">{item.note}</div>}
         {(item.tags.length > 0 || creator) && (
           <div className="tag-row">
