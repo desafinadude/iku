@@ -70,7 +70,7 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
    - **API restrictions:** Maps JavaScript API and Places API (New) only.
 4. Optional: under **APIs & Services → Quotas**, cap daily requests so a surprise bill is impossible.
 5. Optional: under **Map Management**, create a Map ID (JavaScript, vector) and set `VITE_GOOGLE_MAP_ID`.
-6. Put the key in `.env.production` as `VITE_GOOGLE_MAPS_API_KEY=…` and push. The key is visible in the published site; the website restriction is what keeps it from working anywhere else.
+6. In the GitHub repo, go to **Settings → Secrets and variables → Actions → Secrets** tab → **New repository secret**. Name it `VITE_GOOGLE_MAPS_API_KEY` and paste the key (optionally add `VITE_GOOGLE_MAP_ID` too). Use **Repository secrets**, not an environment's secrets. Then re-run the deploy (Actions → Deploy to GitHub Pages → Run workflow). This keeps the key out of git, but browser keys always end up readable in the published site, so the website restriction is what really protects it. For local development, put it in `.env.local`, which git ignores.
 7. Run `supabase/migrations/005_google_places.sql`, so entries remember their Google place.
 
 ## Trip members
