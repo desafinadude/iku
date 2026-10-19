@@ -1,16 +1,19 @@
 import { useDraggable } from '@dnd-kit/core'
 import { domainOf } from '../lib'
-import { TYPE_COLORS, type Item } from '../types'
+import { TYPE_COLORS, type Item, type Member } from '../types'
+import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 
 interface Props {
   item: Item
+  members: Member[]
   variant: 'pin' | 'plan'
   onOpen: (item: Item) => void
   draggable?: boolean
 }
 
-export function ItemCard({ item, variant, onOpen, draggable = true }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true }: Props) {
+  const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled: !draggable })
   const c = TYPE_COLORS[item.type]
   const domain = domainOf(item.url)
@@ -52,13 +55,18 @@ export function ItemCard({ item, variant, onOpen, draggable = true }: Props) {
         </div>
         <div className="card-title">{item.title}</div>
         {item.note && <div className="card-note">{item.note}</div>}
-        {item.tags.length > 0 && (
+        {(item.tags.length > 0 || creator) && (
           <div className="tag-row">
             {item.tags.map((t) => (
               <span key={t} className="tag">
                 {t}
               </span>
             ))}
+            {creator && (
+              <span className="card-creator">
+                <Avatar member={creator} size={20} />
+              </span>
+            )}
           </div>
         )}
       </div>

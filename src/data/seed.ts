@@ -1,4 +1,11 @@
-import type { Item, ItemType, Trip } from '../types'
+import type { Item, ItemType, Member, Trip } from '../types'
+
+export const LOCAL_ME = 'you@local'
+
+export const SEED_MEMBERS: Member[] = [
+  { email: LOCAL_ME, name: null, avatar: null, color: '#0E6B60' },
+  { email: 'sam@local', name: 'Sam', avatar: null, color: '#B4461F' }
+]
 
 export const SEED_TRIP: Trip = { id: 'local-trip', name: 'Japan, spring', startDate: '2027-04-12', endDate: '2027-04-20' }
 
@@ -22,6 +29,9 @@ function item(type: ItemType, title: string, o: Partial<Item> = {}): Item {
     lng: null,
     sort: n,
     createdAt: new Date(2026, 9, 1, 0, n).toISOString(),
+    createdBy: n % 3 === 0 ? 'sam@local' : LOCAL_ME,
+    updatedBy: null,
+    updatedAt: null,
     ...o
   }
 }

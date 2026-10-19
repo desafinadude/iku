@@ -1,5 +1,6 @@
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
+import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
 import { DaysBoard } from './components/DaysBoard'
 import { FilterBar } from './components/FilterBar'
@@ -8,6 +9,7 @@ import { Icon, type IconName } from './components/Icon'
 import { IdeasPane } from './components/IdeasPane'
 import { ItemSheet } from './components/ItemSheet'
 import { MapPane } from './components/MapPane'
+import { ProfileSheet } from './components/ProfileSheet'
 import { Unlock } from './components/Unlock'
 import { createBackend } from './data/backend'
 import { useTrip } from './data/useTrip'
@@ -18,7 +20,7 @@ import { useMediaQuery } from './useMediaQuery'
 const backend = createBackend()
 
 type Tab = 'ideas' | 'days' | 'map'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean } | { kind: 'filters' } | null
+type SheetState = { kind: 'item'; item: Item; isNew: boolean } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -41,7 +43,7 @@ export default function App() {
 }
 
 function Planner() {
-  const { trip, items, error, setError, save, remove, moveTo } = useTrip(backend, true)
+  const { trip, items, members, me, error, setError, save, remove, moveTo, saveProfile } = useTrip(backend, true)
   const wide = useMediaQuery('(min-width: 900px)')
   const [tab, setTab] = useState<Tab>('ideas')
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -63,6 +65,15 @@ function Planner() {
     items.forEach((x) => x.tags.forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)))
     return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t)
   }, [items])
+
+  const meMember = memberFor(members, me)
+  // First visit with a real login: ask for a name so others can see who added what.
+  const [welcomed, setWelcomed] = useState(false)
+  useEffect(() => {
+    if (welcomed || backend.mode !== 'supabase' || !members.length || !meMember) return
+    setWelcomed(true)
+    if (!meMember.name) setSheet({ kind: 'profile', welcome: true })
+  }, [members, meMember, welcomed])
 
   const visible = useMemo(() => items.filter((x) => matches(x, filters)), [items, filters])
   const ideas = visible.filter((x) => !x.day).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -89,6 +100,9 @@ function Planner() {
     lng: null,
     sort: Date.now(),
     createdAt: new Date().toISOString(),
+    createdBy: me || null,
+    updatedBy: null,
+    updatedAt: null,
     ...patch
   })
 
@@ -107,7 +121,7 @@ function Planner() {
     else if (String(target).startsWith('day:')) moveTo(id, String(target).slice(4))
   }
 
-  const ideasPane = <IdeasPane ideas={ideas} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
+  const ideasPane = <IdeasPane ideas={ideas} members={members} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
   const mapPane = <MapPane items={visible} selectedDay={selectedDay} onOpen={open} />
 
   return (
@@ -124,6 +138,13 @@ function Planner() {
           <span className="muted">{tripRange(trip)}</span>
         </div>
         <span className="spacer" />
+        {meMember && (
+          <button className="member-stack" aria-label="Trip members and your profile" onClick={() => setSheet({ kind: 'profile', welcome: false })}>
+            {[meMember, ...members.filter((m) => m.email !== me)].slice(0, 4).map((m) => (
+              <Avatar key={m.email} member={m} size={32} ring />
+            ))}
+          </button>
+        )}
         {backend.mode === 'local' && <span className="mode-badge" title="Data is saved in this browser only. Add Supabase keys to share.">Local</span>}
         {backend.mode === 'supabase' && (
           <button className="icon-btn" aria-label="Lock trip" onClick={() => backend.lock().then(() => location.reload())}>
@@ -148,13 +169,13 @@ function Planner() {
           {wide ? (
             <>
               {ideasPane}
-              <DaysBoard days={days} items={visible} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })} />
+              <DaysBoard days={days} items={visible} members={members} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })} />
               {mapPane}
             </>
           ) : tab === 'ideas' ? (
             ideasPane
           ) : tab === 'days' ? (
-            <DayPlan tripName={trip.name} days={days} items={visible} selectedDay={selectedDay} unplannedCount={unplannedCount} onSelectDay={setSelectedDay} onOpen={open} onShowIdeas={() => setTab('ideas')} />
+            <DayPlan tripName={trip.name} days={days} items={visible} members={members} selectedDay={selectedDay} unplannedCount={unplannedCount} onSelectDay={setSelectedDay} onOpen={open} onShowIdeas={() => setTab('ideas')} />
           ) : (
             mapPane
           )}
@@ -193,6 +214,7 @@ function Planner() {
           isNew={sheet.isNew}
           days={days}
           allTags={allTags}
+          members={members}
           onClose={() => setSheet(null)}
           onSave={(item) => {
             save(item)
@@ -204,7 +226,24 @@ function Planner() {
           }}
         />
       )}
-      {sheet?.kind === 'filters' && <FilterSheet filters={filters} items={items} allTags={allTags} onChange={setFilters} onClose={() => setSheet(null)} />}
+      {sheet?.kind === 'filters' && <FilterSheet filters={filters} items={items} allTags={allTags} members={members} onChange={setFilters} onClose={() => setSheet(null)} />}
+      {sheet?.kind === 'profile' && meMember && (
+        <ProfileSheet
+          me={meMember}
+          members={members}
+          items={items}
+          welcome={sheet.welcome}
+          onClose={() => setSheet(null)}
+          onSave={(profile) => {
+            saveProfile(profile)
+            setSheet(null)
+          }}
+          onShowPerson={(email) => {
+            setFilters({ ...EMPTY_FILTERS, people: [email] })
+            setSheet(null)
+          }}
+        />
+      )}
     </div>
   )
 }

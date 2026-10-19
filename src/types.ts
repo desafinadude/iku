@@ -37,7 +37,21 @@ export interface Item {
   lng: number | null
   sort: number
   createdAt: string
+  /** Email of the member who added it (stamped by the database). */
+  createdBy: string | null
+  updatedBy: string | null
+  updatedAt: string | null
 }
+
+export interface Member {
+  email: string
+  name: string | null
+  /** Small square image as a data URL, or null for initials. */
+  avatar: string | null
+  color: string | null
+}
+
+export const MEMBER_COLORS = ['#0E6B60', '#3A5BA0', '#B4461F', '#5F4FA0', '#3F6B22', '#8A5A0B', '#A23B72', '#17201D']
 
 export type Status = 'idea' | 'planned' | 'booked'
 
@@ -51,7 +65,9 @@ export interface Filters {
   types: ItemType[]
   tags: string[]
   statuses: Status[]
+  /** Emails of the members who added the items. */
+  people: string[]
   matchAllTags: boolean
 }
 
-export const EMPTY_FILTERS: Filters = { search: '', types: [], tags: [], statuses: [], matchAllTags: false }
+export const EMPTY_FILTERS: Filters = { search: '', types: [], tags: [], statuses: [], people: [], matchAllTags: false }

@@ -1,11 +1,13 @@
 import { byTime, dayLabel } from '../lib'
-import { TYPE_COLORS, type Item } from '../types'
+import { TYPE_COLORS, type Item, type Member } from '../types'
+import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 
 interface Props {
   tripName: string
   days: string[]
   items: Item[]
+  members: Member[]
   selectedDay: string
   unplannedCount: number
   onSelectDay: (day: string) => void
@@ -14,7 +16,7 @@ interface Props {
 }
 
 /** Portrait (phone) view of a single day. */
-export function DayPlan({ tripName, days, items, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
+export function DayPlan({ tripName, days, items, members, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
   const today = items.filter((x) => x.day === selectedDay).sort(byTime)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
@@ -45,6 +47,7 @@ export function DayPlan({ tripName, days, items, selectedDay, unplannedCount, on
       <ol className="timeline">
         {today.map((item, i) => {
           const c = TYPE_COLORS[item.type]
+          const creator = memberFor(members, item.createdBy)
           return (
             <li key={item.id}>
               <span className="tl-time">{item.time ?? '—'}</span>
@@ -65,6 +68,7 @@ export function DayPlan({ tripName, days, items, selectedDay, unplannedCount, on
                     </span>
                   )}
                 </span>
+                {creator && <Avatar member={creator} size={22} />}
               </button>
             </li>
           )

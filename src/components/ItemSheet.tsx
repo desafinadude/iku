@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { dayLabel, domainOf, normalizeTag } from '../lib'
-import { ITEM_TYPES, TYPE_COLORS, type Item } from '../types'
+import { dayLabel, displayName, domainOf, normalizeTag, shortDate } from '../lib'
+import { ITEM_TYPES, TYPE_COLORS, type Item, type Member } from '../types'
+import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
 
@@ -9,12 +10,13 @@ interface Props {
   isNew: boolean
   days: string[]
   allTags: string[]
+  members: Member[]
   onSave: (item: Item) => void
   onDelete: (id: string) => void
   onClose: () => void
 }
 
-export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClose }: Props) {
+export function ItemSheet({ item, isNew, days, allTags, members, onSave, onDelete, onClose }: Props) {
   const [draft, setDraft] = useState(item)
   const [tagText, setTagText] = useState('')
   const [geoState, setGeoState] = useState<'idle' | 'busy' | 'none'>('idle')
@@ -43,6 +45,8 @@ export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClos
 
   const suggestions = allTags.filter((t) => !draft.tags.includes(t) && t.includes(normalizeTag(tagText).slice(1))).slice(0, 5)
   const domain = domainOf(draft.url)
+  const creator = memberFor(members, item.createdBy)
+  const editor = item.updatedBy && item.updatedBy !== item.createdBy ? memberFor(members, item.updatedBy) : null
 
   return (
     <Sheet
@@ -67,6 +71,20 @@ export function ItemSheet({ item, isNew, days, allTags, onSave, onDelete, onClos
         </>
       }
     >
+      {!isNew && creator && (
+        <div className="byline">
+          <Avatar member={creator} size={28} />
+          <span>
+            Added by <b>{displayName(creator)}</b> · {shortDate(item.createdAt)}
+            {editor && item.updatedAt && (
+              <span className="muted">
+                {' '}
+                · edited by {displayName(editor)} {shortDate(item.updatedAt)}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
       {domain && (
         <a className="link-preview" href={draft.url!} target="_blank" rel="noreferrer">
           <Icon name="link" size={16} /> <span>{domain}</span> <span className="muted small">open</span>
