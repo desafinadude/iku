@@ -30,8 +30,9 @@ export default function App() {
   if (!unlocked)
     return (
       <Unlock
-        onUnlock={async (pw) => {
-          await backend.unlock(pw)
+        asksEmail={backend.asksEmail}
+        onUnlock={async (pw, email) => {
+          await backend.unlock(pw, email)
           setUnlocked(true)
         }}
       />
