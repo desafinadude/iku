@@ -158,9 +158,12 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string): Backend {
 }
 
 export function createBackend(): Backend {
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
-  const email = import.meta.env.VITE_TRIP_EMAIL as string | undefined
+  const env = import.meta.env
+  const url = (env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL) as string | undefined
+  const key = (env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    env.VITE_SUPABASE_ANON_KEY) as string | undefined
+  const email = (env.VITE_TRIP_EMAIL || env.NEXT_PUBLIC_TRIP_EMAIL) as string | undefined
   if (url && key && email) return supabaseBackend(createClient(url, key), email)
   return localBackend()
 }
