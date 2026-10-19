@@ -144,6 +144,7 @@ interface ItemRow {
   booked: boolean
   booking_ref: string | null
   place: string | null
+  place_id?: string | null
   lat: number | null
   lng: number | null
   sort: number
@@ -199,6 +200,7 @@ const fromRow = (r: ItemRow): Item => ({
   booked: r.booked,
   bookingRef: r.booking_ref,
   place: r.place,
+  placeId: r.place_id || null,
   lat: r.lat,
   lng: r.lng,
   sort: r.sort,
@@ -226,6 +228,8 @@ const toRow = (i: Item, hasEndDay: boolean): ItemRow => ({
   booked: i.booked,
   booking_ref: i.bookingRef,
   place: i.place,
+  // Only sent when set, so saving works before migration 005; clearing sends ''.
+  ...(i.placeId !== null ? { place_id: i.placeId } : {}),
   lat: i.lat,
   lng: i.lng,
   sort: i.sort,
@@ -279,6 +283,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     saveItem: async (item) => {
       if (item.endDay && !hasEndDay) throw new Error('Run supabase/migrations/004_attachments_and_spans.sql to save multi-day entries.')
       const res = await sb.from('items').upsert(toRow(item, hasEndDay))
+      if (res.error && /place_id/.test(res.error.message)) throw new Error('Run supabase/migrations/005_google_places.sql to save Google places.')
       if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')
       must(res)
     },

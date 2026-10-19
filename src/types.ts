@@ -37,6 +37,8 @@ export interface Item {
   booked: boolean
   bookingRef: string | null
   place: string | null
+  /** Google place id when the place was picked from Google search. */
+  placeId: string | null
   lat: number | null
   lng: number | null
   sort: number

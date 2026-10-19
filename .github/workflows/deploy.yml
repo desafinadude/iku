@@ -25,9 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       # Supabase URL and publishable key come from .env.production.
+      # The Google Maps key comes from a repository secret so it stays out of git history.
+      # (It still ships in the built site, as browser keys must: restrict it in Google Cloud.)
       - run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_GOOGLE_MAP_ID: ${{ secrets.VITE_GOOGLE_MAP_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

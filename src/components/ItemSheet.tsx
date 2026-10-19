@@ -4,6 +4,8 @@ import { addDays, dayLabel, daysBetween, displayName, domainOf, isUrl, normalize
 import { ITEM_TYPES, TYPE_COLORS, type Attachment, type Item, type Member } from '../types'
 import { AttachmentList, type PendingFile } from './AttachmentList'
 import { PlaceSearch } from './PlaceSearch'
+import { PlaceInfo } from './PlaceInfo'
+import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -36,6 +38,7 @@ export function ItemSheet(props: Props) {
   const { item, isNew, days, allTags, members, onUnfurl, onSave, onDelete, onClose } = props
   const [draft, setDraft] = useState(item)
   const [pending, setPending] = useState<PendingFile[]>([])
+  const googleOk = useGoogleOk()
   const [tagText, setTagText] = useState('')
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
 
@@ -275,9 +278,28 @@ export function ItemSheet(props: Props) {
         lng={draft.lng}
         near={props.near}
         onChange={(place) => set({ place })}
-        onPick={(h) => set({ place: h.detail ? `${h.name}, ${h.detail.split(', ').slice(-2).join(', ')}` : h.name, lat: h.lat, lng: h.lng })}
-        onClearLocation={() => set({ lat: null, lng: null })}
+        onPick={(h) =>
+          set({
+            place: h.placeId ? h.name : h.detail ? `${h.name}, ${h.detail.split(', ').slice(-2).join(', ')}` : h.name,
+            lat: h.lat,
+            lng: h.lng,
+            // '' rather than null so a cleared Google place is saved as cleared.
+            placeId: h.placeId ?? (draft.placeId !== null ? '' : null)
+          })
+        }
+        onClearLocation={() => set({ lat: null, lng: null, placeId: draft.placeId !== null ? '' : null })}
       />
+      {googleOk && draft.placeId && <PlaceInfo placeId={draft.placeId} />}
+      {draft.lat != null && draft.lng != null && (
+        <div className="maps-links">
+          <a className="secondary-btn" href={googleMapsUrl({ name: draft.place, lat: draft.lat, lng: draft.lng, placeId: draft.placeId || null })!} target="_blank" rel="noreferrer">
+            <Icon name="map" size={16} /> Google Maps
+          </a>
+          <a className="secondary-btn" href={directionsUrl({ lat: draft.lat, lng: draft.lng, placeId: draft.placeId || null })!} target="_blank" rel="noreferrer">
+            <Icon name="external" size={16} /> Directions
+          </a>
+        </div>
+      )}
 
       <div className="field">
         <label htmlFor="f-note">Notes</label>
