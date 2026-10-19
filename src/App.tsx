@@ -5,6 +5,8 @@ import { DayPlan } from './components/DayPlan'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
+import { LabelsManager } from './components/LabelsManager'
+import { LabelsProvider } from './labels/LabelsContext'
 import { Sheet } from './components/Sheet'
 import { FilterBar } from './components/FilterBar'
 import { FilterSheet } from './components/FilterSheet'
@@ -47,6 +49,7 @@ export default function App() {
 
 function Planner() {
   const {
+    labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
@@ -62,6 +65,8 @@ function Planner() {
   }, [])
   const canEdit = online && !offlineSince
   const [viewing, setViewing] = useState<Attachment | null>(null)
+  /** Types & tags manager; opens on top of other sheets so an entry being edited isn't lost. */
+  const [managing, setManaging] = useState<false | 'type' | 'tag'>(false)
   const wide = useMediaQuery('(min-width: 900px)')
   const [tab, setTab] = useState<Tab>('ideas')
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -110,6 +115,10 @@ function Planner() {
     return <div className="loading">{error ?? 'Loading trip…'}</div>
   }
 
+  // New entries get the trip's first type (the built-in 'Sight' until types are customised).
+  const typeRows = labels.filter((l) => l.kind === 'type').sort((a, b) => a.sort - b.sort)
+  const defaultType = typeRows.find((l) => l.name === 'Sight')?.name ?? typeRows[0]?.name ?? 'Sight'
+
   const blank = (patch: Partial<Item> = {}): Item => ({
     id: uid(),
     tripId: trip.id,
@@ -117,7 +126,7 @@ function Planner() {
     url: null,
     imageUrl: null,
     note: null,
-    type: 'Sight',
+    type: defaultType,
     tags: [],
     day: null,
     endDay: null,
@@ -169,166 +178,190 @@ function Planner() {
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
-    <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
-      <header className="top-bar">
-        <div className="brand">
-          <span className="brand-mark">
-            <Icon name="pin" size={18} strokeWidth={2.2} />
-          </span>
-          <span className="brand-name">iku</span>
-        </div>
-        <div className="trip-title">
-          <b>{trip.name}</b>
-          <span className="muted">{tripRange(trip)}</span>
-        </div>
-        <span className="spacer" />
-        {wide && (
-          <button className="secondary-btn docs-btn" onClick={() => setSheet({ kind: 'docs' })}>
-            <Icon name="paperclip" size={16} /> Docs
-            {attachments.length > 0 && <span className="chip-count">{attachments.length}</span>}
-          </button>
-        )}
-        {meMember && (
-          <button className="member-stack" aria-label="Trip members and your profile" onClick={() => setSheet({ kind: 'profile', welcome: false })}>
-            {[meMember, ...members.filter((m) => m.email !== me)].slice(0, 4).map((m) => (
-              <Avatar key={m.email} member={m} size={32} ring />
-            ))}
-          </button>
-        )}
-        {backend.mode === 'local' && <span className="mode-badge" title="Data is saved in this browser only. Add Supabase keys to share.">Local</span>}
-        {backend.mode === 'supabase' && (
-          <button className="icon-btn" aria-label="Lock trip" onClick={() => backend.lock().then(() => location.reload())}>
-            <Icon name="lock" />
-          </button>
-        )}
-      </header>
-
-      {(offlineSince || !online) && (
-        <div className="offline-bar" role="status">
-          <Icon name="offline" size={16} />
-          {offlineSince
-            ? `Offline: showing what was synced ${new Date(offlineSince).toLocaleString('en', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}. Files saved on this device still open.`
-            : 'You’re offline. Changes won’t save until you’re back online.'}
-        </div>
-      )}
-
-      {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} topTags={allTags.slice(0, 4)} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
-
-      {error && (
-        <div className="error-bar" role="alert">
-          {error}
-          <button className="text-btn" onClick={() => setError(null)}>
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      <DndContext sensors={sensors} onDragStart={(e) => setDragging(items.find((x) => x.id === e.active.id) ?? null)} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
-        <main className="workspace">
-          {wide ? (
-            <>
-              {ideasPane}
-              <DaysBoard days={days} items={visible} members={members} attachments={attachments} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })} />
-              {mapPane}
-            </>
-          ) : tab === 'ideas' ? (
-            ideasPane
-          ) : tab === 'days' ? (
-            <DayPlan tripName={trip.name} days={days} items={visible} members={members} attachments={attachments} selectedDay={selectedDay} unplannedCount={unplannedCount} onSelectDay={setSelectedDay} onOpen={open} onShowIdeas={() => setTab('ideas')} />
-          ) : tab === 'docs' ? (
-            <section aria-label="Docs" className="pane pane-docs">
-              <div className="pane-head">
-                <h2>Docs</h2>
-              </div>
-              <DocsPane {...docsProps} />
-            </section>
-          ) : (
-            mapPane
-          )}
-        </main>
-        <DragOverlay>{dragging && <div className="card drag-overlay">{dragging.title}</div>}</DragOverlay>
-      </DndContext>
-
-      {!wide && (
-        <>
-          {tab === 'ideas' && (
-            <button className="fab" onClick={() => setSheet({ kind: 'item', item: blank(), isNew: true })}>
-              <Icon name="plus" size={22} strokeWidth={2.2} /> Add idea
+    <LabelsProvider labels={labels} items={items}>
+      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
+        <header className="top-bar">
+          <div className="brand">
+            <span className="brand-mark">
+              <Icon name="pin" size={18} strokeWidth={2.2} />
+            </span>
+            <span className="brand-name">iku</span>
+          </div>
+          <div className="trip-title">
+            <b>{trip.name}</b>
+            <span className="muted">{tripRange(trip)}</span>
+          </div>
+          <span className="spacer" />
+          {wide && (
+            <button className="secondary-btn docs-btn" onClick={() => setSheet({ kind: 'docs' })}>
+              <Icon name="paperclip" size={16} /> Docs
+              {attachments.length > 0 && <span className="chip-count">{attachments.length}</span>}
             </button>
           )}
-          <nav className="tab-bar" aria-label="Main">
-            {(
-              [
-                ['ideas', 'Ideas', 'ideas'],
-                ['days', 'Days', 'days'],
-                ['map', 'Map', 'map'],
-                ['docs', 'Docs', 'paperclip']
-              ] as [Tab, string, IconName][]
-            ).map(([id, label, icon]) => (
-              <button key={id} className={tab === id ? 'is-on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
-                <Icon name={icon} size={22} />
-                {label}
-              </button>
-            ))}
-          </nav>
-        </>
-      )}
+          {meMember && (
+            <button className="member-stack" aria-label="Trip members and your profile" onClick={() => setSheet({ kind: 'profile', welcome: false })}>
+              {[meMember, ...members.filter((m) => m.email !== me)].slice(0, 4).map((m) => (
+                <Avatar key={m.email} member={m} size={32} ring />
+              ))}
+            </button>
+          )}
+          {backend.mode === 'local' && <span className="mode-badge" title="Data is saved in this browser only. Add Supabase keys to share.">Local</span>}
+          {backend.mode === 'supabase' && (
+            <button className="icon-btn" aria-label="Lock trip" onClick={() => backend.lock().then(() => location.reload())}>
+              <Icon name="lock" />
+            </button>
+          )}
+        </header>
 
-      {sheet?.kind === 'item' && (
-        <ItemSheet
-          key={sheet.item.id}
-          item={sheet.item}
-          isNew={sheet.isNew}
-          days={days}
-          allTags={allTags}
-          members={members}
-          onUnfurl={backend.unfurl}
-          defaultDay={selectedDay}
-          near={near}
-          attachments={attachments.filter((a) => a.itemId === sheet.item.id)}
-          offlineIds={offlineIds}
-          online={canEdit}
-          uploading={uploading > 0}
-          onUpload={(files) => upload(sheet.item.id, files)}
-          onOpenFile={setViewing}
-          onDeleteFile={deleteAttachment}
-          onToggleOffline={toggleOffline}
-          onClose={() => setSheet(null)}
-          onSave={async (item, pendingFiles) => {
-            setSheet(null)
-            // Files need the entry to exist first.
-            if ((await save(item)) && pendingFiles.length) upload(item.id, pendingFiles)
-          }}
-          onDelete={(id) => {
-            remove(id)
-            setSheet(null)
-          }}
-        />
-      )}
-      {sheet?.kind === 'filters' && <FilterSheet filters={filters} items={items} allTags={allTags} members={members} onChange={setFilters} onClose={() => setSheet(null)} />}
-      {sheet?.kind === 'profile' && meMember && (
-        <ProfileSheet
-          me={meMember}
-          members={members}
-          items={items}
-          welcome={sheet.welcome}
-          onClose={() => setSheet(null)}
-          onSave={(profile) => {
-            saveProfile(profile)
-            setSheet(null)
-          }}
-          onShowPerson={(email) => {
-            setFilters({ ...EMPTY_FILTERS, people: [email] })
-            setSheet(null)
-          }}
-        />
-      )}
-      {sheet?.kind === 'docs' && (
-        <Sheet title="Docs" onClose={() => setSheet(null)}>
-          <DocsPane {...docsProps} />
-        </Sheet>
-      )}
-      {viewing && <FileViewer attachment={viewing} getUrl={fileUrl} onClose={() => setViewing(null)} />}
-    </div>
+        {(offlineSince || !online) && (
+          <div className="offline-bar" role="status">
+            <Icon name="offline" size={16} />
+            {offlineSince
+              ? `Offline: showing what was synced ${new Date(offlineSince).toLocaleString('en', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}. Files saved on this device still open.`
+              : 'You’re offline. Changes won’t save until you’re back online.'}
+          </div>
+        )}
+
+        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} topTags={allTags.slice(0, 4)} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
+
+        {error && (
+          <div className="error-bar" role="alert">
+            {error}
+            <button className="text-btn" onClick={() => setError(null)}>
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        <DndContext sensors={sensors} onDragStart={(e) => setDragging(items.find((x) => x.id === e.active.id) ?? null)} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+          <main className="workspace">
+            {wide ? (
+              <>
+                {ideasPane}
+                <DaysBoard days={days} items={visible} members={members} attachments={attachments} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })} />
+                {mapPane}
+              </>
+            ) : tab === 'ideas' ? (
+              ideasPane
+            ) : tab === 'days' ? (
+              <DayPlan tripName={trip.name} days={days} items={visible} members={members} attachments={attachments} selectedDay={selectedDay} unplannedCount={unplannedCount} onSelectDay={setSelectedDay} onOpen={open} onShowIdeas={() => setTab('ideas')} />
+            ) : tab === 'docs' ? (
+              <section aria-label="Docs" className="pane pane-docs">
+                <div className="pane-head">
+                  <h2>Docs</h2>
+                </div>
+                <DocsPane {...docsProps} />
+              </section>
+            ) : (
+              mapPane
+            )}
+          </main>
+          <DragOverlay>{dragging && <div className="card drag-overlay">{dragging.title}</div>}</DragOverlay>
+        </DndContext>
+
+        {!wide && (
+          <>
+            {tab === 'ideas' && (
+              <button className="fab" onClick={() => setSheet({ kind: 'item', item: blank(), isNew: true })}>
+                <Icon name="plus" size={22} strokeWidth={2.2} /> Add idea
+              </button>
+            )}
+            <nav className="tab-bar" aria-label="Main">
+              {(
+                [
+                  ['ideas', 'Ideas', 'ideas'],
+                  ['days', 'Days', 'days'],
+                  ['map', 'Map', 'map'],
+                  ['docs', 'Docs', 'paperclip']
+                ] as [Tab, string, IconName][]
+              ).map(([id, label, icon]) => (
+                <button key={id} className={tab === id ? 'is-on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+                  <Icon name={icon} size={22} />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </>
+        )}
+
+        {sheet?.kind === 'item' && (
+          <ItemSheet
+            key={sheet.item.id}
+            item={sheet.item}
+            isNew={sheet.isNew}
+            days={days}
+            allTags={allTags}
+            members={members}
+            onUnfurl={backend.unfurl}
+            onManageLabels={() => setManaging('type')}
+            defaultDay={selectedDay}
+            near={near}
+            attachments={attachments.filter((a) => a.itemId === sheet.item.id)}
+            offlineIds={offlineIds}
+            online={canEdit}
+            uploading={uploading > 0}
+            onUpload={(files) => upload(sheet.item.id, files)}
+            onOpenFile={setViewing}
+            onDeleteFile={deleteAttachment}
+            onToggleOffline={toggleOffline}
+            onClose={() => setSheet(null)}
+            onSave={async (item, pendingFiles) => {
+              setSheet(null)
+              // Files need the entry to exist first.
+              if ((await save(item)) && pendingFiles.length) upload(item.id, pendingFiles)
+            }}
+            onDelete={(id) => {
+              remove(id)
+              setSheet(null)
+            }}
+          />
+        )}
+        {sheet?.kind === 'filters' && <FilterSheet
+            filters={filters}
+            items={items}
+            allTags={allTags}
+            members={members}
+            onManage={() => {
+              setSheet(null)
+              setManaging('type')
+            }}
+            onChange={setFilters} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'profile' && meMember && (
+          <ProfileSheet
+            me={meMember}
+            members={members}
+            items={items}
+            welcome={sheet.welcome}
+            onClose={() => setSheet(null)}
+            onSave={(profile) => {
+              saveProfile(profile)
+              setSheet(null)
+            }}
+            onShowPerson={(email) => {
+              setFilters({ ...EMPTY_FILTERS, people: [email] })
+              setSheet(null)
+            }}
+          />
+        )}
+        {sheet?.kind === 'docs' && (
+          <Sheet title="Docs" onClose={() => setSheet(null)}>
+            <DocsPane {...docsProps} />
+          </Sheet>
+        )}
+        {managing && (
+          <LabelsManager
+            tripId={trip.id}
+            items={items}
+            initialTab={managing}
+            onSave={saveLabels}
+            onDelete={deleteLabel}
+            onRename={renameLabel}
+            onDeleteTag={deleteTag}
+            onClose={() => setManaging(false)}
+          />
+        )}
+        {viewing && <FileViewer attachment={viewing} getUrl={fileUrl} onClose={() => setViewing(null)} />}
+      </div>
+    </LabelsProvider>
   )
 }

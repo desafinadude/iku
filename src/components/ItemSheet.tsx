@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LinkPreview } from '../data/backend'
 import { addDays, dayLabel, daysBetween, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
-import { ITEM_TYPES, TYPE_COLORS, type Attachment, type Item, type Member } from '../types'
+import { useLabels } from '../labels/LabelsContext'
+import { LabelIconView } from '../labels/LabelIconView'
+import type { Attachment, Item, Member } from '../types'
 import { AttachmentList, type PendingFile } from './AttachmentList'
 import { PlaceSearch } from './PlaceSearch'
 import { PlaceInfo } from './PlaceInfo'
@@ -17,6 +19,7 @@ interface Props {
   allTags: string[]
   members: Member[]
   onUnfurl: (url: string) => Promise<LinkPreview | null>
+  onManageLabels: () => void
   /** Day to use when switching an idea onto the plan. */
   defaultDay: string
   near: { lat: number; lng: number } | null
@@ -39,6 +42,7 @@ export function ItemSheet(props: Props) {
   const [draft, setDraft] = useState(item)
   const [pending, setPending] = useState<PendingFile[]>([])
   const googleOk = useGoogleOk()
+  const { types, tagStyle } = useLabels()
   const [tagText, setTagText] = useState('')
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
 
@@ -149,26 +153,42 @@ export function ItemSheet(props: Props) {
       <fieldset className="group">
         <legend>Type</legend>
         <div className="chip-wrap">
-          {ITEM_TYPES.map((t) => {
-            const on = draft.type === t
+          {types.map((s) => {
+            const on = draft.type === s.name
             return (
-              <button key={t} type="button" className={`chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set({ type: t })}>
-                <span className="dot" style={{ background: TYPE_COLORS[t].fg }} />
-                {t}
+              <button
+                key={s.name}
+                type="button"
+                className="chip type-chip"
+                style={on ? { background: s.bg, borderColor: s.color, color: s.color, fontWeight: 600 } : undefined}
+                aria-pressed={on}
+                onClick={() => set({ type: s.name })}
+              >
+                <span className="chip-icon" style={{ color: s.color }}>
+                  <LabelIconView name={s.icon} size={15} />
+                </span>
+                {s.name}
               </button>
             )
           })}
+          <button type="button" className="chip chip-more" onClick={props.onManageLabels}>
+            Edit types
+          </button>
         </div>
       </fieldset>
 
       <div className="field">
         <label htmlFor="f-tags">Tags</label>
         <div className="tag-input">
-          {draft.tags.map((t) => (
-            <button key={t} type="button" className="tag-chip" aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
-              {t} ×
-            </button>
-          ))}
+          {draft.tags.map((t) => {
+            const st = tagStyle(t)
+            return (
+              <button key={t} type="button" className="tag-chip" style={st.color ? { background: st.color } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
+                {st.icon && <LabelIconView name={st.icon} size={13} />}
+                {t} ×
+              </button>
+            )
+          })}
           <input
             id="f-tags"
             placeholder="Add tag"

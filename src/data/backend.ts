@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Attachment, Item, Member, Trip } from '../types'
+import type { Attachment, Item, Label, Member, Trip } from '../types'
 import { clearSnapshot, removeFile, savedFileIds } from './offline'
 import { LOCAL_ME, SEED_ITEMS, SEED_MEMBERS, SEED_TRIP } from './seed'
 
@@ -8,6 +8,7 @@ export interface TripData {
   items: Item[]
   members: Member[]
   attachments: Attachment[]
+  labels: Label[]
 }
 
 export type Profile = Pick<Member, 'name' | 'avatar' | 'color'>
@@ -39,6 +40,13 @@ export interface Backend {
   downloadAttachment(a: Attachment): Promise<Blob>
   /** A link to open the file in a new tab (short-lived for Supabase). */
   attachmentUrl(a: Attachment): Promise<string>
+  /** Creates or updates type/tag styles. */
+  saveLabels(labels: Label[]): Promise<void>
+  deleteLabel(id: string): Promise<void>
+  /** Renames (or merges into an existing name) a type or tag on every entry. */
+  renameLabel(tripId: string, kind: Label['kind'], from: string, to: string): Promise<void>
+  /** Removes a tag from every entry. */
+  deleteTag(tripId: string, tag: string): Promise<void>
   saveItem(item: Item): Promise<void>
   deleteItem(id: string): Promise<void>
   /** Calls back whenever someone else changes the trip. Returns an unsubscribe function. */
@@ -69,12 +77,12 @@ function localBackend(): Backend {
       const raw = localStorage.getItem(LOCAL_KEY)
       if (raw) {
         const data = JSON.parse(raw)
-        return { members: SEED_MEMBERS, attachments: [], ...data }
+        return { members: SEED_MEMBERS, attachments: [], labels: [], ...data }
       }
     } catch {
       /* fall through to seed */
     }
-    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS, attachments: [] }
+    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS, attachments: [], labels: [] }
   }
   const write = (data: TripData) => {
     try {
@@ -123,6 +131,29 @@ function localBackend(): Backend {
     },
     downloadAttachment: downloadLocal,
     attachmentUrl: async (a) => URL.createObjectURL(await downloadLocal(a)),
+    saveLabels: async (labels) => {
+      const data = read()
+      const byId = new Map(data.labels.map((l) => [l.id, l]))
+      labels.forEach((l) => byId.set(l.id, l))
+      write({ ...data, labels: [...byId.values()] })
+    },
+    deleteLabel: async (id) => {
+      const data = read()
+      write({ ...data, labels: data.labels.filter((l) => l.id !== id) })
+    },
+    renameLabel: async (_tripId, kind, from, to) => {
+      const data = read()
+      const items = data.items.map((x) =>
+        kind === 'type' ? (x.type === from ? { ...x, type: to } : x) : x.tags.includes(from) ? { ...x, tags: [...new Set(x.tags.map((t) => (t === from ? to : t)))] } : x
+      )
+      const exists = data.labels.some((l) => l.kind === kind && l.name === to)
+      const labels = exists ? data.labels.filter((l) => !(l.kind === kind && l.name === from)) : data.labels.map((l) => (l.kind === kind && l.name === from ? { ...l, name: to } : l))
+      write({ ...data, items, labels })
+    },
+    deleteTag: async (_tripId, tag) => {
+      const data = read()
+      write({ ...data, items: data.items.map((x) => ({ ...x, tags: x.tags.filter((t) => t !== tag) })), labels: data.labels.filter((l) => !(l.kind === 'tag' && l.name === tag)) })
+    },
     subscribe: () => () => {}
   }
 }
@@ -177,6 +208,21 @@ const fromAttachmentRow = (r: AttachmentRow): Attachment => ({
   createdBy: r.created_by,
   createdAt: r.created_at
 })
+
+interface LabelRow {
+  id: string
+  trip_id: string
+  kind: Label['kind']
+  name: string
+  color: string | null
+  icon: string | null
+  sort: number
+}
+
+const fromLabelRow = (r: LabelRow): Label => ({ id: r.id, tripId: r.trip_id, kind: r.kind, name: r.name, color: r.color, icon: r.icon, sort: r.sort })
+const toLabelRow = (l: Label): LabelRow => ({ id: l.id, trip_id: l.tripId, kind: l.kind, name: l.name, color: l.color, icon: l.icon, sort: l.sort })
+
+const LABELS_MIGRATION = 'Run supabase/migrations/006_labels.sql to manage types and tags.'
 
 interface MemberRow {
   email: string
@@ -263,16 +309,18 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
       const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
-      const [rows, memberRows, attachmentRes, endDayProbe] = await Promise.all([
+      const [rows, memberRows, attachmentRes, endDayProbe, labelRes] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
         sb.from('attachments').select('*').eq('trip_id', trip.id), // missing before migration 004
-        sb.from('items').select('end_day').limit(1)
+        sb.from('items').select('end_day').limit(1),
+        sb.from('labels').select('*').eq('trip_id', trip.id) // missing before migration 006
       ])
+      const labels = labelRes.error ? [] : ((labelRes.data ?? []) as LabelRow[]).map(fromLabelRow)
       hasEndDay = !endDayProbe.error
       attachments = attachmentRes.error ? [] : ((attachmentRes.data ?? []) as AttachmentRow[]).map(fromAttachmentRow)
       const members = ((memberRows ?? []) as MemberRow[]).map((m) => ({ email: m.email, name: m.name ?? null, avatar: m.avatar ?? null, color: m.color ?? null }))
-      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members, attachments }
+      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members, attachments, labels }
     },
     saveProfile: async (profile) => {
       const email = (await sb.auth.getSession()).data.session?.user.email
@@ -283,6 +331,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     saveItem: async (item) => {
       if (item.endDay && !hasEndDay) throw new Error('Run supabase/migrations/004_attachments_and_spans.sql to save multi-day entries.')
       const res = await sb.from('items').upsert(toRow(item, hasEndDay))
+      if (res.error && /items_type_check/.test(res.error.message)) throw new Error('Run supabase/migrations/006_labels.sql to use your own types.')
       if (res.error && /place_id/.test(res.error.message)) throw new Error('Run supabase/migrations/005_google_places.sql to save Google places.')
       if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')
       must(res)
@@ -330,12 +379,28 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (error || !data) throw new Error('Couldn’t open that file.')
       return data.signedUrl
     },
+    saveLabels: async (labels) => {
+      const res = await sb.from('labels').upsert(labels.map(toLabelRow))
+      if (res.error) throw new Error(/labels/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
+    deleteLabel: async (id) => {
+      must(await sb.from('labels').delete().eq('id', id))
+    },
+    renameLabel: async (tripId, kind, from, to) => {
+      const res = await sb.rpc('rename_label', { p_trip: tripId, p_kind: kind, p_from: from, p_to: to })
+      if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
+    deleteTag: async (tripId, tag) => {
+      const res = await sb.rpc('delete_tag', { p_trip: tripId, p_tag: tag })
+      if (res.error) throw new Error(/function|delete_tag/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
     subscribe: (tripId, onChange) => {
       const ch = sb
         .channel('items-' + tripId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `trip_id=eq.${tripId}` }, onChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_members' }, onChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments', filter: `trip_id=eq.${tripId}` }, onChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'labels', filter: `trip_id=eq.${tripId}` }, onChange)
         .subscribe()
       return () => {
         sb.removeChannel(ch)

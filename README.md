@@ -73,6 +73,16 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 6. In the GitHub repo, go to **Settings → Secrets and variables → Actions → Secrets** tab → **New repository secret**. Name it `VITE_GOOGLE_MAPS_API_KEY` and paste the key (optionally add `VITE_GOOGLE_MAP_ID` too). Use **Repository secrets**, not an environment's secrets. Then re-run the deploy (Actions → Deploy to GitHub Pages → Run workflow). This keeps the key out of git, but browser keys always end up readable in the published site, so the website restriction is what really protects it. For local development, put it in `.env.local`, which git ignores.
 7. Run `supabase/migrations/005_google_places.sql`, so entries remember their Google place.
 
+## Types & tags
+
+Open **Manage types & tags** from the filter sheet, or **Edit types** in an entry.
+
+- **Types:** every entry has one. Rename them, change their colour (12 colours chosen to keep white icons readable) or icon (32 travel icons), add your own (e.g. *Onsen*), or delete one and move its entries to another type. Until you edit them, a trip uses the built-in six.
+- **Tags:** give a tag a colour and/or icon so it stands out on cards and filters. Rename a tag to an existing one to merge them, or delete a tag from every entry.
+- **On the map:** pins show the type's icon in its colour, with the day number as a badge. The full-screen map has a **By type / By tag** switch with a legend.
+
+Renames and merges update every entry in one step, using database functions. Run `supabase/migrations/006_labels.sql`.
+
 ## Trip members
 
 Each person signs in with their own Supabase user, listed in `trip_members`. On first sign-in they're asked for a name, and can add a photo and pick a colour. Photos are shrunk in the browser to a 160×160 JPEG (a few KB) and stored as text on their `trip_members` row, so there's no Storage bucket to set up. Every item records who added it and who last edited it. The database sets these, so they can't be faked, and you can filter by person.
