@@ -42,6 +42,14 @@ npx supabase functions deploy unfurl --project-ref <your-project-ref>
 
 Keep "Verify JWT" on (the default), so only signed-in trip members can use it. Run `supabase/migrations/003_link_previews.sql` to store the images.
 
+## Card images
+
+Every entry can have an image, even when a link doesn't provide one:
+
+- **In an entry:** **Add photo** (camera on phones), **Image link**, or paste an image anywhere in the sheet. **Replace** and **Remove** sit on the preview; tap it for full screen.
+- **Picture cards:** paste an image into the Ideas box, drop image files onto Ideas, or use the photo button in the box. Each becomes a card right away. With no title, a card is just the picture, shown whole and uncropped, with its tags and who added it on top.
+- **Storage:** uploaded images are shrunk to about 2000px and stored in the private `attachments` bucket (migration 004). They're shown through signed links, never public URLs. Replaced or removed images, and those on deleted entries, are deleted from storage.
+
 ## Attachments, docs and offline
 
 Any entry can carry files: tickets, booking PDFs, photos of paper receipts. The **Docs** area (a tab on phones, a button on wider screens) holds trip-wide documents like passports and insurance, and lists every file attached to an entry.

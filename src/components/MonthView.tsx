@@ -2,7 +2,8 @@ import { useDroppable } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
-import { addDays, dayLabel, itemsForDay } from '../lib'
+import { addDays, dayLabel, displayTitle, itemsForDay } from '../lib'
+import { CardImage } from './CardImage'
 import type { Item } from '../types'
 import type { Prefs } from '../usePrefs'
 
@@ -82,22 +83,22 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
               className={`month-bar${x.day === day ? ' is-start' : ''}${x.endDay === day ? ' is-end' : ''}`}
               style={{ background: s.color }}
               onClick={() => onOpen(x)}
-              title={x.title}
+              title={displayTitle(x)}
             >
               <LabelIconView name={s.icon} size={12} />
-              <span>{x.title}</span>
+              <span>{displayTitle(x)}</span>
             </button>
           ) : (
-            <button key={x.id} className="month-item" onClick={() => onOpen(x)} title={x.title}>
+            <button key={x.id} className="month-item" onClick={() => onOpen(x)} title={displayTitle(x)}>
               {x.imageUrl ? (
-                <img src={x.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                <CardImage imageUrl={x.imageUrl} />
               ) : (
                 <span className="month-icon" style={{ color: s.color }}>
                   <LabelIconView name={s.icon} size={13} />
                 </span>
               )}
               {x.time && <span className="month-time">{x.time}</span>}
-              <span className="month-title">{x.title}</span>
+              <span className="month-title">{displayTitle(x)}</span>
             </button>
           )
         })}

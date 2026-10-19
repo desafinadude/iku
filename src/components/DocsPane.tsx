@@ -1,3 +1,4 @@
+import { displayTitle } from '../lib'
 import type { Attachment, Item, Member } from '../types'
 import { AttachmentList } from './AttachmentList'
 import { fileIcon } from './AttachmentList'
@@ -51,7 +52,7 @@ export function DocsPane(props: Props) {
           {byItem.map(({ item, files }) => (
             <li key={item.id}>
               <button type="button" className="docs-entry" onClick={() => props.onOpenItem(item)}>
-                <b>{item.title}</b>
+                <b>{displayTitle(item)}</b>
                 <Icon name="chevronRight" size={16} />
               </button>
               <ul className="file-list compact">

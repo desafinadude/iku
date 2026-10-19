@@ -19,13 +19,13 @@ import { ItemSheet } from './components/ItemSheet'
 import { MapPane } from './components/MapPane'
 import { ProfileSheet } from './components/ProfileSheet'
 import { Unlock } from './components/Unlock'
-import { createBackend } from './data/backend'
+import { isCoverRef } from './data/backend'
+import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { domainOf, isUrl, matches, onDay, tripDays, tripRange, uid } from './lib'
+import { displayTitle, domainOf, isUrl, matches, onDay, prepareUpload, tripDays, tripRange, uid } from './lib'
 import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
-const backend = createBackend()
 
 // Drop on whatever is under the pointer (small calendar cells and hour rows need this);
 // fall back to overlap when the pointer is between targets.
@@ -162,6 +162,17 @@ function Planner() {
     else save(blank({ title: text }))
   }
   const open = (item: Item) => setSheet({ kind: 'item', item, isNew: false })
+  /** Pasted or dropped images become picture cards straight away. */
+  const captureImages = async (files: File[]) => {
+    for (const file of files) {
+      try {
+        const ref = await backend.uploadCover(trip.id, await prepareUpload(file))
+        await save(blank({ imageUrl: ref }))
+      } catch (e) {
+        setError((e as Error).message)
+      }
+    }
+  }
 
   const onDragEnd = (e: DragEndEvent) => {
     setDragging(null)
@@ -223,7 +234,7 @@ function Planner() {
     />
   )
 
-  const ideasPane = <IdeasPane ideas={ideas} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
+  const ideasPane = <IdeasPane ideas={ideas} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -348,7 +359,7 @@ function Planner() {
               mapPane
             )}
           </main>
-          <DragOverlay>{dragging && <div className="card drag-overlay">{dragging.title}</div>}</DragOverlay>
+          <DragOverlay>{dragging && <div className="card drag-overlay">{displayTitle(dragging)}</div>}</DragOverlay>
         </DndContext>
 
         {!wide && (
@@ -386,6 +397,8 @@ function Planner() {
             members={members}
             onUnfurl={backend.unfurl}
             onManageLabels={() => setManaging('type')}
+          onUploadCover={(file) => backend.uploadCover(trip.id, file)}
+          onDiscardCover={(ref) => isCoverRef(ref) && backend.deleteCover(ref).catch(() => {})}
             defaultDay={selectedDay}
             near={near}
             attachments={attachments.filter((a) => a.itemId === sheet.item.id)}

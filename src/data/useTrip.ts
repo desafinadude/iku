@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, daysBetween, fromMinutes, toMinutes } from '../lib'
 import type { Attachment, Item, Label, Member, Trip } from '../types'
-import type { Backend, Profile } from './backend'
+import { isCoverRef, type Backend, type Profile } from './backend'
 import { getFile, loadSnapshot, removeFile, saveFile, saveSnapshot, savedFileIds } from './offline'
 
 export function useTrip(backend: Backend, enabled: boolean) {
@@ -73,6 +73,9 @@ export function useTrip(backend: Backend, enabled: boolean) {
       setItems((xs) => (xs.some((x) => x.id === item.id) ? xs.map((x) => (x.id === item.id ? item : x)) : [...xs, item]))
       try {
         await backend.saveItem(item)
+        // An uploaded card image that was replaced or removed is deleted from storage.
+        const prev = before.find((x) => x.id === item.id)?.imageUrl
+        if (isCoverRef(prev) && prev !== item.imageUrl) backend.deleteCover(prev).catch(() => {})
         return true
       } catch (e) {
         setItems(before)
@@ -90,6 +93,8 @@ export function useTrip(backend: Backend, enabled: boolean) {
       setAttachments((as) => as.filter((a) => a.itemId !== id))
       try {
         await backend.deleteItem(id)
+        const cover = before.find((x) => x.id === id)?.imageUrl
+        if (isCoverRef(cover)) backend.deleteCover(cover).catch(() => {})
       } catch (e) {
         setItems(before)
         setError((e as Error).message)

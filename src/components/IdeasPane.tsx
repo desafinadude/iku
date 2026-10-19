@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Attachment, Item, Member } from '../types'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
@@ -10,10 +10,15 @@ interface Props {
   attachments: Attachment[]
   totalIdeas: number
   onCapture: (text: string) => void
+  /** Turns image files into picture cards. */
+  onCaptureImages: (files: File[]) => void
   onOpen: (item: Item) => void
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onOpen }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen }: Props) {
+  const [fileOver, setFileOver] = useState(false)
+  const photoInput = useRef<HTMLInputElement>(null)
+  const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
   const [text, setText] = useState('')
   const { setNodeRef, isOver } = useDroppable({ id: 'ideas' })
 
@@ -24,7 +29,26 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
   }
 
   return (
-    <section aria-label="Ideas" className={`pane pane-ideas${isOver ? ' is-over' : ''}`} ref={setNodeRef}>
+    <section
+      aria-label="Ideas"
+      className={`pane pane-ideas${isOver || fileOver ? ' is-over' : ''}`}
+      ref={setNodeRef}
+      // Image files dragged in from the desktop become picture cards.
+      onDragOver={(e) => {
+        if ([...e.dataTransfer.items].some((i) => i.kind === 'file')) {
+          e.preventDefault()
+          setFileOver(true)
+        }
+      }}
+      onDragLeave={() => setFileOver(false)}
+      onDrop={(e) => {
+        const files = images(e.dataTransfer.files)
+        setFileOver(false)
+        if (!files.length) return
+        e.preventDefault()
+        onCaptureImages(files)
+      }}
+    >
       <div className="pane-head">
         <h2>
           Ideas <span className="muted">{totalIdeas} unplanned</span>
@@ -43,15 +67,36 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
         </label>
         <input
           id="capture"
-          placeholder="Paste a link or jot an idea…"
+          placeholder="Paste a link, an image, or jot an idea…"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onPaste={(e) => {
+            const pastedImages = images(e.clipboardData.files)
+            if (pastedImages.length) {
+              e.preventDefault()
+              onCaptureImages(pastedImages)
+              return
+            }
             const pasted = e.clipboardData.getData('text')
             if (!text && /^https?:\/\//i.test(pasted.trim())) {
               e.preventDefault()
               submit(pasted)
             }
+          }}
+        />
+        <button type="button" className="capture-photo" aria-label="Add a photo card" title="Add a photo card" onClick={() => photoInput.current?.click()}>
+          <Icon name="image" size={18} />
+        </button>
+        <input
+          ref={photoInput}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={(e) => {
+            const files = images(e.target.files)
+            e.target.value = ''
+            if (files.length) onCaptureImages(files)
           }}
         />
       </form>

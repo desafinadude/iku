@@ -2,7 +2,8 @@ import { useDraggable, useDroppable } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
-import { addDays, dayLabel, fromMinutes, itemsForDay, spanLabel, toMinutes } from '../lib'
+import { addDays, dayLabel, displayTitle, fromMinutes, itemsForDay, spanLabel, toMinutes } from '../lib'
+import { CardImage } from './CardImage'
 import type { Item } from '../types'
 import type { Prefs } from '../usePrefs'
 import { Icon } from './Icon'
@@ -104,7 +105,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
                 return (
                   <button key={x.id} className={`all-day-item${repeat ? ' is-repeat' : ''}`} style={{ background: s.color }} onClick={() => onOpen(x)}>
                     <LabelIconView name={s.icon} size={16} />
-                    <b>{x.title}</b>
+                    <b>{displayTitle(x)}</b>
                     {span && <span className="all-day-span">{span}</span>}
                     {(!repeat || prefs.tagsOnRepeats) && x.tags.length > 0 && (
                       <span className="tag-row on-solid">
@@ -160,15 +161,15 @@ function HourEvent({ p, first, onOpen }: { p: Placed; first: number; onOpen: (it
       style={{ top: (p.start / 60 - first) * HOUR + 1, height, left: `calc(60px + ${p.lane} * ${width})`, width, background: s.bg, borderColor: s.color }}
       onClick={() => onOpen(p.item)}
       onKeyDown={(e) => e.key === 'Enter' && onOpen(p.item)}
-      aria-label={`${p.item.time}${p.item.endTime ? '–' + p.item.endTime : ''} ${p.item.title}`}
+      aria-label={`${p.item.time}${p.item.endTime ? '–' + p.item.endTime : ''} ${displayTitle(p.item)}`}
     >
-      {tall && p.item.imageUrl && <img className="hour-thumb" src={p.item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={(e) => (e.currentTarget.style.display = 'none')} />}
+      {tall && p.item.imageUrl && <CardImage className="hour-thumb" imageUrl={p.item.imageUrl} />}
       <div className="hour-event-body">
         <span className="hour-event-time" style={{ color: s.color }}>
           <LabelIconView name={s.icon} size={14} /> {p.item.time}
           {p.item.endTime ? `–${p.item.endTime}` : ''}
         </span>
-        <b>{p.item.title}</b>
+        <b>{displayTitle(p.item)}</b>
         {tall && p.item.tags.length > 0 && (
           <span className="tag-row">
             <TagChips tags={p.item.tags} small />
