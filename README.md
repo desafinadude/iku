@@ -26,7 +26,7 @@ The app then shows the unlock screen, asking for email and password. If you also
 `.github/workflows/deploy.yml` builds and publishes on every push to `main`.
 
 1. Repo **Settings → Pages → Source: GitHub Actions**.
-2. Repo **Settings → Secrets and variables → Actions → Variables**: add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (optionally `VITE_TRIP_EMAIL`). These are public by design. Never add the Supabase secret key.
+2. The Supabase URL and publishable key live in `.env.production`. They're public by design; never put the Supabase secret key there.
 3. Push to `main`, or run the workflow from the Actions tab. The site is at `https://<user>.github.io/<repo>/`.
 
 ## Structure
