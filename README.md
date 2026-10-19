@@ -42,6 +42,20 @@ npx supabase functions deploy unfurl --project-ref <your-project-ref>
 
 Keep "Verify JWT" on (the default), so only signed-in trip members can use it. Run `supabase/migrations/003_link_previews.sql` to store the images.
 
+## Attachments, docs and offline
+
+Any entry can carry files: tickets, booking PDFs, photos of paper receipts. The **Docs** area (a tab on phones, a button on wider screens) holds trip-wide documents like passports and insurance, and lists every file attached to an entry.
+
+- **Storage:** files live in a private Supabase Storage bucket (`attachments`, 50 MB per file). Only people in `trip_members` can upload or open them. Files open through signed links that expire after an hour.
+- **Photos** are shrunk to about 2000px before upload. Other files upload as they are.
+- **Offline:** the download button on a file keeps a copy on that device (browser Cache Storage). The app also keeps its last synced copy of the trip, so with no signal you can still browse the plan and open saved files. Signing out with the lock button clears both from the device.
+
+Run `supabase/migrations/004_attachments_and_spans.sql` to create the bucket, its access rules and the `attachments` table.
+
+## Multi-day entries
+
+Entries can run across several days (a hotel stay, a car rental, a multi-day hike). Pick an end day under **Check-out** / **Until**. The entry shows on every day it covers, labelled "Check-in · 3 nights", "Night 2 of 3" and "Check-out" for stays, or "Day 2 of 3" for anything else. Dragging it to another day keeps its length.
+
 ## Trip members
 
 Each person signs in with their own Supabase user, listed in `trip_members`. On first sign-in they're asked for a name, and can add a photo and pick a colour. Photos are shrunk in the browser to a 160×160 JPEG (a few KB) and stored as text on their `trip_members` row, so there's no Storage bucket to set up. Every item records who added it and who last edited it. The database sets these, so they can't be faked, and you can filter by person.
@@ -57,4 +71,3 @@ Each person signs in with their own Supabase user, listed in `trip_members`. On 
 
 - Multiple trips and a trip switcher
 - Month/calendar view
-- Image uploads (Supabase Storage)

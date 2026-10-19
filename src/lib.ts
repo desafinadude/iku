@@ -135,3 +135,64 @@ export function quickPreview(url: string): { image: string | null; lat: number |
   }
   return { image, lat, lng }
 }
+
+export function addDays(day: string, n: number) {
+  const d = new Date(day + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+export function daysBetween(a: string, b: string) {
+  return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86_400_000)
+}
+
+/** Whether an entry appears on a given day (multi-day entries appear on every day they span). */
+export function onDay(item: Item, day: string) {
+  return !!item.day && day >= item.day && day <= (item.endDay ?? item.day)
+}
+
+/** "Check-in", "Night 2 of 4", "Check-out" for stays; "Day 2 of 3" for other multi-day entries. */
+export function spanLabel(item: Item, day: string): string | null {
+  if (!item.day || !item.endDay || item.endDay === item.day) return null
+  const i = daysBetween(item.day, day)
+  const total = daysBetween(item.day, item.endDay)
+  if (item.type === 'Stay') {
+    if (i === 0) return `Check-in · ${total} ${total === 1 ? 'night' : 'nights'}`
+    if (day === item.endDay) return 'Check-out'
+    return `Night ${i + 1} of ${total}`
+  }
+  return `Day ${i + 1} of ${total + 1}`
+}
+
+/** Entries for a day: ones continuing from earlier days first, then by time. */
+export function itemsForDay(items: Item[], day: string) {
+  return items
+    .filter((x) => onDay(x, day))
+    .sort((a, b) => Number(a.day === day) - Number(b.day === day) || byTime(a, b))
+}
+
+export function formatSize(bytes: number | null) {
+  if (bytes == null) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** Shrinks big photos before upload (a 4 MB phone photo becomes ~300 KB). Other files pass through. */
+export async function prepareUpload(file: File): Promise<File> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 400_000) return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.85))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}

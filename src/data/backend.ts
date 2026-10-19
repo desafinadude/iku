@@ -1,11 +1,13 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Item, Member, Trip } from '../types'
+import type { Attachment, Item, Member, Trip } from '../types'
+import { clearSnapshot, removeFile, savedFileIds } from './offline'
 import { LOCAL_ME, SEED_ITEMS, SEED_MEMBERS, SEED_TRIP } from './seed'
 
 export interface TripData {
   trip: Trip
   items: Item[]
   members: Member[]
+  attachments: Attachment[]
 }
 
 export type Profile = Pick<Member, 'name' | 'avatar' | 'color'>
@@ -31,6 +33,12 @@ export interface Backend {
   saveProfile(profile: Profile): Promise<void>
   /** Fetches title/image/coordinates for a link via the unfurl edge function. */
   unfurl(url: string): Promise<LinkPreview | null>
+  /** Uploads a file onto an entry, or trip-wide when itemId is null. */
+  uploadAttachment(tripId: string, itemId: string | null, file: File): Promise<Attachment>
+  deleteAttachment(a: Attachment): Promise<void>
+  downloadAttachment(a: Attachment): Promise<Blob>
+  /** A link to open the file in a new tab (short-lived for Supabase). */
+  attachmentUrl(a: Attachment): Promise<string>
   saveItem(item: Item): Promise<void>
   deleteItem(id: string): Promise<void>
   /** Calls back whenever someone else changes the trip. Returns an unsubscribe function. */
@@ -40,6 +48,20 @@ export interface Backend {
 // ---------- Local (browser only) ----------
 
 const LOCAL_KEY = 'iku:v1'
+const LOCAL_FILES = 'iku-local-files'
+const safeName = (name: string) => name.replace(/[^\w.-]+/g, '_').slice(-80)
+
+/** Removes this device's offline copies when someone signs out. */
+async function forgetDevice() {
+  clearSnapshot()
+  for (const id of await savedFileIds()) await removeFile(id)
+}
+
+async function downloadLocal(a: Attachment) {
+  const res = await (await caches.open(LOCAL_FILES)).match('/' + a.path)
+  if (!res) throw new Error('That file isn’t in this browser any more.')
+  return res.blob()
+}
 
 function localBackend(): Backend {
   const read = (): TripData => {
@@ -47,12 +69,12 @@ function localBackend(): Backend {
       const raw = localStorage.getItem(LOCAL_KEY)
       if (raw) {
         const data = JSON.parse(raw)
-        return { members: SEED_MEMBERS, ...data }
+        return { members: SEED_MEMBERS, attachments: [], ...data }
       }
     } catch {
       /* fall through to seed */
     }
-    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS }
+    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS, attachments: [] }
   }
   const write = (data: TripData) => {
     try {
@@ -84,8 +106,23 @@ function localBackend(): Backend {
     },
     deleteItem: async (id) => {
       const data = read()
-      write({ ...data, items: data.items.filter((x) => x.id !== id) })
+      write({ ...data, items: data.items.filter((x) => x.id !== id), attachments: data.attachments.filter((a) => a.itemId !== id) })
     },
+    uploadAttachment: async (tripId, itemId, file) => {
+      const id = crypto.randomUUID()
+      const a: Attachment = { id, tripId, itemId, path: `${tripId}/${itemId ?? 'trip'}/${id}-${safeName(file.name)}`, name: file.name, mime: file.type || null, size: file.size, createdBy: LOCAL_ME, createdAt: new Date().toISOString() }
+      await (await caches.open(LOCAL_FILES)).put('/' + a.path, new Response(file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } }))
+      const data = read()
+      write({ ...data, attachments: [...data.attachments, a] })
+      return a
+    },
+    deleteAttachment: async (a) => {
+      await (await caches.open(LOCAL_FILES)).delete('/' + a.path)
+      const data = read()
+      write({ ...data, attachments: data.attachments.filter((x) => x.id !== a.id) })
+    },
+    downloadAttachment: downloadLocal,
+    attachmentUrl: async (a) => URL.createObjectURL(await downloadLocal(a)),
     subscribe: () => () => {}
   }
 }
@@ -102,6 +139,7 @@ interface ItemRow {
   type: Item['type']
   tags: string[]
   day: string | null
+  end_day?: string | null
   time: string | null
   booked: boolean
   booking_ref: string | null
@@ -114,6 +152,30 @@ interface ItemRow {
   updated_by?: string | null
   updated_at?: string | null
 }
+
+interface AttachmentRow {
+  id: string
+  trip_id: string
+  item_id: string | null
+  path: string
+  name: string
+  mime: string | null
+  size: number | null
+  created_by: string | null
+  created_at: string
+}
+
+const fromAttachmentRow = (r: AttachmentRow): Attachment => ({
+  id: r.id,
+  tripId: r.trip_id,
+  itemId: r.item_id,
+  path: r.path,
+  name: r.name,
+  mime: r.mime,
+  size: r.size,
+  createdBy: r.created_by,
+  createdAt: r.created_at
+})
 
 interface MemberRow {
   email: string
@@ -132,6 +194,7 @@ const fromRow = (r: ItemRow): Item => ({
   type: r.type,
   tags: r.tags ?? [],
   day: r.day,
+  endDay: r.end_day ?? null,
   time: r.time ? r.time.slice(0, 5) : null,
   booked: r.booked,
   bookingRef: r.booking_ref,
@@ -145,7 +208,7 @@ const fromRow = (r: ItemRow): Item => ({
   updatedAt: r.updated_at ?? null
 })
 
-const toRow = (i: Item): ItemRow => ({
+const toRow = (i: Item, hasEndDay: boolean): ItemRow => ({
   id: i.id,
   trip_id: i.tripId,
   title: i.title,
@@ -157,6 +220,8 @@ const toRow = (i: Item): ItemRow => ({
   type: i.type,
   tags: i.tags,
   day: i.day,
+  // end_day only exists after migration 004; leave it out before that so saving keeps working.
+  ...(hasEndDay ? { end_day: i.endDay } : {}),
   time: i.time,
   booked: i.booked,
   booking_ref: i.bookingRef,
@@ -172,6 +237,9 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     if (res.error) throw new Error(res.error.message)
     return res.data
   }
+  const files = () => sb.storage.from('attachments')
+  let hasEndDay = false
+  let attachments: Attachment[] = []
   return {
     mode: 'supabase',
     asksEmail: !tripEmail,
@@ -181,6 +249,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (error) throw new Error(tripEmail ? 'That password didn’t work.' : 'That email and password didn’t work.')
     },
     lock: async () => {
+      await forgetDevice()
       await sb.auth.signOut()
     },
     me: async () => (await sb.auth.getSession()).data.session?.user.email ?? '',
@@ -190,12 +259,16 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
       const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
-      const [rows, memberRows] = await Promise.all([
+      const [rows, memberRows, attachmentRes, endDayProbe] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
-        sb.from('trip_members').select('*').then(must)
+        sb.from('trip_members').select('*').then(must),
+        sb.from('attachments').select('*').eq('trip_id', trip.id), // missing before migration 004
+        sb.from('items').select('end_day').limit(1)
       ])
+      hasEndDay = !endDayProbe.error
+      attachments = attachmentRes.error ? [] : ((attachmentRes.data ?? []) as AttachmentRow[]).map(fromAttachmentRow)
       const members = ((memberRows ?? []) as MemberRow[]).map((m) => ({ email: m.email, name: m.name ?? null, avatar: m.avatar ?? null, color: m.color ?? null }))
-      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members }
+      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members, attachments }
     },
     saveProfile: async (profile) => {
       const email = (await sb.auth.getSession()).data.session?.user.email
@@ -204,7 +277,8 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!res.data?.length) throw new Error('Couldn’t save your profile. Run supabase/migrations/002_members.sql first.')
     },
     saveItem: async (item) => {
-      const res = await sb.from('items').upsert(toRow(item))
+      if (item.endDay && !hasEndDay) throw new Error('Run supabase/migrations/004_attachments_and_spans.sql to save multi-day entries.')
+      const res = await sb.from('items').upsert(toRow(item, hasEndDay))
       if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')
       must(res)
     },
@@ -214,13 +288,49 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       return { title: data.title ?? null, image: data.image ?? null, lat: data.lat ?? null, lng: data.lng ?? null }
     },
     deleteItem: async (id) => {
+      // Rows cascade in the database, but the files themselves have to be removed from storage.
+      const paths = attachments.filter((a) => a.itemId === id).map((a) => a.path)
+      if (paths.length) await files().remove(paths)
       must(await sb.from('items').delete().eq('id', id))
+    },
+    uploadAttachment: async (tripId, itemId, file) => {
+      const path = `${tripId}/${itemId ?? 'trip'}/${crypto.randomUUID()}-${safeName(file.name)}`
+      const up = await files().upload(path, file, { contentType: file.type || undefined })
+      if (up.error) {
+        if (/bucket/i.test(up.error.message)) throw new Error('Run supabase/migrations/004_attachments_and_spans.sql to enable attachments.')
+        if (/size|large/i.test(up.error.message)) throw new Error(`${file.name} is too big (50 MB max).`)
+        throw new Error(up.error.message)
+      }
+      const res = await sb.from('attachments').insert({ trip_id: tripId, item_id: itemId, path, name: file.name, mime: file.type || null, size: file.size }).select().single()
+      if (res.error) {
+        await files().remove([path])
+        throw new Error(res.error.message)
+      }
+      const a = fromAttachmentRow(res.data as AttachmentRow)
+      attachments = [...attachments, a]
+      return a
+    },
+    deleteAttachment: async (a) => {
+      await files().remove([a.path])
+      must(await sb.from('attachments').delete().eq('id', a.id))
+      attachments = attachments.filter((x) => x.id !== a.id)
+    },
+    downloadAttachment: async (a) => {
+      const { data, error } = await files().download(a.path)
+      if (error || !data) throw new Error('Couldn’t download that file.')
+      return data
+    },
+    attachmentUrl: async (a) => {
+      const { data, error } = await files().createSignedUrl(a.path, 3600)
+      if (error || !data) throw new Error('Couldn’t open that file.')
+      return data.signedUrl
     },
     subscribe: (tripId, onChange) => {
       const ch = sb
         .channel('items-' + tripId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `trip_id=eq.${tripId}` }, onChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_members' }, onChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments', filter: `trip_id=eq.${tripId}` }, onChange)
         .subscribe()
       return () => {
         sb.removeChannel(ch)
