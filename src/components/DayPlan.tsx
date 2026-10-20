@@ -7,6 +7,7 @@ import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
 import type { Prefs } from '../usePrefs'
 import { TagChips } from './TagChips'
+import { TagIcons } from './TagIcons'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 
@@ -85,10 +86,11 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           const span = spanLabel(item, selectedDay)
           const continuing = item.day !== selectedDay
           const files = attachments.filter((a) => a.itemId === item.id).length
-          // Card size: titles only drops the photo; pictures only keeps just the photo. Both drop tags and details.
-          const compact = prefs.daysCards !== 'full'
-          const photo = !!item.imageUrl && !continuing && prefs.daysCards !== 'titles'
-          const pictureOnly = photo && (isPhotoCard(item) || prefs.daysCards === 'pictures')
+          // Which parts to show (the same choice as the day cards on wide screens).
+          const show = prefs.daysShow
+          const compact = !show.details
+          const photo = !!item.imageUrl && !continuing && show.image
+          const pictureOnly = photo && (isPhotoCard(item) || (!show.title && !show.details))
           return (
             <li key={item.id}>
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
@@ -98,7 +100,8 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                   {i + 1}
                 </span>
                 <span className="tl-body">
-                  {!pictureOnly && <b>{compact ? displayTitle(item) : item.title}</b>}
+                  {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
+                  {!pictureOnly && (show.title || !photo) && <b>{compact ? displayTitle(item) : item.title}</b>}
                   {span && <span className="span-label">{span}</span>}
                   {!compact && (
                   <span className="muted small tl-type">
@@ -119,7 +122,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                     )}
                   </span>
                   )}
-                  {!compact && (!continuing || prefs.tagsOnRepeats) && otherTags.length > 0 && (
+                  {show.tags && (!continuing || prefs.tagsOnRepeats) && otherTags.length > 0 && (
                     <span className="tag-row">
                       <TagChips tags={otherTags} small />
                     </span>

@@ -1,42 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import type { CardLook } from '../usePrefs'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { SHOW_ALL, type CardShow } from '../usePrefs'
 import { Icon, type IconName } from './Icon'
 
-const LOOKS: { value: CardLook; label: string; icon: IconName }[] = [
-  { value: 'full', label: 'Full cards', icon: 'cardsFull' },
-  { value: 'titles', label: 'Titles only', icon: 'titles' },
-  { value: 'pictures', label: 'Pictures only', icon: 'image' }
-]
-
-/** One tap cycles full cards → titles only → pictures only. */
-export function CardLookButton({ look, onChange }: { look: CardLook; onChange: (look: CardLook) => void }) {
-  const i = LOOKS.findIndex((l) => l.value === look)
-  const next = LOOKS[(i + 1) % LOOKS.length]
-  return (
-    <button className="icon-btn head-btn" aria-label={`Cards: ${LOOKS[i].label}. Switch to ${next.label.toLowerCase()}`} title={`${LOOKS[i].label} (tap for ${next.label.toLowerCase()})`} onClick={() => onChange(next.value)}>
-      <Icon name={LOOKS[i].icon} size={16} />
-    </button>
-  )
-}
-
-/** The ⋯ menu: how to sort the cards and how much each card shows. */
-export function CardMenu<T extends string>({
-  label,
-  order,
-  orders,
-  onOrder,
-  look,
-  onLook,
-  hint
-}: {
-  label: string
-  order: T
-  orders: { value: T; label: string }[]
-  onOrder: (order: T) => void
-  look: CardLook
-  onLook: (look: CardLook) => void
-  hint?: string
-}) {
+/** A header button that opens a small menu below it; closes on outside click or Esc. */
+function MenuButton({ label, icon, children }: { label: string; icon: IconName; children: (close: () => void) => ReactNode }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -50,35 +17,88 @@ export function CardMenu<T extends string>({
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
-  const pick = (fn: () => void) => () => {
-    fn()
-    setOpen(false)
-  }
   return (
     <div className="menu-wrap" ref={ref}>
-      <button className="icon-btn head-btn" aria-label={`${label} options`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <Icon name="more" size={16} />
+      <button className="icon-btn head-btn" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <Icon name={icon} size={16} />
       </button>
       {open && (
-        <div className="menu" role="menu" aria-label={`${label} options`}>
+        <div className="menu" role="menu" aria-label={label}>
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const PARTS: { key: keyof CardShow; label: string }[] = [
+  { key: 'tagIcons', label: 'Tag icons along the top' },
+  { key: 'image', label: 'Picture' },
+  { key: 'title', label: 'Title' },
+  { key: 'details', label: 'Details (time, notes, link, booking)' },
+  { key: 'tags', label: 'Tags along the bottom' }
+]
+
+const PRESETS: { label: string; show: CardShow }[] = [
+  { label: 'Everything', show: SHOW_ALL },
+  { label: 'Titles', show: { image: false, title: true, details: false, tags: false, tagIcons: false } },
+  { label: 'Pictures', show: { image: true, title: false, details: false, tags: false, tagIcons: false } },
+  { label: 'Icons + titles', show: { image: false, title: true, details: false, tags: false, tagIcons: true } }
+]
+
+/** Which parts the cards show: tick any combination, or pick a preset. */
+export function CardShowMenu({ label, show, onChange }: { label: string; show: CardShow; onChange: (show: CardShow) => void }) {
+  const same = (a: CardShow, b: CardShow) => PARTS.every((p) => a[p.key] === b[p.key])
+  return (
+    <MenuButton label={`${label}: what cards show`} icon="cardsFull">
+      {() => (
+        <>
+          <p className="menu-head">Cards show</p>
+          {PARTS.map((p) => (
+            <label key={p.key} className="menu-item menu-check-item">
+              <input type="checkbox" checked={show[p.key]} onChange={(e) => onChange({ ...show, [p.key]: e.target.checked })} />
+              {p.label}
+            </label>
+          ))}
+          <div className="menu-presets">
+            {PRESETS.map((p) => (
+              <button key={p.label} type="button" className={`chip chip-small${same(show, p.show) ? ' is-on' : ''}`} aria-pressed={same(show, p.show)} onClick={() => onChange(p.show)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </MenuButton>
+  )
+}
+
+/** The ⋯ menu: how to sort the cards. */
+export function SortMenu<T extends string>({ label, order, orders, onOrder, hint }: { label: string; order: T; orders: { value: T; label: string }[]; onOrder: (order: T) => void; hint?: string }) {
+  return (
+    <MenuButton label={`${label}: sort`} icon="more">
+      {(close) => (
+        <>
           <p className="menu-head">Sort</p>
           {orders.map((o) => (
-            <button key={o.value} role="menuitemradio" aria-checked={order === o.value} className="menu-item" onClick={pick(() => onOrder(o.value))}>
+            <button
+              key={o.value}
+              role="menuitemradio"
+              aria-checked={order === o.value}
+              className="menu-item"
+              onClick={() => {
+                onOrder(o.value)
+                close()
+              }}
+            >
               <span className="menu-check">{order === o.value && <Icon name="check" size={14} strokeWidth={2.4} />}</span>
               {o.label}
             </button>
           ))}
           {hint && <p className="menu-hint">{hint}</p>}
-          <p className="menu-head">Cards</p>
-          {LOOKS.map((l) => (
-            <button key={l.value} role="menuitemradio" aria-checked={look === l.value} className="menu-item" onClick={pick(() => onLook(l.value))}>
-              <span className="menu-check">{look === l.value && <Icon name="check" size={14} strokeWidth={2.4} />}</span>
-              {l.label}
-            </button>
-          ))}
-        </div>
+        </>
       )}
-    </div>
+    </MenuButton>
   )
 }
 

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import { dayLabel, itemsForDay } from '../lib'
-import type { CardLook, Prefs } from '../usePrefs'
+import type { CardShow, Prefs } from '../usePrefs'
 import type { Attachment, Item, Member } from '../types'
 import { CardImage } from './CardImage'
 import { Icon } from './Icon'
@@ -47,7 +47,7 @@ export function DaysBoard({ days, items, members, attachments, prefs, viewSwitch
             index={i}
             items={itemsForDay(items, day, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === day)}
             tagsOnRepeats={prefs.tagsOnRepeats}
-            look={prefs.daysCards}
+            show={prefs.daysShow}
             members={members}
             attachments={attachments}
             selected={day === selectedDay}
@@ -69,7 +69,7 @@ function DayColumn(props: {
   members: Member[]
   attachments: Attachment[]
   tagsOnRepeats: boolean
-  look: CardLook
+  show: CardShow
   selected: boolean
   onSelect: () => void
   onOpen: (item: Item) => void
@@ -115,7 +115,7 @@ function DayColumn(props: {
       </div>
       <div className="day-col-items">
         {props.items.map((item) => (
-          <ItemCard key={item.id} item={item} members={props.members} variant="plan" day={props.day} tagsOnRepeats={props.tagsOnRepeats} look={props.look} fileCount={props.attachments.filter((a) => a.itemId === item.id).length} onOpen={props.onOpen} />
+          <ItemCard key={item.id} item={item} members={props.members} variant="plan" day={props.day} tagsOnRepeats={props.tagsOnRepeats} show={props.show} fileCount={props.attachments.filter((a) => a.itemId === item.id).length} onOpen={props.onOpen} />
         ))}
         {props.items.length === 0 && <div className="drop-hint">Drop ideas here</div>}
         <button className="ghost-btn" onClick={props.onAdd}>

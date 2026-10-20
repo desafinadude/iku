@@ -36,7 +36,7 @@ h1, h2 { margin: 0; }
 .loading { display: grid; place-items: center; height: 100%; color: var(--muted); padding: 24px; text-align: center; }
 
 /* ---------- Shell ---------- */
-.app { height: 100%; display: flex; flex-direction: column; }
+.app { height: 100%; display: flex; flex-direction: column; overflow-x: clip; }
 .top-bar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; padding-top: max(12px, env(safe-area-inset-top)); background: var(--surface); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-mark { width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: #fff; display: grid; place-items: center; }
@@ -77,9 +77,12 @@ h1, h2 { margin: 0; }
 .chip.is-on-dark .chip-count { color: #d3d6d0; }
 .chip-more { border-style: dashed; border-color: #b9beb8; color: var(--ink-2); }
 .divider { width: 1px; height: 24px; background: var(--line); flex: none; margin: 0 2px; }
-.is-narrow .filter-bar { flex-direction: column; align-items: stretch; padding: 8px 16px; }
-.is-narrow .search { flex: none; }
-.is-narrow .chip-scroll { margin: 0 -16px; padding: 0 16px; }
+/* Phones: search on its own row, then Tags, the chosen tags and More filters; the tag menu spans the bar. */
+.is-narrow .filter-bar { position: relative; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
+.is-narrow .search { flex: 1 1 100%; }
+.is-narrow .tag-filter { position: static; }
+.is-narrow .tag-filter-menu { left: 12px; right: 12px; width: auto; top: calc(100% - 4px); }
+.is-narrow .filter-chosen { flex: 1; }
 
 /* ---------- Workspace ---------- */
 .workspace { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 16px 20px 20px; }
@@ -387,6 +390,8 @@ h1, h2 { margin: 0; }
 .all-day-items { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .all-day-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 36px; padding: 4px 10px; border: 0; border-radius: 8px; color: #fff; text-align: left; font-size: 14px; }
 .all-day-item.is-repeat { opacity: .75; }
+.all-day-item:not(.is-repeat) { cursor: grab; touch-action: manipulation; }
+.all-day-item.is-dragging { opacity: .35; }
 .all-day-span { font-size: 12px; background: color-mix(in srgb, currentColor 18%, transparent); padding: 1px 6px; border-radius: 5px; }
 .on-solid .tag:not(.tag-solid) { background: rgba(255,255,255,.85); }
 .on-solid .tag-solid { box-shadow: 0 0 0 1px rgba(255,255,255,.6); }
@@ -572,3 +577,29 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .day-cover-phone { margin: 10px 0 0; border-radius: 14px; cursor: default; }
 .day-cover-phone img { height: 170px; }
 .day-image-pick img { max-height: 180px; object-fit: cover; }
+
+/* Tag icons along the top of a card */
+.tag-icons { display: flex; flex-wrap: wrap; gap: 4px; padding: 7px 8px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.tag-icon { width: 24px; height: 24px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
+.tag-icon-letter { font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.tl-body .tag-icons { padding: 0 0 4px; border: 0; background: none; }
+
+/* Checkbox menus (what cards show; the tag filter) */
+.menu-check-item { cursor: pointer; }
+.menu-check-item input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); flex: none; }
+.menu-presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 8px 4px; margin-top: 4px; border-top: 1px solid var(--line); }
+.chip.chip-small { min-height: 30px; padding: 0 10px; font-size: 13px; }
+
+/* Filter bar: Tags dropdown and the chosen tags */
+.tag-filter { flex: none; }
+.tag-filter-btn { gap: 4px; font-weight: 600; }
+.tag-filter-menu { left: 0; right: auto; width: min(320px, calc(100vw - 24px)); padding: 8px; }
+.tag-filter-top { display: flex; align-items: center; gap: 8px; padding: 0 0 6px; }
+.tag-filter-top input { flex: 1; min-width: 0; min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+.tag-filter-list { max-height: min(360px, 50vh); overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
+.tag-filter-row .chip-count { margin-left: auto; }
+.tag-filter-all { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0; padding-top: 4px; font-size: 13px; }
+.filter-tag { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border-radius: 999px; background: var(--soft); color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.filter-tag button { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: -4px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: .8; }
+.filter-tag button:hover { opacity: 1; background: color-mix(in srgb, currentColor 18%, transparent); }
+.filter-chosen { gap: 6px; }

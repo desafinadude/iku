@@ -101,7 +101,7 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 The Days area has three views, switched at the top (Columns / Hours / Month on wide screens, List / Hours / Month on phones):
 
 - **Columns / List:** a card per entry, with photos.
-- **Hours:** the selected day hour by hour. Stays and other multi-day or untimed entries sit in an "All day" strip above the hours. Entries with an end time (**From / Until** in the entry) fill their slot, and overlapping entries sit side by side. Drag an idea or entry onto an hour to schedule it, or tap an empty hour to add something there. Run `supabase/migrations/007_end_time.sql` to save end times.
+- **Hours:** the selected day hour by hour. Stays and other multi-day or untimed entries sit in an "All day" strip above the hours. Entries with an end time (**From / Until** in the entry) fill their slot, and overlapping entries sit side by side. Drag an idea or entry onto an hour to schedule it (including untimed ones from the All day strip, which then get that time), or tap an empty hour to add something there. Run `supabase/migrations/007_end_time.sql` to save end times.
 - **Month:** a calendar of the trip. Stays run as bars, entries show their icon or photo, and you can drop ideas onto a date. Tap a date to open its hours.
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
@@ -110,7 +110,8 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 
 - **Arranging:** drag a card onto another card to drop it just before or after it (a line shows where). It works within a day, within the ideas, and from the ideas straight into a spot in a day. The order is saved for everyone.
 - **Sorting:** the **⋯** menu on the Days and Ideas headers sorts the cards. Days can go by time (entries with no time last), Custom (your dragged order) or title. Ideas can go newest or oldest first, Custom, title, or grouped by tag. Dragging a card switches that list to Custom. The choice is kept per device.
-- **Card size:** the button next to **⋯** switches between full cards, titles only and pictures only. Days and Ideas each have their own.
+- **What cards show:** the card button next to **⋯** has checkboxes for any mix of picture, title, details (time, notes, link, booking), tags along the bottom, and tag icons along the top (a coloured square with each tag's icon). There are presets too: Everything, Titles, Pictures, Icons + titles. Days and Ideas each have their own.
+- **Map on or off:** in Plan view on tablets and desktop, the map button on the Days, Hours and Month headers hides or shows the map pane.
 - **Pane widths:** on tablets and desktop, drag the thin handles between the ideas, days and map (or beside an open idea on the Ideas board) to resize them. Double-click a handle to reset it. The ideas tile into as many columns as fit, down to one. Widths are kept per device.
 - **Whole screen:** on tablets and desktop, the expand arrow on the Days, Hours and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
 
@@ -119,6 +120,8 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. **Opening image:** add a picture (upload or link) to show at the top of the day, like the opening of a chapter. It stays on that day only, even when you set a run of days. Run `supabase/migrations/010_day_images.sql` to save it. Run `supabase/migrations/009_trip_days.sql` to save day settings.
 
 ## Tags
+
+The filter bar has search, a **Tags** dropdown (coloured tags with checkboxes, a finder, and *only entries with all chosen tags*), the chosen tags as removable chips, and **More filters** for people and status.
 
 Colours come in four shades (pastel, light, bright, deep) for tags, people and days. Text and icons switch to dark on pale colours so they stay readable.
 
