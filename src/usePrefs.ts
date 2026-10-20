@@ -8,8 +8,8 @@ export interface Prefs {
   tagsOnRepeats: boolean
   /** How the days are shown: columns (list on phones), hour by hour, or a month calendar. */
   daysView: 'board' | 'hours' | 'month'
-  /** Wide screens: the planner (ideas, days, map) or a full-width ideas board. */
-  mainView: 'plan' | 'ideas'
+  /** Wide screens: the planner (ideas, days, map), a full-width ideas board, or a full-width map. */
+  mainView: 'plan' | 'ideas' | 'map'
   /** Ideas board: include entries already on the plan. */
   ideasIncludePlanned: boolean
 }

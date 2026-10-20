@@ -49,6 +49,8 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick }: MapVie
       defaultZoom={12}
       gestureHandling={expanded ? 'greedy' : 'cooperative'}
       disableDefaultUI={!expanded}
+      // The legend sits top-right, and the app has its own full-screen control.
+      fullscreenControl={false}
       clickableIcons
     >
       <Route route={route} />
