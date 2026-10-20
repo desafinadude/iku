@@ -56,7 +56,13 @@ export function CardShowMenu({ label, show, onChange }: { label: string; show: C
           <p className="menu-head">Cards show</p>
           {PARTS.map((p) => (
             <label key={p.key} className="menu-item menu-check-item">
-              <input type="checkbox" checked={show[p.key]} onChange={(e) => onChange({ ...show, [p.key]: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={show[p.key]}
+                // At least one part always stays on.
+                disabled={show[p.key] && PARTS.filter((q) => show[q.key]).length === 1}
+                onChange={(e) => onChange({ ...show, [p.key]: e.target.checked })}
+              />
               {p.label}
             </label>
           ))}
@@ -99,6 +105,26 @@ export function SortMenu<T extends string>({ label, order, orders, onOrder, hint
         </>
       )}
     </MenuButton>
+  )
+}
+
+const ZOOMS = [0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75]
+
+/** − 100% + : makes the idea tiles smaller or bigger. Tap the percentage to reset. */
+export function ZoomControl({ zoom, onChange }: { zoom: number; onChange: (zoom: number) => void }) {
+  const i = Math.max(0, ZOOMS.findIndex((z) => z >= zoom - 0.001))
+  return (
+    <div className="zoom-control" role="group" aria-label="Tile size">
+      <button type="button" aria-label="Smaller tiles" disabled={i === 0} onClick={() => onChange(ZOOMS[i - 1])}>
+        −
+      </button>
+      <button type="button" className="zoom-value" aria-label="Normal size" title="Normal size" onClick={() => onChange(1)}>
+        {Math.round(zoom * 100)}%
+      </button>
+      <button type="button" aria-label="Bigger tiles" disabled={i === ZOOMS.length - 1} onClick={() => onChange(ZOOMS[i + 1])}>
+        +
+      </button>
+    </div>
   )
 }
 

@@ -20,11 +20,13 @@ interface Props {
   /** Extra controls in the header (e.g. "Include planned"). */
   headExtra?: ReactNode
   show?: CardShow
+  /** Tile size: 1 is normal; bigger means wider (and so fewer) columns. */
+  zoom?: number
   /** Wide screens: the pane's width in px (from its resize handle). */
   width?: number
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, zoom = 1 }: Props) {
   const [fileOver, setFileOver] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
@@ -61,7 +63,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
     >
       <div className="pane-head">
         <h2>
-          Ideas <span className="muted">{totalIdeas} unplanned</span>
+          Ideas <span className="muted" title={`${totalIdeas} unplanned`}>{full ? `${totalIdeas} unplanned` : totalIdeas}</span>
         </h2>
         <span className="spacer" />
         {headExtra}
@@ -112,7 +114,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
           }}
         />
       </form>
-      <div className={`masonry${full ? (selectedId ? ' masonry-4' : ' masonry-full') : ''}`}>
+      <div className={`masonry${full ? (selectedId ? ' masonry-4' : ' masonry-full') : ''}`} style={{ '--zoom': zoom } as React.CSSProperties}>
         {ideas.map((item) => (
           <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
         ))}

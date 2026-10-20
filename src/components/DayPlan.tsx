@@ -101,7 +101,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                   {i + 1}
                 </span>
                 <span className="tl-body">
-                  {!pictureOnly && (show.title || !photo) && (
+                  {!pictureOnly && (show.title || (!photo && !show.details && !show.tags && !show.tagIcons)) && (
                     <b>
                       {item.pinned && (
                         <span className="pin-badge" aria-label="Pinned">

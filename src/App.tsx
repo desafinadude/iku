@@ -1,6 +1,6 @@
 import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, TouchSensor, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
-import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu } from './components/CardControls'
+import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ZoomControl } from './components/CardControls'
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
@@ -288,6 +288,7 @@ function Planner() {
   )
   const ideasControls = (
     <>
+      <ZoomControl zoom={prefs.ideasZoom} onChange={(z) => setPrefs({ ideasZoom: z })} />
       <CardShowMenu label="Ideas" show={prefs.ideasShow} onChange={(v) => setPrefs({ ideasShow: v })} />
       <SortMenu label="Ideas" order={prefs.ideasOrder} orders={IDEA_ORDERS} onOrder={(v) => setPrefs({ ideasOrder: v })} hint={DRAG_HINT} />
     </>
@@ -347,7 +348,7 @@ function Planner() {
       }}
     />
   )
-  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
+  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} zoom={prefs.ideasZoom} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -449,6 +450,7 @@ function Planner() {
                     </>
                   }
                   show={prefs.ideasShow}
+                  zoom={prefs.ideasZoom}
                 />
                 {activeEntry && resizer('detail', 'Resize the open idea', 'right', 320, 0.7)}
                 {activeEntry && (
