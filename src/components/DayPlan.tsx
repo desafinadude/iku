@@ -94,13 +94,13 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           return (
             <li key={item.id}>
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
-              <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}`} onClick={() => onOpen(item)}>
+              <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}${show.tagIcons ? ' has-icons' : ''}`} onClick={() => onOpen(item)}>
+                {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}
                 <span className="tl-num" style={{ background: c.color, color: onColor(c.color) }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">
-                  {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
                   {!pictureOnly && (show.title || !photo) && <b>{compact ? displayTitle(item) : item.title}</b>}
                   {span && <span className="span-label">{span}</span>}
                   {!compact && (
