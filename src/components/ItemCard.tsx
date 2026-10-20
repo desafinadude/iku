@@ -57,8 +57,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   // A card is never empty: without a picture the title always shows.
   const titleShown = !photoOnly && (show.title || !imageShown)
   const time = variant === 'plan' && !!item.time && !continuing
-  const fullMeta = show.details && (time || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
-  const shortMeta = !show.details && titleShown && (time || !!span)
+  const fullMeta = show.details && (item.pinned || time || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
+  const shortMeta = !show.details && titleShown && (item.pinned || time || !!span)
   const note = show.details && !!item.note && !continuing
   const compact = !show.details
 
@@ -98,6 +98,11 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         <div className="card-body">
           {(fullMeta || shortMeta) && (
             <div className="card-meta">
+              {item.pinned && (
+                <span className="pin-badge" title="Pinned to the top" aria-label="Pinned">
+                  <Icon name="pushpin" size={12} strokeWidth={2.4} />
+                </span>
+              )}
               {time && <span className="card-time">{item.time}</span>}
               {span && <span className="span-label">{span}</span>}
               {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}

@@ -411,6 +411,9 @@ export function ItemSheet(props: Props) {
           </label>
         </div>
       )}
+      <label className="check">
+        <input type="checkbox" checked={draft.pinned} onChange={(e) => set({ pinned: e.target.checked })} /> Pin to the top{draft.day ? ' of its day' : ' of the ideas'}
+      </label>
       {draft.booked && (
         <div className="field">
           <label htmlFor="f-ref">Booking reference</label>

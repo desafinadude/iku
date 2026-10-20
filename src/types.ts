@@ -47,6 +47,8 @@ export interface Item {
   /** HH:MM, optional; how long the entry runs in the hour-by-hour view. */
   endTime: string | null
   booked: boolean
+  /** Shown at the top of its day (or the ideas), above entries with times. */
+  pinned: boolean
   bookingRef: string | null
   place: string | null
   /** Google place id when the place was picked from Google search. */

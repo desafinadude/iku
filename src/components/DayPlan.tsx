@@ -101,7 +101,16 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                   {i + 1}
                 </span>
                 <span className="tl-body">
-                  {!pictureOnly && (show.title || !photo) && <b>{compact ? displayTitle(item) : item.title}</b>}
+                  {!pictureOnly && (show.title || !photo) && (
+                    <b>
+                      {item.pinned && (
+                        <span className="pin-badge" aria-label="Pinned">
+                          <Icon name="pushpin" size={12} strokeWidth={2.4} />
+                        </span>
+                      )}
+                      {compact ? displayTitle(item) : item.title}
+                    </b>
+                  )}
                   {span && <span className="span-label">{span}</span>}
                   {!compact && (
                   <span className="muted small tl-type">

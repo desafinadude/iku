@@ -108,16 +108,11 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
       </div>
 
       <div className="hours-scroll">
-        {allDay.length > 0 && (
-          <div className="all-day">
-            <span className="all-day-label">All day</span>
-            <div className="all-day-items">
-              {allDay.map((x) => (
-                <AllDayItem key={x.id} item={x} day={day} tagsOnRepeats={prefs.tagsOnRepeats} onOpen={onOpen} />
-              ))}
-            </div>
-          </div>
-        )}
+        <AllDayStrip day={day}>
+          {allDay.map((x) => (
+            <AllDayItem key={x.id} item={x} day={day} tagsOnRepeats={prefs.tagsOnRepeats} onOpen={onOpen} />
+          ))}
+        </AllDayStrip>
 
         <div className="hour-grid" style={{ height: hours.length * HOUR }}>
           {hours.map((h) => (
@@ -130,6 +125,20 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
         </div>
       </div>
     </section>
+  )
+}
+
+/** The strip above the hours. Dropping a timed entry here takes its time off but keeps it on the day. */
+function AllDayStrip({ day, children }: { day: string; children: ReactNode[] }) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'allday:' + day })
+  return (
+    <div ref={setNodeRef} className={`all-day${isOver ? ' is-over' : ''}`}>
+      <span className="all-day-label">All day</span>
+      <div className="all-day-items">
+        {children}
+        {children.length === 0 && <span className="all-day-empty">Drop an entry here to take its time off</span>}
+      </div>
+    </div>
   )
 }
 
