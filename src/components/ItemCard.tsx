@@ -2,7 +2,8 @@ import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { inkColor } from '../colors'
 import { useContext, useState } from 'react'
 import { DropHintContext, type CardZone } from '../dnd'
-import type { CardLook } from '../usePrefs'
+import { SHOW_ALL, type CardShow } from '../usePrefs'
+import { TagIcons } from './TagIcons'
 import { displayTitle, domainOf, isPhotoCard, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
@@ -24,11 +25,11 @@ interface Props {
   tagsOnRepeats?: boolean
   /** Highlighted as the one open beside the ideas board. */
   selected?: boolean
-  /** Everything, just the title, or just the picture. */
-  look?: CardLook
+  /** Which parts of the card to show. */
+  show?: CardShow
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, look = 'full' }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, show = SHOW_ALL }: Props) {
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
@@ -48,12 +49,18 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const showCreator = !!creator && !continuing
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
-  const image = item.imageUrl && !imgBroken && look !== 'titles' ? item.imageUrl : null
-  // A picture with no title, or "pictures only": show the whole image and nothing else.
-  // (Repeat cards on later days never show the picture.)
-  const photoOnly = (isPhotoCard(item) || look === 'pictures') && !!image && !(variant === 'plan' && continuing)
-  // Compact looks drop the note and the tag bar.
-  const compact = look !== 'full'
+  const image = show.image && item.imageUrl && !imgBroken ? item.imageUrl : null
+  // Repeat day cards of multi-day entries never show the picture.
+  const imageShown = !!image && !(variant === 'plan' && continuing)
+  // Nothing but the picture (a photo with no title, or title and details turned off): show it whole, alone.
+  const photoOnly = imageShown && (isPhotoCard(item) || (!show.title && !show.details))
+  // A card is never empty: without a picture the title always shows.
+  const titleShown = !photoOnly && (show.title || !imageShown)
+  const time = variant === 'plan' && !!item.time && !continuing
+  const fullMeta = show.details && (time || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
+  const shortMeta = !show.details && titleShown && (time || !!span)
+  const note = show.details && !!item.note && !continuing
+  const compact = !show.details
 
   return (
     <article
@@ -74,44 +81,33 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         if (e.key === 'Enter') onOpen(item)
       }}
     >
-      {variant === 'plan' && image && !continuing && (
-        <div className={`card-photo card-photo-plan${photoOnly ? ' is-whole' : ''}`}>
-          <CardImage imageUrl={image} onBroken={() => setImgBroken(true)} />
+      {show.tagIcons && <TagIcons tags={shownTags} />}
+      {imageShown && (
+        <div className={`card-photo${variant === 'plan' ? ' card-photo-plan' : ''}${photoOnly ? ' is-whole' : ''}`}>
+          <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
         </div>
       )}
-      {variant === 'pin' && image && (
-        <div className={`card-photo${photoOnly ? ' is-whole' : ''}`}>
-          <CardImage imageUrl={image} onBroken={() => setImgBroken(true)} />
-        </div>
-      )}
-      {variant === 'pin' && !image && domain && !compact && (
+      {variant === 'pin' && !image && domain && show.image && show.details && (
         <div className="card-media" style={{ background: c.bg }}>
           <span className="card-domain" style={{ color: inkColor(c.color) }}>
             {domain}
           </span>
         </div>
       )}
-      {!(photoOnly && (variant === 'pin' || look === 'pictures')) && (
+      {(titleShown || fullMeta || shortMeta || note) && (
         <div className="card-body">
-          {compact ? (
-            (variant === 'plan' && item.time && !continuing) || span ? (
-              <div className="card-meta">
-                {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
-                {span && <span className="span-label">{span}</span>}
-              </div>
-            ) : null
-          ) : ((variant === 'plan' && item.time && !continuing) || span || (variant === 'pin' && image && domain) || fileCount > 0 || item.booked) && (
+          {(fullMeta || shortMeta) && (
             <div className="card-meta">
-              {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
+              {time && <span className="card-time">{item.time}</span>}
               {span && <span className="span-label">{span}</span>}
-              {variant === 'pin' && image && domain && <span className="card-domain">{domain}</span>}
-              {fileCount > 0 && (
+              {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}
+              {fullMeta && fileCount > 0 && (
                 <span className="file-badge" aria-label={`${fileCount} attachments`}>
                   <Icon name="paperclip" size={13} />
                   {fileCount}
                 </span>
               )}
-              {item.booked && (
+              {fullMeta && item.booked && (
                 <span className="booked">
                   <Icon name="check" size={13} strokeWidth={2.4} />
                   Booked
@@ -119,11 +115,11 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
               )}
             </div>
           )}
-          {!photoOnly && <div className="card-title">{displayTitle(item)}</div>}
-          {item.note && !continuing && !compact && <div className="card-note">{item.note}</div>}
+          {titleShown && <div className="card-title">{displayTitle(item)}</div>}
+          {note && <div className="card-note">{item.note}</div>}
         </div>
       )}
-      {photoOnly && variant === 'pin' && fileCount > 0 && !compact && (
+      {photoOnly && show.details && fileCount > 0 && (
         <div className="card-meta card-meta-photo">
           <span className="file-badge" aria-label={`${fileCount} attachments`}>
             <Icon name="paperclip" size={13} />
@@ -131,7 +127,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           </span>
         </div>
       )}
-      {!compact && (shownTags.length > 0 || showCreator) && (
+      {show.tags && (shownTags.length > 0 || showCreator) && (
         <div className="card-foot">
           <TagChips tags={shownTags} small />
           {showCreator && (

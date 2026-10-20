@@ -1,6 +1,6 @@
 import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, TouchSensor, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
-import { CardLookButton, CardMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS } from './components/CardControls'
+import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu } from './components/CardControls'
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
@@ -279,20 +279,28 @@ function Planner() {
   )
   const daysControls = (
     <>
-      <CardLookButton look={prefs.daysCards} onChange={(v) => setPrefs({ daysCards: v })} />
-      <CardMenu label="Days" order={prefs.dayOrder} orders={wide ? DAY_ORDERS : DAY_ORDERS.map((o) => (o.value === 'custom' ? { ...o, label: 'Custom (as arranged)' } : o))} onOrder={(v) => setPrefs({ dayOrder: v })} look={prefs.daysCards} onLook={(v) => setPrefs({ daysCards: v })} hint={wide ? DRAG_HINT : undefined} />
+      <CardShowMenu label="Days" show={prefs.daysShow} onChange={(v) => setPrefs({ daysShow: v })} />
+      <SortMenu label="Days" order={prefs.dayOrder} orders={wide ? DAY_ORDERS : DAY_ORDERS.map((o) => (o.value === 'custom' ? { ...o, label: 'Custom (as arranged)' } : o))} onOrder={(v) => setPrefs({ dayOrder: v })} hint={wide ? DRAG_HINT : undefined} />
     </>
   )
   const ideasControls = (
     <>
-      <CardLookButton look={prefs.ideasCards} onChange={(v) => setPrefs({ ideasCards: v })} />
-      <CardMenu label="Ideas" order={prefs.ideasOrder} orders={IDEA_ORDERS} onOrder={(v) => setPrefs({ ideasOrder: v })} look={prefs.ideasCards} onLook={(v) => setPrefs({ ideasCards: v })} hint={DRAG_HINT} />
+      <CardShowMenu label="Ideas" show={prefs.ideasShow} onChange={(v) => setPrefs({ ideasShow: v })} />
+      <SortMenu label="Ideas" order={prefs.ideasOrder} orders={IDEA_ORDERS} onOrder={(v) => setPrefs({ ideasOrder: v })} hint={DRAG_HINT} />
     </>
   )
+  // Wide plan view: show or hide the map, and give the days view the whole workspace.
   const maxToggle = wide ? (
+    <>
+      {prefs.mainView === 'plan' && !daysMax && (
+        <button className="icon-btn head-btn" aria-label={prefs.planMap ? 'Hide the map' : 'Show the map'} title={prefs.planMap ? 'Hide the map' : 'Show the map'} aria-pressed={prefs.planMap} onClick={() => setPrefs({ planMap: !prefs.planMap })}>
+          <Icon name="map" size={16} />
+        </button>
+      )}
     <button className="icon-btn head-btn" aria-label={daysMax ? 'Exit full screen' : 'Use the whole screen'} title={daysMax ? 'Exit full screen (Esc)' : 'Use the whole screen'} aria-pressed={daysMax} onClick={() => setDaysMax((v) => !v)}>
       <Icon name={daysMax ? 'shrink' : 'expand'} size={16} />
     </button>
+    </>
   ) : undefined
   const editDay = (day: string) => setSheet({ kind: 'day', day })
   const addAt = (day: string, time: string) => setSheet({ kind: 'item', item: blank({ day, time }), isNew: true })
@@ -331,7 +339,7 @@ function Planner() {
       }}
     />
   )
-  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} look={prefs.ideasCards} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
+  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -432,7 +440,7 @@ function Planner() {
                       {ideasControls}
                     </>
                   }
-                  look={prefs.ideasCards}
+                  show={prefs.ideasShow}
                 />
                 {activeEntry && resizer('detail', 'Resize the open idea', 'right', 320, 0.7)}
                 {activeEntry && (
@@ -487,8 +495,8 @@ function Planner() {
                   onEditDay={editDay}
                 />
               )}
-                {!daysMax && resizer('map', 'Resize the map', 'right', 240, 0.6)}
-                {!daysMax && mapPane}
+                {!daysMax && prefs.planMap && resizer('map', 'Resize the map', 'right', 240, 0.6)}
+                {!daysMax && prefs.planMap && mapPane}
               </>
             ) : tab === 'ideas' ? (
               ideasPane

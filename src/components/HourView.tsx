@@ -65,7 +65,7 @@ function layout(items: Item[]): Placed[] {
 }
 
 export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSelectDay, onOpen, onAddAt, onEditDay }: Props) {
-  const { itemStyle, dayStyle } = useLabels()
+  const { dayStyle } = useLabels()
   const ds = dayStyle(day)
   const dayItems = itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day)
   const allDay = dayItems.filter(isAllDay)
@@ -112,23 +112,9 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
           <div className="all-day">
             <span className="all-day-label">All day</span>
             <div className="all-day-items">
-              {allDay.map((x) => {
-                const s = itemStyle(x)
-                const span = spanLabel(x, day)
-                const repeat = x.day !== day
-                return (
-                  <button key={x.id} className={`all-day-item${repeat ? ' is-repeat' : ''}`} style={{ background: s.color, color: onColor(s.color) }} onClick={() => onOpen(x)}>
-                    <LabelIconView name={s.icon} size={16} />
-                    <b>{displayTitle(x)}</b>
-                    {span && <span className="all-day-span">{span}</span>}
-                    {(!repeat || prefs.tagsOnRepeats) && x.tags.length > 0 && (
-                      <span className="tag-row on-solid">
-                        <TagChips tags={x.tags} small />
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
+              {allDay.map((x) => (
+                <AllDayItem key={x.id} item={x} day={day} tagsOnRepeats={prefs.tagsOnRepeats} onOpen={onOpen} />
+              ))}
             </div>
           </div>
         )}
@@ -144,6 +130,37 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
         </div>
       </div>
     </section>
+  )
+}
+
+/** An untimed or multi-day entry. Drag it onto an hour to give it that start time. */
+function AllDayItem({ item: x, day, tagsOnRepeats, onOpen }: { item: Item; day: string; tagsOnRepeats: boolean; onOpen: (item: Item) => void }) {
+  const { itemStyle } = useLabels()
+  const repeat = x.day !== day
+  // Only the entry's first day can be dragged (later days of a stay are repeats).
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: repeat ? `${x.id}@${day}` : x.id, disabled: repeat })
+  const s = itemStyle(x)
+  const span = spanLabel(x, day)
+  return (
+    <button
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      aria-disabled={undefined}
+      className={`all-day-item${repeat ? ' is-repeat' : ''}${isDragging ? ' is-dragging' : ''}`}
+      style={{ background: s.color, color: onColor(s.color) }}
+      onClick={() => onOpen(x)}
+      title={repeat ? undefined : 'Drag onto an hour to set its time'}
+    >
+      <LabelIconView name={s.icon} size={16} />
+      <b>{displayTitle(x)}</b>
+      {span && <span className="all-day-span">{span}</span>}
+      {(!repeat || tagsOnRepeats) && x.tags.length > 0 && (
+        <span className="tag-row on-solid">
+          <TagChips tags={x.tags} small />
+        </span>
+      )}
+    </button>
   )
 }
 

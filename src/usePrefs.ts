@@ -16,9 +16,11 @@ export interface Prefs {
   dayOrder: DayOrder
   /** Order of the ideas. */
   ideasOrder: IdeasOrder
-  /** How much each card shows: everything, just titles, or just pictures. */
-  daysCards: CardLook
-  ideasCards: CardLook
+  /** Which parts each card shows (days and ideas separately). */
+  daysShow: CardShow
+  ideasShow: CardShow
+  /** Plan view on wide screens: show the map pane. */
+  planMap: boolean
   /** Wide screens: pane widths in px, set by dragging the handles between panes. */
   ideasWidth: number
   mapWidth: number
@@ -27,12 +29,24 @@ export interface Prefs {
 
 export type DayOrder = 'time' | 'custom' | 'title'
 export type IdeasOrder = 'newest' | 'oldest' | 'custom' | 'title' | 'tag'
-export type CardLook = 'full' | 'titles' | 'pictures'
+/** Parts of a card that can be turned on and off. */
+export interface CardShow {
+  image: boolean
+  title: boolean
+  /** Time, notes, link, attachments and booking. */
+  details: boolean
+  /** Tag chips (and who added it) in a bar along the bottom. */
+  tags: boolean
+  /** A strip of coloured tag-icon squares along the top. */
+  tagIcons: boolean
+}
+
+export const SHOW_ALL: CardShow = { image: true, title: true, details: true, tags: true, tagIcons: false }
 
 export const PANE_DEFAULTS = { ideas: 320, map: 380, detail: 640 }
 
 const KEY = 'iku:prefs'
-const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysCards: 'full', ideasCards: 'full', ideasWidth: PANE_DEFAULTS.ideas, mapWidth: PANE_DEFAULTS.map, detailWidth: PANE_DEFAULTS.detail }
+const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysShow: SHOW_ALL, ideasShow: SHOW_ALL, planMap: true, ideasWidth: PANE_DEFAULTS.ideas, mapWidth: PANE_DEFAULTS.map, detailWidth: PANE_DEFAULTS.detail }
 
 export function usePrefs() {
   const [prefs, setPrefs] = useState<Prefs>(() => {
