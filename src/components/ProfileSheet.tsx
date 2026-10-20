@@ -4,6 +4,7 @@ import { MEMBER_COLORS, type Item, type Member } from '../types'
 import type { Profile } from '../data/backend'
 import { Avatar } from './Avatar'
 import { Sheet } from './Sheet'
+import { useInstall } from './InstallPrompt'
 
 interface Props {
   me: Member
@@ -23,6 +24,7 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
   const fileRef = useRef<HTMLInputElement>(null)
   const preview: Member = { ...me, name: name || me.name, avatar, color }
   const others = members.filter((m) => m.email !== me.email)
+  const { mode: installMode, install } = useInstall()
 
   return (
     <Sheet
@@ -78,6 +80,20 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
           ))}
         </div>
       </fieldset>
+      {installMode && (
+        <div className="group">
+          <h3 className="group-title">This device</h3>
+          {installMode === 'prompt' ? (
+            <button type="button" className="secondary-btn" onClick={install}>
+              Install Iku as an app
+            </button>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>
+              To install on iPhone or iPad: open this page in Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>.
+            </p>
+          )}
+        </div>
+      )}
       {others.length > 0 && (
         <div className="group">
           <h3 className="group-title">On this trip</h3>

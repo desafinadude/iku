@@ -11,6 +11,15 @@ npm run dev
 
 With no environment variables set it runs in **local mode**: sample trip data is saved in your browser only (shown by the "Local" badge).
 
+## Install on your phone
+
+Iku is an installable app (PWA):
+
+- **Android / Chrome / Edge:** an **Install** banner appears at the top (also in your profile sheet). Or use the browser menu → *Install app*.
+- **iPhone / iPad:** open the site in **Safari**, tap **Share**, then **Add to Home Screen**. The banner's **How?** button shows the same steps.
+
+Once installed it opens full screen with its own icon. It works offline using the last synced trip and any files you saved to the device. Long-press the icon for shortcuts to **Today's plan** and **Map**. Updates install themselves the next time you open it.
+
 ## Connect Supabase (shared, password-protected)
 
 1. Create a Supabase project and run `supabase/schema.sql` in the SQL editor, then each file in `supabase/migrations/` in order.

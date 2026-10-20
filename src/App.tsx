@@ -6,6 +6,7 @@ import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
 import { HourView } from './components/HourView'
+import { InstallPrompt } from './components/InstallPrompt'
 import { MonthView } from './components/MonthView'
 import { usePrefs } from './usePrefs'
 import { LabelsManager } from './components/LabelsManager'
@@ -79,7 +80,11 @@ function Planner() {
   /** Types & tags manager; opens on top of other sheets so an entry being edited isn't lost. */
   const [managing, setManaging] = useState<false | 'type' | 'tag'>(false)
   const wide = useMediaQuery('(min-width: 900px)')
-  const [tab, setTab] = useState<Tab>('ideas')
+  // Home-screen shortcuts open a tab directly (./?tab=days).
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = new URLSearchParams(location.search).get('tab')
+    return t === 'days' || t === 'map' || t === 'docs' ? t : 'ideas'
+  })
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [sheet, setSheet] = useState<SheetState>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
@@ -273,6 +278,7 @@ function Planner() {
           )}
         </header>
 
+        <InstallPrompt />
         {(offlineSince || !online) && (
           <div className="offline-bar" role="status">
             <Icon name="offline" size={16} />
