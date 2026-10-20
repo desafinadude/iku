@@ -657,3 +657,4 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .tag-add { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1.5px dashed var(--drop-line); border-radius: var(--radius); background: var(--drop); color: var(--accent-dark); }
 .tag-add input { flex: 1; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; font-size: 15px; color: var(--ink); }
 .tag-add .secondary-btn { min-height: 40px; }
+body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none; }

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_LABEL_ID } from '../data/normalize'
 import { iconName, SUGGESTED_ICONS } from '../labels/icons'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -87,33 +87,63 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
     saveOrder(names)
   }
 
-  // Dragging a row by its handle (mouse or touch): the row moves to wherever the pointer is.
+  // Dragging a row by its handle (mouse or touch). The row moves to wherever the pointer is. The pointer is
+  // followed on the whole window: re-ordering moves the row in the page, which would drop pointer capture.
+  const orderRef = useRef<string[] | null>(null)
   const startDrag = (name: string, e: React.PointerEvent) => {
     e.preventDefault()
-    e.currentTarget.setPointerCapture(e.pointerId)
     setOpen(null)
+    orderRef.current = tags.map((t) => t.name)
+    setDragOrder(orderRef.current)
     setDragging(name)
-    setDragOrder(tags.map((t) => t.name))
   }
-  const onDragMove = (e: React.PointerEvent) => {
-    if (!dragging || !dragOrder) return
-    const others = dragOrder.filter((n) => n !== dragging)
-    let at = others.length
-    for (let i = 0; i < others.length; i++) {
-      const r = rows.current.get(others[i])?.getBoundingClientRect()
-      if (r && e.clientY < r.top + r.height / 2) {
-        at = i
-        break
+  useEffect(() => {
+    if (!dragging) return
+    const scroller = rows.current.get(dragging)?.closest('.sheet-body') as HTMLElement | null
+    const onMove = (e: PointerEvent) => {
+      e.preventDefault()
+      const order = orderRef.current
+      if (!order) return
+      // Near the top or bottom of the sheet, scroll it so long lists can be reordered.
+      if (scroller) {
+        const r = scroller.getBoundingClientRect()
+        if (e.clientY < r.top + 48) scroller.scrollTop -= 12
+        else if (e.clientY > r.bottom - 48) scroller.scrollTop += 12
+      }
+      const others = order.filter((n) => n !== dragging)
+      let at = others.length
+      for (let i = 0; i < others.length; i++) {
+        const r = rows.current.get(others[i])?.getBoundingClientRect()
+        if (r && e.clientY < r.top + r.height / 2) {
+          at = i
+          break
+        }
+      }
+      const next = [...others.slice(0, at), dragging, ...others.slice(at)]
+      if (next.join('\n') !== order.join('\n')) {
+        orderRef.current = next
+        setDragOrder(next)
       }
     }
-    const next = [...others.slice(0, at), dragging, ...others.slice(at)]
-    if (next.join('\n') !== dragOrder.join('\n')) setDragOrder(next)
-  }
-  const endDrag = () => {
-    if (dragOrder && dragOrder.join('\n') !== tags.map((t) => t.name).join('\n')) saveOrder(dragOrder)
-    setDragging(null)
-    setDragOrder(null)
-  }
+    const onUp = () => {
+      const order = orderRef.current
+      if (order && order.join('\n') !== tags.map((t) => t.name).join('\n')) saveOrder(order)
+      orderRef.current = null
+      setDragging(null)
+      setDragOrder(null)
+    }
+    document.body.classList.add('is-sorting')
+    window.addEventListener('pointermove', onMove, { passive: false })
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+    return () => {
+      document.body.classList.remove('is-sorting')
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging])
 
   const shown = dragOrder ? dragOrder.map((n) => tags.find((t) => t.name === n)!).filter(Boolean) : tags
 
@@ -142,9 +172,6 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
                   aria-label={`Move ${t.name} (arrow keys)`}
                   title="Drag to reorder"
                   onPointerDown={(e) => startDrag(t.name, e)}
-                  onPointerMove={onDragMove}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
                   onKeyDown={(e) => {
                     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                       e.preventDefault()
