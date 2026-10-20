@@ -46,6 +46,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}`}
       {...listeners}
       {...attributes}
+      // Repeat cards can't be dragged, but they still open: don't announce them as disabled.
+      aria-disabled={undefined}
       role="button"
       tabIndex={0}
       aria-label={`${displayTitle(item)}${item.tags.length ? ', ' + item.tags.join(', ') : ''}${item.day ? '' : ', unplanned'}`}
