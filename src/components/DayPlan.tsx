@@ -20,11 +20,13 @@ interface Props {
   onSelectDay: (day: string) => void
   onOpen: (item: Item) => void
   onShowIdeas: () => void
+  onEditDay: (day: string) => void
 }
 
 /** Portrait (phone) view of a single day. */
-export function DayPlan({ tripName, days, items, members, attachments, prefs, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
-  const { itemStyle } = useLabels()
+export function DayPlan({ tripName, days, items, members, attachments, prefs, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas, onEditDay }: Props) {
+  const { itemStyle, dayStyle } = useLabels()
+  const ds = dayStyle(selectedDay)
   const today = itemsForDay(items, selectedDay).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
@@ -34,16 +36,27 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
         <span className="muted small">
           {tripName} · Day {index + 1} of {days.length}
         </span>
-        <h1 className="display">
-          {l.dow} {l.num} {l.month}
-        </h1>
+        <div className="dayplan-title">
+          <h1 className="display">
+            {l.dow} {l.num} {l.month}
+          </h1>
+          <button className="icon-btn day-edit" aria-label="Day title, tag and colour" onClick={() => onEditDay(selectedDay)}>
+            <Icon name="edit" size={16} />
+          </button>
+        </div>
+        {(ds.title || ds.tag) && (
+          <span className="day-banner" style={ds.color ? { background: ds.color } : undefined}>
+            {ds.title ?? ds.tag}
+          </span>
+        )}
         <div className="day-strip">
           {days.map((d) => {
             const dl = dayLabel(d)
             const on = d === selectedDay
             const has = items.some((x) => onDay(x, d))
+            const pc = dayStyle(d).color
             return (
-              <button key={d} className={`day-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onSelectDay(d)}>
+              <button key={d} className={`day-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onSelectDay(d)} style={pc ? { boxShadow: `inset 0 -4px 0 ${pc}` } : undefined} title={dayStyle(d).title ?? undefined}>
                 <span className="small">{dl.dow}</span>
                 <b>{dl.num}</b>
                 <span className={`pill-dot${has ? ' has' : ''}`} aria-hidden="true" />

@@ -101,3 +101,12 @@ export interface Attachment {
   createdBy: string | null
   createdAt: string
 }
+
+/** A day's title, tag and colour (e.g. the city you're in). */
+export interface DayInfo {
+  day: string
+  title: string | null
+  /** One tag for the whole day; its colour is used unless color is set. */
+  tag: string | null
+  color: string | null
+}

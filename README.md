@@ -106,6 +106,10 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
 
+## Day titles, tags and colours
+
+Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. Run `supabase/migrations/009_trip_days.sql` to save day settings.
+
 ## Tags
 
 Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry, to give a tag a colour and an icon (any [Material Symbol](https://fonts.google.com/icons)). You can also rename tags, merge one into another by renaming it to an existing name, delete them, or create new ones.

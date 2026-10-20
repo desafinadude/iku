@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { normalizeLabels } from '../data/normalize'
-import type { Item, Label } from '../types'
+import type { DayInfo, Item, Label } from '../types'
 
 export interface Style {
   name: string
@@ -25,7 +25,18 @@ interface LabelsApi {
   tagStyle: (tag: string) => TagStyle
   /** An entry's look: its first tag with a colour, else neutral. */
   itemStyle: (item: Item) => Style
+  /** A day's title, tag and colour (its own colour, else its tag's). */
+  dayStyle: (day: string) => DayStyle
   labels: Label[]
+}
+
+export interface DayStyle {
+  info: DayInfo | null
+  title: string | null
+  tag: string | null
+  color: string | null
+  /** Soft tint for the day's background. */
+  bg: string | null
 }
 
 const NEUTRAL = '#4A5550'
@@ -39,7 +50,7 @@ export function tint(hex: string, amount = 0.12) {
 
 const Ctx = createContext<LabelsApi | null>(null)
 
-export function LabelsProvider({ tripId, labels, items, children }: { tripId: string; labels: Label[]; items: Item[]; children: ReactNode }) {
+export function LabelsProvider({ tripId, labels, items, days = [], children }: { tripId: string; labels: Label[]; items: Item[]; days?: DayInfo[]; children: ReactNode }) {
   const api = useMemo<LabelsApi>(() => {
     const styled = normalizeLabels(labels, items, tripId).sort((a, b) => a.sort - b.sort)
     const byName = new Map(styled.map((l) => [l.name.toLowerCase(), l]))
@@ -58,9 +69,14 @@ export function LabelsProvider({ tripId, labels, items, children }: { tripId: st
         const t = item.tags.map(tagStyle).find((s) => s.color)
         return t ? { name: t.name, color: t.color!, bg: t.bg!, icon: t.icon ?? 'location_on' } : neutral
       },
+      dayStyle: (day) => {
+        const info = days.find((d) => d.day === day) ?? null
+        const color = info?.color ?? (info?.tag ? tagStyle(info.tag).color : null)
+        return { info, title: info?.title ?? null, tag: info?.tag ?? null, color, bg: color ? tint(color, 0.13) : null }
+      },
       labels: styled
     }
-  }, [labels, items, tripId])
+  }, [labels, items, tripId, days])
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }
 

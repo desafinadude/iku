@@ -27,7 +27,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
   const [expanded, setExpanded] = useState(false)
   const [allDays, setAllDays] = useState(false)
   const googleOk = useGoogleOk()
-  const { itemStyle, tags } = useLabels()
+  const { itemStyle, tags, dayStyle } = useLabels()
   // Pins take their colour and icon from the entry's first coloured tag.
   const pinStyle = (x: Item) => {
     const s = itemStyle(x)
@@ -106,7 +106,9 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
                   onSelectDay(d)
                 }}
               >
+                {dayStyle(d).color && <span className="dot" style={{ background: dayStyle(d).color! }} />}
                 <span className="small">Day {i + 1}</span> {dl.dow} {dl.num}
+                {dayStyle(d).title && <span className="small"> · {dayStyle(d).title}</span>}
               </button>
             )
           })}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, daysBetween, fromMinutes, toMinutes } from '../lib'
-import type { Attachment, Item, Label, Member, Trip } from '../types'
+import type { Attachment, DayInfo, Item, Label, Member, Trip } from '../types'
 import { isCoverRef, type Backend, type Profile } from './backend'
 import { getFile, loadSnapshot, removeFile, saveFile, saveSnapshot, savedFileIds } from './offline'
 
@@ -10,6 +10,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
   const [members, setMembers] = useState<Member[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [labels, setLabels] = useState<Label[]>([])
+  const [dayInfos, setDayInfos] = useState<DayInfo[]>([])
   const [me, setMe] = useState('')
   const [error, setError] = useState<string | null>(null)
   /** Set when showing the last synced copy because the network is down. */
@@ -27,6 +28,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
       setMembers(data.members)
       setAttachments(data.attachments)
       setLabels(data.labels)
+      setDayInfos(data.days ?? [])
       setMe(email)
       setError(null)
       setOfflineSince(null)
@@ -39,6 +41,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
         setMembers(snap.members)
         setAttachments(snap.attachments ?? [])
         setLabels(snap.labels ?? [])
+        setDayInfos(snap.days ?? [])
         setMe(await backend.me().catch(() => ''))
         setOfflineSince(snap.savedAt)
       } else {
@@ -232,7 +235,27 @@ export function useTrip(backend: Backend, enabled: boolean) {
   )
   const deleteTag = useCallback((tag: string) => labelOp(() => backend.deleteTag(trip!.id, tag)), [backend, labelOp, trip])
 
+  /** Saves titles/tags/colours for one or more days (optimistic). */
+  const saveDays = useCallback(
+    async (list: DayInfo[]) => {
+      const before = dayInfos
+      setDayInfos((cur) => {
+        const byDay = new Map(cur.map((d) => [d.day, d]))
+        list.forEach((d) => byDay.set(d.day, d))
+        return [...byDay.values()]
+      })
+      try {
+        await backend.saveDays(trip!.id, list)
+      } catch (e) {
+        setDayInfos(before)
+        setError((e as Error).message)
+      }
+    },
+    [backend, dayInfos, trip]
+  )
+
   return {
+    dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, moveToSlot, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl

@@ -21,6 +21,7 @@ interface Props {
   onSelectDay: (day: string) => void
   onOpen: (item: Item) => void
   onAddAt: (day: string, time: string) => void
+  onEditDay: (day: string) => void
 }
 
 /** Multi-day entries (stays) and untimed entries go in the "All day" strip, not the hours. */
@@ -60,8 +61,9 @@ function layout(items: Item[]): Placed[] {
   return placed
 }
 
-export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onOpen, onAddAt }: Props) {
-  const { itemStyle } = useLabels()
+export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onOpen, onAddAt, onEditDay }: Props) {
+  const { itemStyle, dayStyle } = useLabels()
+  const ds = dayStyle(day)
   const dayItems = itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day)
   const allDay = dayItems.filter(isAllDay)
   const placed = layout(dayItems.filter((x) => !isAllDay(x)))
@@ -80,6 +82,14 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
         <h2>
           {l.dow} {l.num} {l.month}
         </h2>
+        {(ds.title || ds.tag) && (
+          <span className="day-banner" style={ds.color ? { background: ds.color } : undefined}>
+            {ds.title ?? ds.tag}
+          </span>
+        )}
+        <button className="icon-btn nav-btn" aria-label="Day title, tag and colour" onClick={() => onEditDay(day)}>
+          <Icon name="edit" size={15} />
+        </button>
         {viewSwitch}
         <span className="spacer" />
         <button className="icon-btn nav-btn" aria-label="Previous day" disabled={idx <= 0} onClick={() => onSelectDay(addDays(day, -1))}>

@@ -1,5 +1,5 @@
 import { cleanTags } from '../lib'
-import type { Item, Member, Trip } from '../types'
+import type { DayInfo, Item, Member, Trip } from '../types'
 
 export const LOCAL_ME = 'you@local'
 
@@ -58,4 +58,11 @@ export const SEED_ITEMS: Item[] = [
   item('Transport', 'Shinkansen to Kyoto', { day: '2027-04-14', time: '09:12', booked: true, bookingRef: '[REF]', lat: 35.6812, lng: 139.7671, place: 'Tokyo Station' }),
   item('Stay', 'Higashiyama ryokan', { day: '2027-04-14', endDay: '2027-04-17', time: '15:00', booked: true, bookingRef: '[REF]', lat: 34.9986, lng: 135.7813 }),
   item('Sight', 'Evening walk through Gion', { day: '2027-04-14', time: '17:00', lat: 35.0037, lng: 135.7756 })
+]
+
+/** Sample day titles: Tokyo first, then Kyoto. */
+export const SEED_DAYS: DayInfo[] = [
+  ...['2027-04-12', '2027-04-13'].map((day) => ({ day, title: 'Tokyo', tag: 'Tokyo', color: '#C2410C' })),
+  { day: '2027-04-14', title: 'Tokyo → Kyoto', tag: 'Kyoto', color: null },
+  ...['2027-04-15', '2027-04-16', '2027-04-17'].map((day) => ({ day, title: 'Kyoto', tag: 'Kyoto', color: '#0F6E8C' }))
 ]

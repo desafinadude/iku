@@ -1,9 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Attachment, Item, Label, Member, Trip } from '../types'
+import type { Attachment, DayInfo, Item, Label, Member, Trip } from '../types'
 import { clearSnapshot, removeFile, savedFileIds } from './offline'
 import { cleanTags } from '../lib'
 import { normalizeItem } from './normalize'
-import { LOCAL_ME, SEED_ITEMS, SEED_MEMBERS, SEED_TRIP } from './seed'
+import { LOCAL_ME, SEED_DAYS, SEED_ITEMS, SEED_MEMBERS, SEED_TRIP } from './seed'
 
 export interface TripData {
   trip: Trip
@@ -11,6 +11,7 @@ export interface TripData {
   members: Member[]
   attachments: Attachment[]
   labels: Label[]
+  days: DayInfo[]
 }
 
 export type Profile = Pick<Member, 'name' | 'avatar' | 'color'>
@@ -54,6 +55,8 @@ export interface Backend {
   renameLabel(tripId: string, kind: Label['kind'], from: string, to: string): Promise<void>
   /** Removes a tag from every entry. */
   deleteTag(tripId: string, tag: string): Promise<void>
+  /** Saves day titles/tags/colours (a day with nothing set is cleared). */
+  saveDays(tripId: string, days: DayInfo[]): Promise<void>
   /** Stores a card image you chose; returns the reference to save as the entry's imageUrl. */
   uploadCover(tripId: string, file: File): Promise<string>
   /** A displayable URL for an uploaded card image reference. */
@@ -92,12 +95,12 @@ function localBackend(): Backend {
       const raw = localStorage.getItem(LOCAL_KEY)
       if (raw) {
         const data = JSON.parse(raw)
-        return { members: SEED_MEMBERS, attachments: [], labels: [], ...data, items: (data.items ?? []).map(normalizeItem) }
+        return { members: SEED_MEMBERS, attachments: [], labels: [], days: [], ...data, items: (data.items ?? []).map(normalizeItem) }
       }
     } catch {
       /* fall through to seed */
     }
-    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS, attachments: [], labels: [] }
+    return { trip: SEED_TRIP, items: SEED_ITEMS, members: SEED_MEMBERS, attachments: [], labels: [], days: SEED_DAYS }
   }
   const write = (data: TripData) => {
     try {
@@ -164,6 +167,12 @@ function localBackend(): Backend {
       const exists = data.labels.some((l) => l.name === to)
       const labels = exists ? data.labels.filter((l) => l.name !== from) : data.labels.map((l) => (l.name === from ? { ...l, name: to } : l))
       write({ ...data, items, labels })
+    },
+    saveDays: async (_tripId, days) => {
+      const data = read()
+      const byDay = new Map(data.days.map((d) => [d.day, d]))
+      days.forEach((d) => (d.title || d.tag || d.color ? byDay.set(d.day, d) : byDay.delete(d.day)))
+      write({ ...data, days: [...byDay.values()] })
     },
     uploadCover: async (tripId, file) => {
       const path = `${tripId}/covers/${crypto.randomUUID()}-${safeName(file.name)}`
@@ -343,20 +352,22 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
       const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
-      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe] = await Promise.all([
+      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
         sb.from('attachments').select('*').eq('trip_id', trip.id), // missing before migration 004
         sb.from('items').select('end_day').limit(1),
         sb.from('labels').select('*').eq('trip_id', trip.id), // missing before migration 006
-        sb.from('items').select('end_time').limit(1)
+        sb.from('items').select('end_time').limit(1),
+        sb.from('trip_days').select('*').eq('trip_id', trip.id) // missing before migration 009
       ])
+      const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => ({ day: d.day, title: d.title, tag: d.tag, color: d.color }))
       hasEndTime = !endTimeProbe.error
       const labels = labelRes.error ? [] : ((labelRes.data ?? []) as LabelRow[]).map(fromLabelRow)
       hasEndDay = !endDayProbe.error
       attachments = attachmentRes.error ? [] : ((attachmentRes.data ?? []) as AttachmentRow[]).map(fromAttachmentRow)
       const members = ((memberRows ?? []) as MemberRow[]).map((m) => ({ email: m.email, name: m.name ?? null, avatar: m.avatar ?? null, color: m.color ?? null }))
-      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members, attachments, labels }
+      return { trip, items: ((rows ?? []) as ItemRow[]).map(fromRow), members, attachments, labels, days }
     },
     saveProfile: async (profile) => {
       const email = (await sb.auth.getSession()).data.session?.user.email
@@ -427,6 +438,19 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       const res = await sb.rpc('rename_label', { p_trip: tripId, p_kind: kind, p_from: from, p_to: to })
       if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
     },
+    saveDays: async (tripId, days) => {
+      const keep = days.filter((d) => d.title || d.tag || d.color)
+      const clear = days.filter((d) => !(d.title || d.tag || d.color)).map((d) => d.day)
+      const migrate = 'Run supabase/migrations/009_trip_days.sql to save day titles and colours.'
+      if (keep.length) {
+        const res = await sb.from('trip_days').upsert(keep.map((d) => ({ trip_id: tripId, day: d.day, title: d.title, tag: d.tag, color: d.color })))
+        if (res.error) throw new Error(/trip_days/.test(res.error.message) ? migrate : res.error.message)
+      }
+      if (clear.length) {
+        const res = await sb.from('trip_days').delete().eq('trip_id', tripId).in('day', clear)
+        if (res.error) throw new Error(/trip_days/.test(res.error.message) ? migrate : res.error.message)
+      }
+    },
     uploadCover: async (tripId, file) => {
       const path = `${tripId}/covers/${crypto.randomUUID()}-${safeName(file.name)}`
       const up = await files().upload(path, file, { contentType: file.type || 'image/jpeg' })
@@ -452,6 +476,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_members' }, onChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments', filter: `trip_id=eq.${tripId}` }, onChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'labels', filter: `trip_id=eq.${tripId}` }, onChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_days', filter: `trip_id=eq.${tripId}` }, onChange)
         .subscribe()
       return () => {
         sb.removeChannel(ch)

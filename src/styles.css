@@ -490,3 +490,21 @@ h1, h2 { margin: 0; }
 .view-facts dt { color: var(--muted); padding-top: 2px; }
 .view-facts dd { margin: 0; font-size: 15px; }
 .view-note { margin: 0; white-space: pre-wrap; line-height: 1.5; font-size: 15px; }
+
+/* ---------- Day titles & colours ---------- */
+.day-col { border-top: 4px solid transparent; }
+.day-col.has-color { border-left-color: transparent; border-right-color: transparent; border-bottom-color: transparent; }
+.day-col.is-selected.has-color { box-shadow: 0 0 0 2px var(--accent); }
+.day-col-top { display: flex; align-items: flex-start; gap: 4px; }
+.day-col-top .day-col-head { flex: 1; min-width: 0; }
+.day-col-label b { font-size: 13px; }
+.day-col-label b .muted { font-weight: 400; font-size: 12px; }
+.day-title { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-edit { width: 30px; height: 30px; flex: none; background: transparent; color: var(--ink-2); border-radius: 8px; }
+.day-edit:hover { background: rgba(0,0,0,.06); }
+.dayplan-title { display: flex; align-items: center; gap: 6px; }
+.day-banner { display: inline-flex; align-self: flex-start; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: var(--ink-2); color: #fff; font-size: 13px; font-weight: 600; }
+.day-preview { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; }
+.day-preview .day-num { font-size: 30px; }
+.month-cell-head { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.month-day-title { font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

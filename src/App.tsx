@@ -2,6 +2,7 @@ import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, 
 import { useEffect, useMemo, useState } from 'react'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
+import { DaySheet } from './components/DaySheet'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
@@ -38,7 +39,7 @@ const collisions: CollisionDetection = (args) => {
 }
 
 type Tab = 'ideas' | 'days' | 'map' | 'docs'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | null
+type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -62,6 +63,7 @@ export default function App() {
 
 function Planner() {
   const {
+    dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, moveToSlot, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
@@ -225,9 +227,10 @@ function Planner() {
       ))}
     </div>
   )
+  const editDay = (day: string) => setSheet({ kind: 'day', day })
   const addAt = (day: string, time: string) => setSheet({ kind: 'item', item: blank({ day, time }), isNew: true })
   const hourView = (
-    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} />
+    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} onEditDay={editDay} />
   )
   const monthView = (
     <MonthView
@@ -248,7 +251,7 @@ function Planner() {
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
-    <LabelsProvider tripId={trip.id} labels={labels} items={items}>
+    <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
       <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
         <header className="top-bar">
           <div className="brand">
@@ -382,6 +385,7 @@ function Planner() {
                   onSelectDay={setSelectedDay}
                   onOpen={open}
                   onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })}
+                  onEditDay={editDay}
                 />
               )}
                 {mapPane}
@@ -413,6 +417,7 @@ function Planner() {
                   onSelectDay={setSelectedDay}
                   onOpen={open}
                   onShowIdeas={() => setTab('ideas')}
+                  onEditDay={editDay}
                 />
               )}
             </div>
@@ -544,6 +549,7 @@ function Planner() {
               </Sheet>
             )
           })()}
+        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
           <Sheet title="Docs" onClose={() => setSheet(null)}>
