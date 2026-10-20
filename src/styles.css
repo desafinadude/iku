@@ -508,6 +508,10 @@ h1, h2 { margin: 0; }
 .day-col.has-color { border-left-color: transparent; border-right-color: transparent; border-bottom-color: transparent; }
 .day-col.is-selected.has-color { box-shadow: 0 0 0 2px var(--accent); }
 .day-col-top { display: flex; align-items: flex-start; gap: 4px; }
+/* The day's date and title sit in a grey band across the top of the column. */
+.day-col .day-col-top { flex: none; margin: -10px -10px 0; padding: 8px 8px 6px 6px; background: #dfe1dc; border-radius: 7px 7px 0 0; }
+.day-col .day-cover + .day-col-top { margin-top: -8px; border-radius: 0; }
+.day-col.has-color .day-col-top { border-radius: 0; }
 .day-col-top .day-col-head { flex: 1; min-width: 0; }
 .day-col-label b { font-size: 13px; }
 .day-col-label b .muted { font-weight: 400; font-size: 12px; }
