@@ -126,7 +126,7 @@ The filter bar has search, a **Tags** dropdown (coloured tags with checkboxes, a
 
 Colours come in four shades (pastel, light, bright, deep) for tags, people and days. Text and icons switch to dark on pale colours so they stay readable.
 
-Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry, to give a tag a colour and an icon (any [Material Symbol](https://fonts.google.com/icons)). You can also rename tags, merge one into another by renaming it to an existing name, delete them, or create new ones.
+Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry. All tags are in one list: tap a row's swatch to pick a colour or its icon to pick any [Material Symbol](https://fonts.google.com/icons), edit the name in place (renaming to an existing name merges the two), delete with the bin, and add new tags in the box at the bottom. Drag the ⋮⋮ handle (or focus it and use the arrow keys) to reorder; the order is used in the Tags filter and tag suggestions. Changes save straight away.
 
 - **An entry's look:** its first coloured tag sets the colour and icon of its card label, blocks in the hours and month views, and its map pin. Its other tags show as chips.
 - **Stays:** multi-day entries tagged Stay, Hotel, Ryokan, Airbnb or similar get Check-in / Night / Check-out wording.
