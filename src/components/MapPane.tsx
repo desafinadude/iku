@@ -17,14 +17,17 @@ interface Props {
   selectedDay: string
   onSelectDay: (day: string) => void
   onOpen: (item: Item) => void
+  /** Fills the workspace (the Map main view) with the day chips and legend, no full-screen toggle. */
+  full?: boolean
 }
 
 type Located = Item & { lat: number; lng: number }
 const located = (x: Item): x is Located => x.lat != null && x.lng != null
 
-export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props) {
+export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = false }: Props) {
   const [showIdeas, setShowIdeas] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [overlay, setExpanded] = useState(false)
+  const expanded = overlay || full
   const [allDays, setAllDays] = useState(false)
   const googleOk = useGoogleOk()
   const { itemStyle, tags, dayStyle } = useLabels()
@@ -36,13 +39,13 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
 
 
   useEffect(() => {
-    if (!expanded) return
+    if (!overlay) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.querySelector('.sheet')) setExpanded(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [expanded])
+  }, [overlay])
 
   const scopeAll = expanded && allDays
   const stops = useMemo(
@@ -75,7 +78,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
   }
 
   return (
-    <section aria-label="Map" className={`pane pane-map${expanded ? ' is-expanded' : ''}`}>
+    <section aria-label="Map" className={`pane pane-map${overlay ? ' is-expanded' : ''}${full ? ' is-full' : ''}`}>
       <div className="pane-head map-head">
         <h2>Map</h2>
         {!expanded && (
@@ -84,9 +87,11 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
           </span>
         )}
         <span className="spacer" />
-        <button className="icon-btn map-expand" aria-label={expanded ? 'Close full-screen map' : 'Full-screen map'} onClick={() => setExpanded((v) => !v)}>
-          <Icon name={expanded ? 'close' : 'expand'} size={18} />
-        </button>
+        {!full && (
+          <button className="icon-btn map-expand" aria-label={overlay ? 'Close full-screen map' : 'Full-screen map'} onClick={() => setExpanded((v) => !v)}>
+            <Icon name={overlay ? 'close' : 'expand'} size={18} />
+          </button>
+        )}
       </div>
       {expanded && (
         <div className="map-days" role="group" aria-label="Show on map">

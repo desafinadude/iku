@@ -269,7 +269,8 @@ function Planner() {
               {(
                 [
                   ['plan', 'Plan'],
-                  ['ideas', 'Ideas']
+                  ['ideas', 'Ideas'],
+                  ['map', 'Map']
                 ] as const
               ).map(([v, label]) => (
                 <button key={v} type="button" className={prefs.mainView === v ? 'is-on' : ''} aria-pressed={prefs.mainView === v} onClick={() => setPrefs({ mainView: v })}>
@@ -366,6 +367,8 @@ function Planner() {
                   </section>
                 )}
               </>
+            ) : wide && prefs.mainView === 'map' ? (
+              <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
             ) : wide ? (
               <>
                 {ideasPane}
@@ -429,7 +432,7 @@ function Planner() {
                 <DocsPane {...docsProps} />
               </section>
             ) : (
-              mapPane
+              <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
             )}
           </main>
           <DragOverlay>{dragging && <div className="card drag-overlay">{displayTitle(dragging)}</div>}</DragOverlay>
