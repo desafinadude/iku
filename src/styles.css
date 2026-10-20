@@ -634,3 +634,26 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .card.drop-before:hover { box-shadow: 0 -4px 0 0 var(--accent), var(--shadow); }
 .card.drop-after:hover { box-shadow: 0 4px 0 0 var(--accent), var(--shadow); }
 .day-col.is-selected.has-color { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+
+/* Tag manager: one editable row per tag */
+.tag-table { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+.tag-table-row { border-bottom: 1px solid var(--line); background: var(--surface); }
+.tag-table-row:last-child { border-bottom: 0; }
+.tag-table-row.is-dragging { background: var(--drop); box-shadow: inset 3px 0 0 var(--accent); }
+.tag-table-main { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 8px 6px 2px; }
+.tag-handle { width: 28px; height: 40px; flex: none; display: grid; place-items: center; border: 0; background: none; color: var(--muted); cursor: grab; touch-action: none; border-radius: 4px; }
+.tag-handle:active { cursor: grabbing; }
+.tag-handle:focus-visible { outline: 2px solid var(--accent); }
+.tag-color-btn { width: 30px; height: 30px; flex: none; border-radius: 4px; border: 1px solid var(--line); background: repeating-linear-gradient(45deg, #fff 0 4px, #e3e5e0 4px 8px); }
+.tag-icon-btn { width: 36px; height: 36px; flex: none; border-radius: 4px; border: 1px solid var(--line); background: var(--soft); color: var(--ink-2); display: grid; place-items: center; }
+.tag-color-btn.is-open, .tag-icon-btn.is-open { outline: 2px solid var(--ink); outline-offset: 1px; }
+.tag-name-input { flex: 1; min-width: 0; min-height: 38px; padding: 0 10px; border: 1px solid transparent; border-radius: 4px; background: transparent; font-size: 15px; font-weight: 600; color: var(--ink); }
+.tag-name-input:hover { border-color: var(--line); }
+.tag-name-input:focus { border-color: var(--accent); outline: 0; background: var(--surface); }
+.tag-count { flex: none; min-width: 44px; text-align: right; }
+.icon-btn.tag-delete { width: 34px; height: 34px; background: none; color: var(--muted); box-shadow: none; }
+.icon-btn.tag-delete:hover { color: var(--danger); background: var(--soft); }
+.tag-picker { padding: 4px 12px 14px 38px; }
+.tag-add { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1.5px dashed var(--drop-line); border-radius: var(--radius); background: var(--drop); color: var(--accent-dark); }
+.tag-add input { flex: 1; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; font-size: 15px; color: var(--ink); }
+.tag-add .secondary-btn { min-height: 40px; }

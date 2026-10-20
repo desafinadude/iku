@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { DEFAULT_LABEL_ID } from '../data/normalize'
 import { iconName, SUGGESTED_ICONS } from '../labels/icons'
 import { LabelIconView } from '../labels/LabelIconView'
-import { useLabels } from '../labels/LabelsContext'
+import { useLabels, type TagStyle } from '../labels/LabelsContext'
 import { normalizeTag, uid } from '../lib'
 import { ColorSwatches } from './ColorSwatches'
 import { onColor } from '../colors'
@@ -20,184 +20,262 @@ interface Props {
   onClose: () => void
 }
 
-interface Draft {
-  /** Name before editing; null for a new tag. */
-  original: string | null
-  name: string
-  color: string | null
-  icon: string | null
-}
+/** Which picker is open, and for which tag. */
+type Open = { name: string; picker: 'color' | 'icon' } | null
 
+/**
+ * All tags as one editable list: drag to reorder, tap the swatch for a colour or the icon for an icon,
+ * edit the name in place (renaming onto an existing tag merges them), and add new ones at the bottom.
+ * Every change saves straight away.
+ */
 export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, onClose }: Props) {
   const { tags } = useLabels()
-  const [draft, setDraft] = useState<Draft | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [iconQuery, setIconQuery] = useState('')
+  const [open, setOpen] = useState<Open>(null)
+  const [newName, setNewName] = useState('')
+  /** Tag names in their order while a row is being dragged. */
+  const [dragOrder, setDragOrder] = useState<string[] | null>(null)
+  const [dragging, setDragging] = useState<string | null>(null)
+  const rows = useRef(new Map<string, HTMLLIElement>())
 
   const usage = (name: string) => items.filter((x) => x.tags.includes(name)).length
   const find = (name: string) => tags.find((t) => t.name.toLowerCase() === name.toLowerCase())
+  const nextSort = () => Math.max(0, ...tags.map((t) => t.label?.sort ?? 0)) + 1
+  // Built-in styles aren't stored yet; saving one stores it as the trip's own.
+  const labelId = (t: TagStyle) => (t.label && !t.label.id.startsWith(DEFAULT_LABEL_ID) ? t.label.id : uid())
 
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true)
-    try {
-      await fn()
-      setDraft(null)
-    } finally {
-      setBusy(false)
-    }
+  const store = (t: TagStyle, patch: { color?: string | null; icon?: string | null }) =>
+    onSave([{ id: labelId(t), tripId, kind: 'tag', name: t.name, color: patch.color !== undefined ? patch.color : t.color, icon: patch.icon !== undefined ? patch.icon : t.icon, sort: t.label?.sort ?? nextSort() }])
+
+  const rename = async (t: TagStyle, raw: string) => {
+    const name = normalizeTag(raw)
+    if (!name || name === t.name) return
+    const target = find(name)
+    const merging = target && target.name !== t.name
+    if (merging && !confirm(`“${target.name}” already exists. Merge “${t.name}” into it?`)) return
+    await onRename('tag', t.name, merging ? target.name : name)
   }
 
-  const save = () =>
-    run(async () => {
-      if (!draft) return
-      const name = normalizeTag(draft.name)
-      if (!name) return
-      const target = find(name)
-      if (draft.original && name !== draft.original) {
-        const merging = target && target.name !== draft.original
-        if (merging && !confirm(`“${target.name}” already exists. Merge “${draft.original}” into it?`)) return
-        await onRename('tag', draft.original, merging ? target.name : name)
-        if (merging) return // keep the existing tag's style
+  const remove = async (t: TagStyle) => {
+    const n = usage(t.name)
+    if (!confirm(n ? `Remove “${t.name}” from ${n} ${n === 1 ? 'entry' : 'entries'}?` : `Delete “${t.name}”?`)) return
+    await onDeleteTag(t.name)
+  }
+
+  const add = async () => {
+    const name = normalizeTag(newName)
+    if (!name) return
+    setNewName('')
+    if (find(name)) return
+    const color = LABEL_COLORS[(tags.length * 5) % LABEL_COLORS.length]
+    // New tags go at the bottom of the list, so the list keeps the order it shows.
+    await onSave([...orderRows(tags.map((t) => t.name)), { id: uid(), tripId, kind: 'tag', name, color, icon: null, sort: tags.length + 1 }])
+    setOpen({ name, picker: 'icon' })
+  }
+
+  /** Saves the order shown: every tag gets a stored style row with its position. */
+  const orderRows = (names: string[]): Label[] => {
+    const byName = new Map(tags.map((t) => [t.name, t]))
+    return names.map((n) => byName.get(n)!).map((t, i) => ({ id: labelId(t), tripId, kind: 'tag' as const, name: t.name, color: t.color, icon: t.icon, sort: i + 1 }))
+  }
+  const saveOrder = (names: string[]) => onSave(orderRows(names))
+  const move = (name: string, by: number) => {
+    const names = tags.map((t) => t.name)
+    const from = names.indexOf(name)
+    const to = Math.min(Math.max(from + by, 0), names.length - 1)
+    if (from === to) return
+    names.splice(to, 0, names.splice(from, 1)[0])
+    saveOrder(names)
+  }
+
+  // Dragging a row by its handle (mouse or touch): the row moves to wherever the pointer is.
+  const startDrag = (name: string, e: React.PointerEvent) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setOpen(null)
+    setDragging(name)
+    setDragOrder(tags.map((t) => t.name))
+  }
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!dragging || !dragOrder) return
+    const others = dragOrder.filter((n) => n !== dragging)
+    let at = others.length
+    for (let i = 0; i < others.length; i++) {
+      const r = rows.current.get(others[i])?.getBoundingClientRect()
+      if (r && e.clientY < r.top + r.height / 2) {
+        at = i
+        break
       }
-      const current = find(draft.original ?? name)?.label
-      // Built-in styles aren't stored yet; saving one stores it as the trip's own.
-      const id = current && !current.id.startsWith(DEFAULT_LABEL_ID) ? current.id : uid()
-      await onSave([{ id, tripId, kind: 'tag', name, color: draft.color, icon: draft.icon, sort: current?.sort ?? Math.max(0, ...tags.map((t) => t.label?.sort ?? 0)) + 1 }])
-    })
+    }
+    const next = [...others.slice(0, at), dragging, ...others.slice(at)]
+    if (next.join('\n') !== dragOrder.join('\n')) setDragOrder(next)
+  }
+  const endDrag = () => {
+    if (dragOrder && dragOrder.join('\n') !== tags.map((t) => t.name).join('\n')) saveOrder(dragOrder)
+    setDragging(null)
+    setDragOrder(null)
+  }
 
-  const remove = () =>
-    run(async () => {
-      if (!draft?.original) return
-      const n = usage(draft.original)
-      if (!confirm(n ? `Remove “${draft.original}” from ${n} ${n === 1 ? 'entry' : 'entries'}?` : `Delete “${draft.original}”?`)) return
-      await onDeleteTag(draft.original)
-    })
-
-  const editor = draft && (
-    <div className="label-editor">
-      <div className="label-preview">
-        <span className="label-swatch" style={{ background: draft.color ?? '#e3e5e0', color: draft.color ? onColor(draft.color) : 'var(--ink-2)' }}>
-          {draft.icon ? <LabelIconView name={draft.icon} size={24} /> : <span className="small">Aa</span>}
-        </span>
-        <div className="field" style={{ flex: 1 }}>
-          <label htmlFor="label-name">Tag</label>
-          <input id="label-name" value={draft.name} autoFocus onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. Onsen, Must do" />
-        </div>
-      </div>
-      <fieldset className="group">
-        <legend>Colour</legend>
-        <ColorSwatches value={draft.color} onChange={(color) => setDraft({ ...draft, color })} none={{ label: 'No colour' }} />
-      </fieldset>
-      <fieldset className="group">
-        <legend>Icon</legend>
-        <div className="icon-search">
-          <label className="sr-only" htmlFor="icon-q">
-            Search icons
-          </label>
-          <input
-            id="icon-q"
-            placeholder="Search, or type any name from fonts.google.com/icons"
-            value={iconQuery}
-            onChange={(e) => setIconQuery(e.target.value.toLowerCase().trim().replace(/\s+/g, '_'))}
-          />
-          <a className="small" href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank" rel="noreferrer">
-            Browse all
-          </a>
-        </div>
-        <div className="icon-grid">
-          {!iconQuery && (
-            <button type="button" className={`icon-choice${!draft.icon ? ' is-on' : ''}`} aria-label="No icon" aria-pressed={!draft.icon} onClick={() => setDraft({ ...draft, icon: null })}>
-              <span className="small">none</span>
-            </button>
-          )}
-          {[
-            // A typed name that isn't suggested is offered as-is (any Material Symbol works).
-            ...(iconQuery && /^[a-z0-9_]+$/.test(iconQuery) && !SUGGESTED_ICONS.includes(iconQuery) ? [iconQuery] : []),
-            ...SUGGESTED_ICONS.filter((n) => !iconQuery || n.includes(iconQuery)),
-            ...(draft.icon && !SUGGESTED_ICONS.includes(iconName(draft.icon)) && !iconQuery ? [iconName(draft.icon)] : [])
-          ].map((name) => {
-            const on = !!draft.icon && iconName(draft.icon) === name
-            return (
-              <button
-                key={name}
-                type="button"
-                className={`icon-choice${on ? ' is-on' : ''}`}
-                style={on && draft.color ? { background: draft.color, borderColor: draft.color, color: onColor(draft.color) } : undefined}
-                aria-label={name.replace(/_/g, ' ')}
-                title={name}
-                aria-pressed={on}
-                onClick={() => setDraft({ ...draft, icon: name })}
-              >
-                <LabelIconView name={name} size={22} />
-              </button>
-            )
-          })}
-        </div>
-      </fieldset>
-      <div className="label-actions">
-        {draft.original && (
-          <button type="button" className="secondary-btn danger-text" disabled={busy} onClick={remove}>
-            <Icon name="trash" size={16} /> Delete
-          </button>
-        )}
-        <span className="spacer" />
-        <button type="button" className="text-btn" onClick={() => setDraft(null)}>
-          Cancel
-        </button>
-        <button type="button" className="primary-btn" disabled={busy || !normalizeTag(draft.name)} onClick={save}>
-          {busy ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    </div>
-  )
+  const shown = dragOrder ? dragOrder.map((n) => tags.find((t) => t.name === n)!).filter(Boolean) : tags
 
   return (
     <Sheet title="Tags" onClose={onClose}>
       <p className="muted small" style={{ margin: 0 }}>
-        Give a tag a colour and icon to make it stand out. An entry’s first coloured tag sets the colour of its card and map pin. Rename a tag to an existing one to merge them.
+        Tap a swatch for a colour or an icon to change it; edit names in place. Drag ⋮⋮ to reorder. An entry’s first coloured tag colours its card and map pin. Renaming a tag to an existing one merges them.
       </p>
-      <ul className="label-list">
-        {tags.map((s) => {
-          const count = usage(s.name)
+      <ul className="tag-table">
+        {shown.map((t) => {
+          const count = usage(t.name)
+          const isOpen = open?.name === t.name ? open.picker : null
           return (
-            <li key={s.name}>
-              {draft?.original === s.name ? (
-                editor
-              ) : (
+            <li
+              key={t.name}
+              ref={(n) => {
+                if (n) rows.current.set(t.name, n)
+                else rows.current.delete(t.name)
+              }}
+              className={`tag-table-row${dragging === t.name ? ' is-dragging' : ''}`}
+            >
+              <div className="tag-table-main">
                 <button
                   type="button"
-                  className="label-row"
-                  onClick={() => {
-                    setIconQuery('')
-                    setDraft({ original: s.name, name: s.name, color: s.color, icon: s.icon })
+                  className="tag-handle"
+                  aria-label={`Move ${t.name} (arrow keys)`}
+                  title="Drag to reorder"
+                  onPointerDown={(e) => startDrag(t.name, e)}
+                  onPointerMove={onDragMove}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      move(t.name, e.key === 'ArrowUp' ? -1 : 1)
+                    }
                   }}
                 >
-                  <span className="label-swatch" style={{ background: s.color ?? '#eef0ec', color: s.color ? onColor(s.color) : 'var(--ink-2)' }}>
-                    {s.icon ? <LabelIconView name={s.icon} size={20} /> : <span className="small">Aa</span>}
-                  </span>
-                  <span className="label-name">{s.name}</span>
-                  <span className="muted small">{count ? `${count} ${count === 1 ? 'entry' : 'entries'}` : 'unused'}</span>
-                  <Icon name="chevronRight" size={16} />
+                  <svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true">
+                    {[3, 9, 15].map((y) => [4, 10].map((x) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" fill="currentColor" />))}
+                  </svg>
                 </button>
+                <button
+                  type="button"
+                  className={`tag-color-btn${isOpen === 'color' ? ' is-open' : ''}`}
+                  style={t.color ? { background: t.color } : undefined}
+                  aria-label={`Colour for ${t.name}`}
+                  aria-expanded={isOpen === 'color'}
+                  onClick={() => setOpen(isOpen === 'color' ? null : { name: t.name, picker: 'color' })}
+                />
+                <button
+                  type="button"
+                  className={`tag-icon-btn${isOpen === 'icon' ? ' is-open' : ''}`}
+                  style={t.color ? { background: t.color, color: onColor(t.color) } : undefined}
+                  aria-label={`Icon for ${t.name}`}
+                  aria-expanded={isOpen === 'icon'}
+                  onClick={() => setOpen(isOpen === 'icon' ? null : { name: t.name, picker: 'icon' })}
+                >
+                  {t.icon ? <LabelIconView name={t.icon} size={18} /> : <span className="small">–</span>}
+                </button>
+                <input
+                  className="tag-name-input"
+                  defaultValue={t.name}
+                  key={t.name}
+                  aria-label={`Name of ${t.name}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                    if (e.key === 'Escape') {
+                      e.currentTarget.value = t.name
+                      e.currentTarget.blur()
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const v = e.currentTarget.value
+                    if (normalizeTag(v) && normalizeTag(v) !== t.name) rename(t, v)
+                    else e.currentTarget.value = t.name
+                  }}
+                />
+                <span className="muted small tag-count">{count || 'unused'}</span>
+                <button type="button" className="icon-btn tag-delete" aria-label={`Delete ${t.name}`} title="Delete" onClick={() => remove(t)}>
+                  <Icon name="trash" size={15} />
+                </button>
+              </div>
+              {isOpen === 'color' && (
+                <div className="tag-picker">
+                  <ColorSwatches value={t.color} onChange={(color) => store(t, { color })} none={{ label: 'No colour' }} />
+                </div>
+              )}
+              {isOpen === 'icon' && (
+                <div className="tag-picker">
+                  <IconPicker value={t.icon} color={t.color} onChange={(icon) => store(t, { icon })} />
+                </div>
               )}
             </li>
           )
         })}
-        {tags.length === 0 && <li className="muted small">No tags yet. Add tags to entries, or create one here.</li>}
-        {draft && draft.original === null && <li>{editor}</li>}
+        {tags.length === 0 && <li className="muted small">No tags yet. Add tags to entries, or add one below.</li>}
       </ul>
-      {!draft && (
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={() => {
-            setIconQuery('')
-            setDraft({ original: null, name: '', color: LABEL_COLORS[(tags.length * 5) % LABEL_COLORS.length], icon: 'star' })
-          }}
-        >
-          <Icon name="plus" size={16} /> New tag
+      <form
+        className="tag-add"
+        onSubmit={(e) => {
+          e.preventDefault()
+          add()
+        }}
+      >
+        <Icon name="plus" size={16} />
+        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Add a tag, e.g. Onsen" aria-label="New tag name" />
+        <button type="submit" className="secondary-btn" disabled={!normalizeTag(newName)}>
+          Add
         </button>
-      )}
+      </form>
     </Sheet>
+  )
+}
+
+/** Searchable grid of Material Symbols, plus any name typed in full. */
+function IconPicker({ value, color, onChange }: { value: string | null; color: string | null; onChange: (icon: string | null) => void }) {
+  const [q, setQ] = useState('')
+  const names = [
+    // A typed name that isn't suggested is offered as-is (any Material Symbol works).
+    ...(q && /^[a-z0-9_]+$/.test(q) && !SUGGESTED_ICONS.includes(q) ? [q] : []),
+    ...SUGGESTED_ICONS.filter((n) => !q || n.includes(q)),
+    ...(value && !SUGGESTED_ICONS.includes(iconName(value)) && !q ? [iconName(value)] : [])
+  ]
+  return (
+    <>
+      <div className="icon-search">
+        <input
+          placeholder="Search, or type any name from fonts.google.com/icons"
+          aria-label="Search icons"
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value.toLowerCase().trim().replace(/\s+/g, '_'))}
+        />
+        <a className="small" href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank" rel="noreferrer">
+          Browse all
+        </a>
+      </div>
+      <div className="icon-grid">
+        {!q && (
+          <button type="button" className={`icon-choice${!value ? ' is-on' : ''}`} aria-label="No icon" aria-pressed={!value} onClick={() => onChange(null)}>
+            <span className="small">none</span>
+          </button>
+        )}
+        {names.map((name) => {
+          const on = !!value && iconName(value) === name
+          return (
+            <button
+              key={name}
+              type="button"
+              className={`icon-choice${on ? ' is-on' : ''}`}
+              style={on && color ? { background: color, borderColor: color, color: onColor(color) } : undefined}
+              aria-label={name.replace(/_/g, ' ')}
+              title={name}
+              aria-pressed={on}
+              onClick={() => onChange(name)}
+            >
+              <LabelIconView name={name} size={22} />
+            </button>
+          )
+        })}
+      </div>
+    </>
   )
 }
