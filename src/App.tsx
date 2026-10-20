@@ -1,5 +1,7 @@
-import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, TouchSensor, useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, TouchSensor, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
+import { CardLookButton, CardMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS } from './components/CardControls'
+import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
@@ -26,16 +28,28 @@ import { Unlock } from './components/Unlock'
 import { isCoverRef } from './data/backend'
 import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { displayTitle, domainOf, isUrl, matches, onDay, prepareUpload, tripDays, tripRange, uid } from './lib'
+import { displayTitle, domainOf, isUrl, itemsForDay, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
 import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
 
 // Drop on whatever is under the pointer (small calendar cells and hour rows need this);
 // fall back to overlap when the pointer is between targets.
+// Over a card, the card wins (so cards can be arranged); a card is never its own target.
 const collisions: CollisionDetection = (args) => {
-  const hits = pointerWithin(args)
-  return hits.length ? hits : rectIntersection(args)
+  const self = 'card:' + String(args.active.id).split('@')[0]
+  const isCard = (id: string | number) => String(id).startsWith('card:')
+  const hits = pointerWithin(args).filter((h) => h.id !== self)
+  const cards = hits.filter((h) => isCard(h.id))
+  if (cards.length) return cards
+  return hits.length ? hits : rectIntersection(args).filter((h) => !isCard(h.id))
+}
+
+/** Where the pointer is during a drag (mouse or touch). */
+function pointerY(e: { activatorEvent: Event | null; delta: { y: number } }) {
+  const a = e.activatorEvent as (MouseEvent & TouchEvent) | null
+  const y = a?.touches?.length ? a.touches[0].clientY : (a?.clientY ?? 0)
+  return y + e.delta.y
 }
 
 type Tab = 'ideas' | 'days' | 'map' | 'docs'
@@ -66,7 +80,7 @@ function Planner() {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, moveToSlot, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
   const [online, setOnline] = useState(() => navigator.onLine)
   useEffect(() => {
@@ -96,6 +110,16 @@ function Planner() {
   const [sheet, setSheet] = useState<SheetState>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [dragging, setDragging] = useState<Item | null>(null)
+  const [dropHint, setDropHint] = useState<{ id: string; after: boolean } | null>(null)
+  /** Wide screens: the days, hours or month view takes the whole workspace. */
+  const [daysMax, setDaysMax] = useState(false)
+
+  useEffect(() => {
+    if (!daysMax) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('.sheet, .menu') && setDaysMax(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [daysMax])
 
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 6 } }), useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }))
 
@@ -131,8 +155,8 @@ function Planner() {
   }, [items, selectedDay])
 
   const visible = useMemo(() => items.filter((x) => matches(x, filters)), [items, filters])
-  const ideas = visible.filter((x) => !x.day).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const boardEntries = prefs.ideasIncludePlanned ? [...visible].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : ideas
+  const ideas = orderIdeas(visible.filter((x) => !x.day), prefs.ideasOrder)
+  const boardEntries = prefs.ideasIncludePlanned ? orderIdeas(visible, prefs.ideasOrder) : ideas
   const unplannedCount = items.filter((x) => !x.day).length
 
   if (!trip || !selectedDay) {
@@ -186,12 +210,35 @@ function Planner() {
     }
   }
 
+  const onDragMove = (e: DragMoveEvent) => {
+    const over = e.over
+    if (!over || !String(over.id).startsWith('card:')) return setDropHint(null)
+    const id = String(over.id).slice(5)
+    const after = pointerY(e) > over.rect.top + over.rect.height / 2
+    setDropHint((h) => (h?.id === id && h.after === after ? h : { id, after }))
+  }
   const onDragEnd = (e: DragEndEvent) => {
     setDragging(null)
+    setDropHint(null)
     const target = e.over?.id
     if (!target) return
     const id = String(e.active.id).split('@')[0]
-    if (String(target).startsWith('slot:')) {
+    if (String(target).startsWith('card:')) {
+      // Dropped on a card: put it just before or after that card, and switch that list to custom order.
+      const zone = e.over!.data.current as CardZone
+      const targetId = String(target).slice(5)
+      const after = pointerY(e) > e.over!.rect.top + e.over!.rect.height / 2
+      const item = items.find((x) => x.id === id)
+      if (!item) return
+      if (zone.zone === 'day') {
+        arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day)
+        if (prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
+      } else {
+        const list = orderIdeas(ideasBoard && prefs.ideasIncludePlanned ? items : items.filter((x) => !x.day), prefs.ideasOrder)
+        arrange(id, list, targetId, after, list.some((x) => x.id === id) ? item.day : null)
+        if (prefs.ideasOrder !== 'custom') setPrefs({ ideasOrder: 'custom' })
+      }
+    } else if (String(target).startsWith('slot:')) {
       const [, day, hour] = String(target).split(':')
       moveToSlot(id, day, `${hour}:00`)
     } else if (target === 'ideas') moveTo(id, null)
@@ -227,10 +274,27 @@ function Planner() {
       ))}
     </div>
   )
+  const daysControls = (
+    <>
+      <CardLookButton look={prefs.daysCards} onChange={(v) => setPrefs({ daysCards: v })} />
+      <CardMenu label="Days" order={prefs.dayOrder} orders={wide ? DAY_ORDERS : DAY_ORDERS.map((o) => (o.value === 'custom' ? { ...o, label: 'Custom (as arranged)' } : o))} onOrder={(v) => setPrefs({ dayOrder: v })} look={prefs.daysCards} onLook={(v) => setPrefs({ daysCards: v })} hint={wide ? DRAG_HINT : undefined} />
+    </>
+  )
+  const ideasControls = (
+    <>
+      <CardLookButton look={prefs.ideasCards} onChange={(v) => setPrefs({ ideasCards: v })} />
+      <CardMenu label="Ideas" order={prefs.ideasOrder} orders={IDEA_ORDERS} onOrder={(v) => setPrefs({ ideasOrder: v })} look={prefs.ideasCards} onLook={(v) => setPrefs({ ideasCards: v })} hint={DRAG_HINT} />
+    </>
+  )
+  const maxToggle = wide ? (
+    <button className="icon-btn head-btn" aria-label={daysMax ? 'Exit full screen' : 'Use the whole screen'} title={daysMax ? 'Exit full screen (Esc)' : 'Use the whole screen'} aria-pressed={daysMax} onClick={() => setDaysMax((v) => !v)}>
+      <Icon name={daysMax ? 'shrink' : 'expand'} size={16} />
+    </button>
+  ) : undefined
   const editDay = (day: string) => setSheet({ kind: 'day', day })
   const addAt = (day: string, time: string) => setSheet({ kind: 'item', item: blank({ day, time }), isNew: true })
   const hourView = (
-    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} onEditDay={editDay} />
+    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} maxToggle={maxToggle} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} onEditDay={editDay} />
   )
   const monthView = (
     <MonthView
@@ -239,6 +303,7 @@ function Planner() {
       prefs={prefs}
       selectedDay={selectedDay}
       viewSwitch={wide ? viewSwitch : undefined}
+      maxToggle={maxToggle}
       onOpenDay={(d) => {
         setSelectedDay(d)
         setPrefs({ daysView: 'hours' })
@@ -247,7 +312,7 @@ function Planner() {
     />
   )
 
-  const ideasPane = <IdeasPane ideas={ideas} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
+  const ideasPane = <IdeasPane ideas={ideas} look={prefs.ideasCards} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -322,8 +387,12 @@ function Planner() {
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={(e) => setDragging(items.find((x) => x.id === e.active.id) ?? null)} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
-          <main className="workspace">
+        <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={(e) => setDragging(items.find((x) => x.id === e.active.id) ?? null)} onDragMove={onDragMove} onDragEnd={onDragEnd} onDragCancel={() => {
+          setDragging(null)
+          setDropHint(null)
+        }}>
+          <DropHintContext.Provider value={dropHint}>
+          <main className={`workspace${daysMax && wide && prefs.mainView === 'plan' ? ' is-max' : ''}`}>
             {ideasBoard ? (
               <>
                 <IdeasPane
@@ -337,10 +406,14 @@ function Planner() {
                   onCaptureImages={captureImages}
                   onOpen={open}
                   headExtra={
-                    <label className="check small-check">
-                      <input type="checkbox" checked={prefs.ideasIncludePlanned} onChange={(e) => setPrefs({ ideasIncludePlanned: e.target.checked })} /> Include planned
-                    </label>
+                    <>
+                      <label className="check small-check">
+                        <input type="checkbox" checked={prefs.ideasIncludePlanned} onChange={(e) => setPrefs({ ideasIncludePlanned: e.target.checked })} /> Include planned
+                      </label>
+                      {ideasControls}
+                    </>
                   }
+                  look={prefs.ideasCards}
                 />
                 {activeEntry && (
                   <section className="pane pane-detail" aria-label={displayTitle(activeEntry)}>
@@ -371,7 +444,7 @@ function Planner() {
               <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
             ) : wide ? (
               <>
-                {ideasPane}
+                {!daysMax && ideasPane}
                 {prefs.daysView === 'hours' ? (
                 hourView
               ) : prefs.daysView === 'month' ? (
@@ -384,6 +457,8 @@ function Planner() {
                   attachments={attachments}
                   prefs={prefs}
                   viewSwitch={viewSwitch}
+                  controls={daysControls}
+                  maxToggle={maxToggle}
                   selectedDay={selectedDay}
                   onSelectDay={setSelectedDay}
                   onOpen={open}
@@ -391,7 +466,7 @@ function Planner() {
                   onEditDay={editDay}
                 />
               )}
-                {mapPane}
+                {!daysMax && mapPane}
               </>
             ) : tab === 'ideas' ? (
               ideasPane
@@ -421,6 +496,7 @@ function Planner() {
                   onOpen={open}
                   onShowIdeas={() => setTab('ideas')}
                   onEditDay={editDay}
+                  controls={daysControls}
                 />
               )}
             </div>
@@ -435,6 +511,7 @@ function Planner() {
               <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
             )}
           </main>
+          </DropHintContext.Provider>
           <DragOverlay>{dragging && <div className="card drag-overlay">{displayTitle(dragging)}</div>}</DragOverlay>
         </DndContext>
 

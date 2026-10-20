@@ -1,4 +1,5 @@
-import { dayLabel, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
+import type { ReactNode } from 'react'
+import { dayLabel, displayTitle, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -21,13 +22,15 @@ interface Props {
   onOpen: (item: Item) => void
   onShowIdeas: () => void
   onEditDay: (day: string) => void
+  /** Sort and card-size controls. */
+  controls?: ReactNode
 }
 
 /** Portrait (phone) view of a single day. */
-export function DayPlan({ tripName, days, items, members, attachments, prefs, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas, onEditDay }: Props) {
+export function DayPlan({ tripName, days, items, members, attachments, prefs, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas, onEditDay, controls }: Props) {
   const { itemStyle, dayStyle } = useLabels()
   const ds = dayStyle(selectedDay)
-  const today = itemsForDay(items, selectedDay).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
+  const today = itemsForDay(items, selectedDay, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
   return (
@@ -43,6 +46,8 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           <button className="icon-btn day-edit" aria-label="Day title, tag and colour" onClick={() => onEditDay(selectedDay)}>
             <Icon name="edit" size={16} />
           </button>
+          <span className="spacer" />
+          {controls}
         </div>
         {(ds.title || ds.tag) && (
           <span className="day-banner" style={ds.color ? { background: ds.color } : undefined}>
@@ -73,19 +78,22 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           const span = spanLabel(item, selectedDay)
           const continuing = item.day !== selectedDay
           const files = attachments.filter((a) => a.itemId === item.id).length
+          // Card size: titles only drops the photo; pictures only keeps just the photo. Both drop tags and details.
+          const compact = prefs.daysCards !== 'full'
+          const photo = !!item.imageUrl && !continuing && prefs.daysCards !== 'titles'
+          const pictureOnly = photo && (isPhotoCard(item) || prefs.daysCards === 'pictures')
           return (
             <li key={item.id}>
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
-              <button className={`tl-card${item.imageUrl && !continuing ? ' has-image' : ''}`} onClick={() => onOpen(item)}>
-                {item.imageUrl && !continuing && (
-                  <CardImage className={`tl-photo${isPhotoCard(item) ? ' is-whole' : ''}`} imageUrl={item.imageUrl} />
-                )}
+              <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}`} onClick={() => onOpen(item)}>
+                {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}
                 <span className="tl-num" style={{ background: c.color }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">
-                  {!isPhotoCard(item) && <b>{item.title}</b>}
+                  {!pictureOnly && <b>{compact ? displayTitle(item) : item.title}</b>}
                   {span && <span className="span-label">{span}</span>}
+                  {!compact && (
                   <span className="muted small tl-type">
                     {c.name && (
                       <>
@@ -103,12 +111,13 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                       </span>
                     )}
                   </span>
-                  {(!continuing || prefs.tagsOnRepeats) && otherTags.length > 0 && (
+                  )}
+                  {!compact && (!continuing || prefs.tagsOnRepeats) && otherTags.length > 0 && (
                     <span className="tag-row">
                       <TagChips tags={otherTags} small />
                     </span>
                   )}
-                  {item.booked && (
+                  {item.booked && !compact && (
                     <span className="tl-booking">
                       <Icon name="ticket" size={16} /> <b>Booked</b>
                       {item.bookingRef ? ' · ' + item.bookingRef : ''}

@@ -106,6 +106,13 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
 
+## Arranging, sorting and card size
+
+- **Arranging:** drag a card onto another card to drop it just before or after it (a line shows where). It works within a day, within the ideas, and from the ideas straight into a spot in a day. The order is saved for everyone.
+- **Sorting:** the **⋯** menu on the Days and Ideas headers sorts the cards. Days can go by time (entries with no time last), Custom (your dragged order) or title. Ideas can go newest or oldest first, Custom, title, or grouped by tag. Dragging a card switches that list to Custom. The choice is kept per device.
+- **Card size:** the button next to **⋯** switches between full cards, titles only and pictures only. Days and Ideas each have their own.
+- **Whole screen:** on tablets and desktop, the expand arrow on the Days, Hours and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
+
 ## Day titles, tags and colours
 
 Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. Run `supabase/migrations/009_trip_days.sql` to save day settings.

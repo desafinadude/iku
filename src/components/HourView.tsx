@@ -18,6 +18,8 @@ interface Props {
   items: Item[]
   prefs: Prefs
   viewSwitch?: ReactNode
+  /** Wide screens: the button that gives this view the whole workspace. */
+  maxToggle?: ReactNode
   onSelectDay: (day: string) => void
   onOpen: (item: Item) => void
   onAddAt: (day: string, time: string) => void
@@ -61,7 +63,7 @@ function layout(items: Item[]): Placed[] {
   return placed
 }
 
-export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onOpen, onAddAt, onEditDay }: Props) {
+export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSelectDay, onOpen, onAddAt, onEditDay }: Props) {
   const { itemStyle, dayStyle } = useLabels()
   const ds = dayStyle(day)
   const dayItems = itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day)
@@ -101,6 +103,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
         <button className="icon-btn nav-btn" aria-label="Next day" disabled={idx >= days.length - 1} onClick={() => onSelectDay(addDays(day, 1))}>
           <Icon name="chevronRight" size={18} />
         </button>
+        {maxToggle}
       </div>
 
       <div className="hours-scroll">

@@ -1,5 +1,6 @@
 import type { Filters, Item, Member, Trip } from './types'
 import { MEMBER_COLORS, statusOf } from './types'
+import type { DayOrder, IdeasOrder } from './usePrefs'
 
 export function tripDays(trip: Trip): string[] {
   const days: string[] = []
@@ -182,10 +183,21 @@ export function spanLabel(item: Item, day: string): string | null {
 }
 
 /** Entries for a day: ones continuing from earlier days first, then by time. */
-export function itemsForDay(items: Item[], day: string) {
-  return items
-    .filter((x) => onDay(x, day))
-    .sort((a, b) => Number(a.day === day) - Number(b.day === day) || byTime(a, b))
+/** A day's entries: ones continuing from earlier days first, then the day's own in the chosen order. */
+export function itemsForDay(items: Item[], day: string, order: DayOrder = 'time') {
+  const by = order === 'custom' ? bySort : order === 'title' ? byTitle : byTime
+  return items.filter((x) => onDay(x, day)).sort((a, b) => Number(a.day === day) - Number(b.day === day) || by(a, b))
+}
+
+export const bySort = (a: Item, b: Item) => a.sort - b.sort
+export const byTitle = (a: Item, b: Item) => displayTitle(a).localeCompare(displayTitle(b), undefined, { sensitivity: 'base' })
+
+/** Ideas in the chosen order. "By tag" groups them by first tag, untagged last. */
+export function orderIdeas(list: Item[], order: IdeasOrder) {
+  const newest = (a: Item, b: Item) => b.createdAt.localeCompare(a.createdAt)
+  const byTag = (a: Item, b: Item) => (a.tags[0] ?? '\uffff').localeCompare(b.tags[0] ?? '\uffff', undefined, { sensitivity: 'base' }) || byTitle(a, b)
+  const by = { newest, oldest: (a: Item, b: Item) => -newest(a, b), custom: bySort, title: byTitle, tag: byTag }[order]
+  return [...list].sort(by)
 }
 
 export function formatSize(bytes: number | null) {

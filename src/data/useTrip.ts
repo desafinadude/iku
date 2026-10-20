@@ -119,6 +119,37 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [save]
   )
 
+  /**
+   * Drops an entry just before or after another card. `list` is the target's list as shown (a day's own
+   * entries, or the ideas); the entry joins it on `day`. Only the moved entry is saved when the list is already
+   * in its stored order; otherwise the whole list is renumbered in the order shown.
+   */
+  const arrange = useCallback(
+    (id: string, list: Item[], targetId: string, after: boolean, day: string | null) => {
+      const item = itemsRef.current.find((x) => x.id === id)
+      if (!item || id === targetId) return
+      const rest = list.filter((x) => x.id !== id)
+      let at = rest.findIndex((x) => x.id === targetId)
+      if (at < 0) return
+      if (after) at++
+      const endDay = day && item.day && item.endDay ? addDays(day, daysBetween(item.day, item.endDay)) : null
+      const moved = { ...item, day, endDay }
+      const inOrder = rest.every((x, i) => i === 0 || rest[i - 1].sort < x.sort)
+      if (inOrder) {
+        const prev = rest[at - 1]
+        const next = rest[at]
+        const sort = prev && next ? (prev.sort + next.sort) / 2 : prev ? prev.sort + 1 : next ? next.sort - 1 : 0
+        save({ ...moved, sort })
+        return
+      }
+      const next = [...rest.slice(0, at), moved, ...rest.slice(at)]
+      next.forEach((x, i) => {
+        if (x === moved || x.sort !== i + 1) save({ ...x, sort: i + 1 })
+      })
+    },
+    [save]
+  )
+
   /** Drops an entry onto an hour: sets its day and start time, keeping its length. */
   const moveToSlot = useCallback(
     (id: string, day: string, time: string) => {
@@ -258,6 +289,6 @@ export function useTrip(backend: Backend, enabled: boolean) {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, moveToSlot, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   }
 }

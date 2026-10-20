@@ -16,6 +16,7 @@ interface Props {
   prefs: Prefs
   selectedDay: string
   viewSwitch?: ReactNode
+  maxToggle?: ReactNode
   /** Opens a day (the hour-by-hour view). */
   onOpenDay: (day: string) => void
   onOpen: (item: Item) => void
@@ -35,7 +36,7 @@ function weeksFor(days: string[]) {
   return weeks
 }
 
-export function MonthView({ days, items, prefs, selectedDay, viewSwitch, onOpenDay, onOpen }: Props) {
+export function MonthView({ days, items, prefs, selectedDay, viewSwitch, maxToggle, onOpenDay, onOpen }: Props) {
   const weeks = weeksFor(days)
   const inTrip = new Set(days)
   const months = [...new Set(days.map((d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' })))]
@@ -45,6 +46,8 @@ export function MonthView({ days, items, prefs, selectedDay, viewSwitch, onOpenD
       <div className="pane-head">
         <h2>{months.join(' – ')}</h2>
         {viewSwitch}
+        <span className="spacer" />
+        {maxToggle}
       </div>
       <div className="month-scroll">
         <div className="month-grid" role="grid">

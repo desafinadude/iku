@@ -12,10 +12,21 @@ export interface Prefs {
   mainView: 'plan' | 'ideas' | 'map'
   /** Ideas board: include entries already on the plan. */
   ideasIncludePlanned: boolean
+  /** Order of cards in a day: by time (untimed last), as arranged by dragging, or by title. */
+  dayOrder: DayOrder
+  /** Order of the ideas. */
+  ideasOrder: IdeasOrder
+  /** How much each card shows: everything, just titles, or just pictures. */
+  daysCards: CardLook
+  ideasCards: CardLook
 }
 
+export type DayOrder = 'time' | 'custom' | 'title'
+export type IdeasOrder = 'newest' | 'oldest' | 'custom' | 'title' | 'tag'
+export type CardLook = 'full' | 'titles' | 'pictures'
+
 const KEY = 'iku:prefs'
-const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false }
+const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysCards: 'full', ideasCards: 'full' }
 
 export function usePrefs() {
   const [prefs, setPrefs] = useState<Prefs>(() => {

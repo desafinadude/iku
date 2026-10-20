@@ -512,3 +512,27 @@ h1, h2 { margin: 0; }
 .day-preview .day-num { font-size: 30px; }
 .month-cell-head { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
 .month-day-title { font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* Card sort menu, card-size and maximise buttons */
+.head-btn { width: 34px; height: 34px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); align-self: center; color: var(--ink); }
+.head-btn[aria-pressed='true'], .head-btn[aria-expanded='true'] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+.pane-head .head-btn + .head-btn, .pane-head .head-btn + .menu-wrap, .pane-head .menu-wrap + .head-btn { margin-left: -2px; }
+.menu-wrap { position: relative; align-self: center; flex: none; }
+.menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 900; min-width: 230px; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(23,32,29,.16); display: flex; flex-direction: column; }
+.menu-head { margin: 6px 8px 2px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.menu-item { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 8px; background: none; text-align: left; font-size: 14px; color: var(--ink); }
+.menu-item:hover { background: var(--soft); }
+.menu-check { width: 16px; display: inline-grid; place-items: center; color: var(--accent); }
+.menu-hint { margin: 2px 8px 6px 32px; font-size: 12px; color: var(--muted); }
+
+/* Where a dragged card will land */
+.card.drop-before { box-shadow: 0 -4px 0 0 var(--accent); }
+.card.drop-after { box-shadow: 0 4px 0 0 var(--accent); }
+
+/* Compact cards: titles only, or pictures only */
+.card.is-compact .card-body { padding: 8px 10px; gap: 3px; }
+.card.is-compact .card-title { font-size: 14px; }
+.tl-card.is-compact { padding-top: 8px; padding-bottom: 8px; }
+
+/* The days, hours or month view using the whole workspace */
+.workspace.is-max > .pane { flex: 1 1 auto; min-width: 0; }

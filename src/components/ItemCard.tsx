@@ -1,5 +1,7 @@
-import { useDraggable } from '@dnd-kit/core'
-import { useState } from 'react'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { useContext, useState } from 'react'
+import { DropHintContext, type CardZone } from '../dnd'
+import type { CardLook } from '../usePrefs'
 import { displayTitle, domainOf, isPhotoCard, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
@@ -21,14 +23,21 @@ interface Props {
   tagsOnRepeats?: boolean
   /** Highlighted as the one open beside the ideas board. */
   selected?: boolean
+  /** Everything, just the title, or just the picture. */
+  look?: CardLook
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, look = 'full' }: Props) {
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
   const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
+  // Cards are drop targets too, so cards can be arranged by dropping one before or after another.
+  const zone: CardZone = variant === 'pin' ? { zone: 'ideas' } : { zone: 'day', day: day ?? item.day ?? '' }
+  const drop = useDroppable({ id: 'card:' + item.id, data: zone, disabled: !draggable || continuing })
+  const hint = useContext(DropHintContext)
+  const dropClass = drop.isOver && hint?.id === item.id ? (hint.after ? ' drop-after' : ' drop-before') : ''
   const { itemStyle } = useLabels()
   // The first coloured tag sets the card's colour; all tags sit in the bar at the bottom, that one first.
   const c = itemStyle(item)
@@ -38,14 +47,20 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const showCreator = !!creator && !continuing
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
-  const image = item.imageUrl && !imgBroken ? item.imageUrl : null
-  // A picture with no title: show the whole image, uncropped.
-  const photoOnly = isPhotoCard(item) && !!image
+  const image = item.imageUrl && !imgBroken && look !== 'titles' ? item.imageUrl : null
+  // A picture with no title, or "pictures only": show the whole image and nothing else.
+  // (Repeat cards on later days never show the picture.)
+  const photoOnly = (isPhotoCard(item) || look === 'pictures') && !!image && !(variant === 'plan' && continuing)
+  // Compact looks drop the note and the tag bar.
+  const compact = look !== 'full'
 
   return (
     <article
-      ref={setNodeRef}
-      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}`}
+      ref={(node) => {
+        setNodeRef(node)
+        drop.setNodeRef(node)
+      }}
+      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}${compact ? ' is-compact' : ''}${dropClass}`}
       {...listeners}
       {...attributes}
       // Repeat cards can't be dragged, but they still open: don't announce them as disabled.
@@ -68,16 +83,23 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           <CardImage imageUrl={image} onBroken={() => setImgBroken(true)} />
         </div>
       )}
-      {variant === 'pin' && !image && domain && (
+      {variant === 'pin' && !image && domain && !compact && (
         <div className="card-media" style={{ background: c.bg }}>
           <span className="card-domain" style={{ color: c.color }}>
             {domain}
           </span>
         </div>
       )}
-      {!(photoOnly && variant === 'pin') && (
+      {!(photoOnly && (variant === 'pin' || look === 'pictures')) && (
         <div className="card-body">
-          {((variant === 'plan' && item.time && !continuing) || span || (variant === 'pin' && image && domain) || fileCount > 0 || item.booked) && (
+          {compact ? (
+            (variant === 'plan' && item.time && !continuing) || span ? (
+              <div className="card-meta">
+                {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
+                {span && <span className="span-label">{span}</span>}
+              </div>
+            ) : null
+          ) : ((variant === 'plan' && item.time && !continuing) || span || (variant === 'pin' && image && domain) || fileCount > 0 || item.booked) && (
             <div className="card-meta">
               {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
               {span && <span className="span-label">{span}</span>}
@@ -96,11 +118,11 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
               )}
             </div>
           )}
-          {!photoOnly && <div className="card-title">{item.title}</div>}
-          {item.note && !continuing && <div className="card-note">{item.note}</div>}
+          {!photoOnly && <div className="card-title">{displayTitle(item)}</div>}
+          {item.note && !continuing && !compact && <div className="card-note">{item.note}</div>}
         </div>
       )}
-      {photoOnly && variant === 'pin' && fileCount > 0 && (
+      {photoOnly && variant === 'pin' && fileCount > 0 && !compact && (
         <div className="card-meta card-meta-photo">
           <span className="file-badge" aria-label={`${fileCount} attachments`}>
             <Icon name="paperclip" size={13} />
@@ -108,7 +130,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           </span>
         </div>
       )}
-      {(shownTags.length > 0 || showCreator) && (
+      {!compact && (shownTags.length > 0 || showCreator) && (
         <div className="card-foot">
           <TagChips tags={shownTags} small />
           {showCreator && (
