@@ -109,4 +109,6 @@ export interface DayInfo {
   /** One tag for the whole day; its colour is used unless color is set. */
   tag: string | null
   color: string | null
+  /** Opening image for the day: an uploaded cover reference or a URL. */
+  image?: string | null
 }

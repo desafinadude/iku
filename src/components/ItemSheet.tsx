@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { onColor } from '../colors'
 import { isCoverRef, type LinkPreview } from '../data/backend'
 import { addDays, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
@@ -279,7 +280,7 @@ export function ItemSheet(props: Props) {
           {draft.tags.map((t) => {
             const st = tagStyle(t)
             return (
-              <button key={t} type="button" className={`tag-chip${st.color ? '' : ' is-plain'}`} style={st.color ? { background: st.color } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
+              <button key={t} type="button" className={`tag-chip${st.color ? '' : ' is-plain'}`} style={st.color ? { background: st.color, color: onColor(st.color) } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
                 {st.icon && <LabelIconView name={st.icon} size={14} />}
                 {t} ×
               </button>

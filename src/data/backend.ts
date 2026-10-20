@@ -171,7 +171,7 @@ function localBackend(): Backend {
     saveDays: async (_tripId, days) => {
       const data = read()
       const byDay = new Map(data.days.map((d) => [d.day, d]))
-      days.forEach((d) => (d.title || d.tag || d.color ? byDay.set(d.day, d) : byDay.delete(d.day)))
+      days.forEach((d) => (d.title || d.tag || d.color || d.image ? byDay.set(d.day, d) : byDay.delete(d.day)))
       write({ ...data, days: [...byDay.values()] })
     },
     uploadCover: async (tripId, file) => {
@@ -361,7 +361,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
         sb.from('items').select('end_time').limit(1),
         sb.from('trip_days').select('*').eq('trip_id', trip.id) // missing before migration 009
       ])
-      const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => ({ day: d.day, title: d.title, tag: d.tag, color: d.color }))
+      const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => ({ day: d.day, title: d.title, tag: d.tag, color: d.color, image: d.image ?? null }))
       hasEndTime = !endTimeProbe.error
       const labels = labelRes.error ? [] : ((labelRes.data ?? []) as LabelRow[]).map(fromLabelRow)
       hasEndDay = !endDayProbe.error
@@ -439,11 +439,17 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
     },
     saveDays: async (tripId, days) => {
-      const keep = days.filter((d) => d.title || d.tag || d.color)
-      const clear = days.filter((d) => !(d.title || d.tag || d.color)).map((d) => d.day)
+      const keep = days.filter((d) => d.title || d.tag || d.color || d.image)
+      const clear = days.filter((d) => !(d.title || d.tag || d.color || d.image)).map((d) => d.day)
       const migrate = 'Run supabase/migrations/009_trip_days.sql to save day titles and colours.'
       if (keep.length) {
-        const res = await sb.from('trip_days').upsert(keep.map((d) => ({ trip_id: tripId, day: d.day, title: d.title, tag: d.tag, color: d.color })))
+        const rows = keep.map((d) => ({ trip_id: tripId, day: d.day, title: d.title, tag: d.tag, color: d.color, image: d.image ?? null }))
+        let res = await sb.from('trip_days').upsert(rows)
+        // Before migration 010 there is no image column: days without an image still save.
+        if (res.error && /image/.test(res.error.message)) {
+          if (keep.some((d) => d.image)) throw new Error('Run supabase/migrations/010_day_images.sql to save opening images for days.')
+          res = await sb.from('trip_days').upsert(rows.map(({ image: _image, ...r }) => r))
+        }
         if (res.error) throw new Error(/trip_days/.test(res.error.message) ? migrate : res.error.message)
       }
       if (clear.length) {

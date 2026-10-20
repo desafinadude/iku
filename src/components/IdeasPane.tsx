@@ -20,9 +20,11 @@ interface Props {
   /** Extra controls in the header (e.g. "Include planned"). */
   headExtra?: ReactNode
   look?: CardLook
+  /** Wide screens: the pane's width in px (from its resize handle). */
+  width?: number
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, look = 'full' }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, look = 'full', width }: Props) {
   const [fileOver, setFileOver] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
@@ -40,6 +42,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
       aria-label="Ideas"
       className={`pane pane-ideas${full ? ' pane-ideas-full' : ''}${isOver || fileOver ? ' is-over' : ''}`}
       ref={setNodeRef}
+      style={width ? { flexBasis: width } : undefined}
       // Image files dragged in from the desktop become picture cards.
       onDragOver={(e) => {
         if ([...e.dataTransfer.items].some((i) => i.kind === 'file')) {

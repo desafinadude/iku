@@ -1,4 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { inkColor } from '../colors'
 import { useContext, useState } from 'react'
 import { DropHintContext, type CardZone } from '../dnd'
 import type { CardLook } from '../usePrefs'
@@ -85,7 +86,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       )}
       {variant === 'pin' && !image && domain && !compact && (
         <div className="card-media" style={{ background: c.bg }}>
-          <span className="card-domain" style={{ color: c.color }}>
+          <span className="card-domain" style={{ color: inkColor(c.color) }}>
             {domain}
           </span>
         </div>

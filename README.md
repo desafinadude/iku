@@ -111,13 +111,16 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 - **Arranging:** drag a card onto another card to drop it just before or after it (a line shows where). It works within a day, within the ideas, and from the ideas straight into a spot in a day. The order is saved for everyone.
 - **Sorting:** the **⋯** menu on the Days and Ideas headers sorts the cards. Days can go by time (entries with no time last), Custom (your dragged order) or title. Ideas can go newest or oldest first, Custom, title, or grouped by tag. Dragging a card switches that list to Custom. The choice is kept per device.
 - **Card size:** the button next to **⋯** switches between full cards, titles only and pictures only. Days and Ideas each have their own.
+- **Pane widths:** on tablets and desktop, drag the thin handles between the ideas, days and map (or beside an open idea on the Ideas board) to resize them. Double-click a handle to reset it. The ideas tile into as many columns as fit, down to one. Widths are kept per device.
 - **Whole screen:** on tablets and desktop, the expand arrow on the Days, Hours and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
 
 ## Day titles, tags and colours
 
-Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. Run `supabase/migrations/009_trip_days.sql` to save day settings.
+Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. **Opening image:** add a picture (upload or link) to show at the top of the day, like the opening of a chapter. It stays on that day only, even when you set a run of days. Run `supabase/migrations/010_day_images.sql` to save it. Run `supabase/migrations/009_trip_days.sql` to save day settings.
 
 ## Tags
+
+Colours come in four shades (pastel, light, bright, deep) for tags, people and days. Text and icons switch to dark on pale colours so they stay readable.
 
 Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry, to give a tag a colour and an icon (any [Material Symbol](https://fonts.google.com/icons)). You can also rename tags, merge one into another by renaming it to an existing name, delete them, or create new ones.
 

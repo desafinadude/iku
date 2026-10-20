@@ -13,7 +13,8 @@ import { InstallPrompt } from './components/InstallPrompt'
 import { ItemView } from './components/ItemView'
 import { Lightbox } from './components/Lightbox'
 import { MonthView } from './components/MonthView'
-import { usePrefs } from './usePrefs'
+import { PANE_DEFAULTS, usePrefs } from './usePrefs'
+import { Resizer } from './components/Resizer'
 import { LabelsManager } from './components/LabelsManager'
 import { LabelsProvider } from './labels/LabelsContext'
 import { Sheet } from './components/Sheet'
@@ -113,6 +114,8 @@ function Planner() {
   const [dropHint, setDropHint] = useState<{ id: string; after: boolean } | null>(null)
   /** Wide screens: the days, hours or month view takes the whole workspace. */
   const [daysMax, setDaysMax] = useState(false)
+  /** Pane widths while a resize handle is being dragged (saved to prefs on release). */
+  const [liveWidth, setLiveWidth] = useState<{ ideas?: number; map?: number; detail?: number }>({})
 
   useEffect(() => {
     if (!daysMax) return
@@ -312,8 +315,24 @@ function Planner() {
     />
   )
 
-  const ideasPane = <IdeasPane ideas={ideas} look={prefs.ideasCards} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
-  const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
+  const widths = { ideas: liveWidth.ideas ?? prefs.ideasWidth, map: liveWidth.map ?? prefs.mapWidth, detail: liveWidth.detail ?? prefs.detailWidth }
+  const resizer = (key: 'ideas' | 'map' | 'detail', label: string, pane: 'left' | 'right', min: number, maxShare: number) => (
+    <Resizer
+      label={label}
+      width={widths[key]}
+      min={min}
+      maxShare={maxShare}
+      pane={pane}
+      defaultWidth={PANE_DEFAULTS[key]}
+      onLive={(w) => setLiveWidth((x) => ({ ...x, [key]: w }))}
+      onCommit={(w) => {
+        setPrefs({ [`${key}Width`]: w })
+        setLiveWidth((x) => ({ ...x, [key]: undefined }))
+      }}
+    />
+  )
+  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} look={prefs.ideasCards} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
+  const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
     <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
@@ -415,8 +434,9 @@ function Planner() {
                   }
                   look={prefs.ideasCards}
                 />
+                {activeEntry && resizer('detail', 'Resize the open idea', 'right', 320, 0.7)}
                 {activeEntry && (
-                  <section className="pane pane-detail" aria-label={displayTitle(activeEntry)}>
+                  <section className="pane pane-detail" style={{ flexBasis: widths.detail }} aria-label={displayTitle(activeEntry)}>
                     <div className="detail-bar">
                       <button className="primary-btn" onClick={() => edit(activeEntry)}>
                         Edit
@@ -445,6 +465,7 @@ function Planner() {
             ) : wide ? (
               <>
                 {!daysMax && ideasPane}
+                {!daysMax && resizer('ideas', 'Resize the ideas', 'left', 200, 0.5)}
                 {prefs.daysView === 'hours' ? (
                 hourView
               ) : prefs.daysView === 'month' ? (
@@ -466,6 +487,7 @@ function Planner() {
                   onEditDay={editDay}
                 />
               )}
+                {!daysMax && resizer('map', 'Resize the map', 'right', 240, 0.6)}
                 {!daysMax && mapPane}
               </>
             ) : tab === 'ideas' ? (
@@ -629,7 +651,7 @@ function Planner() {
               </Sheet>
             )
           })()}
-        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onUploadCover={(file) => backend.uploadCover(trip.id, file)} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
           <Sheet title="Docs" onClose={() => setSheet(null)}>

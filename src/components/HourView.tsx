@@ -1,4 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { inkColor, onColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -85,7 +86,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
           {l.dow} {l.num} {l.month}
         </h2>
         {(ds.title || ds.tag) && (
-          <span className="day-banner" style={ds.color ? { background: ds.color } : undefined}>
+          <span className="day-banner" style={ds.color ? { background: ds.color, color: onColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
         )}
@@ -116,7 +117,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
                 const span = spanLabel(x, day)
                 const repeat = x.day !== day
                 return (
-                  <button key={x.id} className={`all-day-item${repeat ? ' is-repeat' : ''}`} style={{ background: s.color }} onClick={() => onOpen(x)}>
+                  <button key={x.id} className={`all-day-item${repeat ? ' is-repeat' : ''}`} style={{ background: s.color, color: onColor(s.color) }} onClick={() => onOpen(x)}>
                     <LabelIconView name={s.icon} size={16} />
                     <b>{displayTitle(x)}</b>
                     {span && <span className="all-day-span">{span}</span>}
@@ -178,7 +179,7 @@ function HourEvent({ p, first, onOpen }: { p: Placed; first: number; onOpen: (it
     >
       {tall && p.item.imageUrl && <CardImage className="hour-thumb" imageUrl={p.item.imageUrl} />}
       <div className="hour-event-body">
-        <span className="hour-event-time" style={{ color: s.color }}>
+        <span className="hour-event-time" style={{ color: inkColor(s.color) }}>
           <LabelIconView name={s.icon} size={14} /> {p.item.time}
           {p.item.endTime ? `–${p.item.endTime}` : ''}
         </span>

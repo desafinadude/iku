@@ -1,4 +1,5 @@
 import { activeFilterCount } from '../lib'
+import { onColor } from '../colors'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Filters, Item } from '../types'
@@ -41,7 +42,7 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
             <button
               key={tag}
               className={`chip chip-tag${on ? ' is-on-dark' : ''}${st.color ? ' chip-solid' : ''}`}
-              style={st.color ? { background: st.color, borderColor: st.color } : undefined}
+              style={st.color ? { background: st.color, borderColor: st.color, color: onColor(st.color) } : undefined}
               aria-pressed={on}
               onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}
             >

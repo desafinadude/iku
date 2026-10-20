@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
+import { inkColor, onColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -84,7 +85,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
           {firstOfMonth ? `${l.num} ${l.month}` : l.num}
         </button>
         {inTrip && (ds.title || ds.tag) && (
-          <span className="month-day-title" style={ds.color ? { color: ds.color } : undefined}>
+          <span className="month-day-title" style={ds.color ? { color: inkColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
         )}
@@ -97,7 +98,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
             <button
               key={x.id}
               className={`month-bar${x.day === day ? ' is-start' : ''}${x.endDay === day ? ' is-end' : ''}`}
-              style={{ background: s.color }}
+              style={{ background: s.color, color: onColor(s.color) }}
               onClick={() => onOpen(x)}
               title={displayTitle(x)}
             >
@@ -109,7 +110,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
               {x.imageUrl ? (
                 <CardImage imageUrl={x.imageUrl} />
               ) : (
-                <span className="month-icon" style={{ color: s.color }}>
+                <span className="month-icon" style={{ color: inkColor(s.color) }}>
                   <LabelIconView name={s.icon} size={13} />
                 </span>
               )}

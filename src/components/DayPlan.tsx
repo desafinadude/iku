@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { inkColor, onColor } from '../colors'
 import { dayLabel, displayTitle, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
@@ -49,8 +50,14 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           <span className="spacer" />
           {controls}
         </div>
-        {(ds.title || ds.tag) && (
-          <span className="day-banner" style={ds.color ? { background: ds.color } : undefined}>
+        {ds.image && (
+          <div className="day-cover day-cover-phone">
+            <CardImage imageUrl={ds.image} />
+            {(ds.title || ds.tag) && <span className="day-cover-title">{ds.title ?? ds.tag}</span>}
+          </div>
+        )}
+        {!ds.image && (ds.title || ds.tag) && (
+          <span className="day-banner" style={ds.color ? { background: ds.color, color: onColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
         )}
@@ -87,7 +94,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
               <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}`} onClick={() => onOpen(item)}>
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}
-                <span className="tl-num" style={{ background: c.color }}>
+                <span className="tl-num" style={{ background: c.color, color: onColor(c.color) }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">
@@ -97,7 +104,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                   <span className="muted small tl-type">
                     {c.name && (
                       <>
-                        <span style={{ color: c.color }}>
+                        <span style={{ color: inkColor(c.color) }}>
                           <LabelIconView name={c.icon} size={13} />
                         </span>{' '}
                         {c.name}

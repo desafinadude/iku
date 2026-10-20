@@ -97,7 +97,8 @@ h1, h2 { margin: 0; }
 
 .capture { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: var(--surface); border: 1.5px dashed var(--accent); border-radius: var(--radius); color: var(--accent); }
 .capture input { border: 0; outline: 0; flex: 1; min-width: 0; background: transparent; font-size: 15px; color: var(--ink); }
-.masonry { flex: 1; overflow-y: auto; columns: 2; column-gap: 10px; padding-bottom: 8px; }
+/* As many ~150px columns as fit the pane (one when narrow); never a sideways scroll. */
+.masonry { flex: 1; overflow-y: auto; overflow-x: hidden; columns: 150px; column-gap: 10px; padding: 3px 3px 8px; margin: -3px -3px 0; }
 
 /* ---------- Cards ---------- */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 2px rgba(23,32,29,.04); cursor: grab; touch-action: manipulation; text-align: left; }
@@ -361,7 +362,7 @@ h1, h2 { margin: 0; }
 .map-pin .msr { display: block; }
 .tag-solid { color: #fff; font-weight: 600; }
 .chip-solid { color: #fff; font-weight: 600; }
-.chip-solid .chip-count { color: rgba(255,255,255,.85); }
+.chip-solid .chip-count { color: inherit; opacity: .8; }
 .chip-solid.is-on-dark { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
 .icon-search { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .icon-search input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; }
@@ -386,7 +387,7 @@ h1, h2 { margin: 0; }
 .all-day-items { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .all-day-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 36px; padding: 4px 10px; border: 0; border-radius: 8px; color: #fff; text-align: left; font-size: 14px; }
 .all-day-item.is-repeat { opacity: .75; }
-.all-day-span { font-size: 12px; background: rgba(255,255,255,.22); padding: 1px 6px; border-radius: 5px; }
+.all-day-span { font-size: 12px; background: color-mix(in srgb, currentColor 18%, transparent); padding: 1px 6px; border-radius: 5px; }
 .on-solid .tag:not(.tag-solid) { background: rgba(255,255,255,.85); }
 .on-solid .tag-solid { box-shadow: 0 0 0 1px rgba(255,255,255,.6); }
 .hour-grid { position: relative; }
@@ -473,11 +474,11 @@ h1, h2 { margin: 0; }
 .main-switch button { min-height: 36px; }
 .pane-ideas-full { flex: 1 1 0; max-width: none; min-width: 0; }
 .masonry-full { columns: 230px; column-gap: 14px; }
-.masonry-4 { columns: 4; column-gap: 12px; }
+.masonry-4 { columns: 190px; column-gap: 12px; }
 .pane-ideas-full .card-pin { margin-bottom: 14px; }
 .pane-ideas-full .masonry-4 .card-pin { margin-bottom: 12px; }
 .card.is-selected { outline: 3px solid var(--accent); outline-offset: 2px; }
-.pane-detail { flex: 0 0 50%; max-width: 50%; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.pane-detail { flex: 0 0 50%; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .detail-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
 .detail-bar .primary-btn { min-height: 40px; }
 .detail-bar .icon-btn { background: transparent; }
@@ -536,3 +537,38 @@ h1, h2 { margin: 0; }
 
 /* The days, hours or month view using the whole workspace */
 .workspace.is-max > .pane { flex: 1 1 auto; min-width: 0; }
+
+/* Colour picker: pastel → deep rows */
+.swatch-grid { display: flex; flex-direction: column; gap: 6px; }
+.swatch-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; max-width: 456px; }
+.swatch-grid .swatch { width: 100%; height: auto; aspect-ratio: 1; border-width: 2px; min-width: 0; }
+.swatch-grid .swatch-none { width: 34px; height: 34px; aspect-ratio: auto; margin-bottom: 2px; }
+
+/* Scrollbars: slim, rounded and quiet everywhere (WebKit/Blink; Firefox gets thin + colours) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(23, 32, 29, .2); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(23, 32, 29, .38); }
+::-webkit-scrollbar-button { display: none; }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: rgba(23, 32, 29, .25) transparent; }
+}
+
+/* Drag handles between panes */
+.resizer { flex: 0 0 12px; margin: 0 -14px; align-self: stretch; position: relative; z-index: 5; cursor: col-resize; touch-action: none; border-radius: 6px; }
+.resizer::after { content: ''; position: absolute; top: 40px; bottom: 8px; left: 50%; width: 3px; margin-left: -1.5px; border-radius: 2px; background: transparent; transition: background .15s; }
+.resizer:hover::after, .resizer:focus-visible::after, .is-resizing .resizer::after { background: var(--drop-line); }
+.resizer:focus-visible { outline: none; }
+body.is-resizing { cursor: col-resize; user-select: none; }
+body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
+
+/* Panes and sheets never scroll sideways */
+.pane-ideas, .detail-scroll, .sheet-body, .day-col-items, .pane-dayplan, .pane-docs, .hours-scroll { overflow-x: hidden; }
+
+/* A day's opening image */
+.day-cover { position: relative; display: block; flex: none; margin: -10px -10px 0; padding: 0; border: 0; border-radius: 10px 10px 0 0; overflow: hidden; background: var(--soft); text-align: left; cursor: pointer; }
+.day-cover img { display: block; width: 100%; height: 132px; object-fit: cover; }
+.day-cover-title { position: absolute; inset: auto 0 0 0; padding: 26px 12px 10px; background: linear-gradient(to top, rgba(10, 16, 14, .72), rgba(10, 16, 14, 0)); color: #fff; font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
+.day-cover-phone { margin: 10px 0 0; border-radius: 14px; cursor: default; }
+.day-cover-phone img { height: 170px; }
+.day-image-pick img { max-height: 180px; object-fit: cover; }

@@ -4,6 +4,8 @@ import { iconName, SUGGESTED_ICONS } from '../labels/icons'
 import { LabelIconView } from '../labels/LabelIconView'
 import { useLabels } from '../labels/LabelsContext'
 import { normalizeTag, uid } from '../lib'
+import { ColorSwatches } from './ColorSwatches'
+import { onColor } from '../colors'
 import { LABEL_COLORS, type Item, type Label } from '../types'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -74,7 +76,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
   const editor = draft && (
     <div className="label-editor">
       <div className="label-preview">
-        <span className="label-swatch" style={{ background: draft.color ?? '#e3e5e0', color: draft.color ? '#fff' : 'var(--ink-2)' }}>
+        <span className="label-swatch" style={{ background: draft.color ?? '#e3e5e0', color: draft.color ? onColor(draft.color) : 'var(--ink-2)' }}>
           {draft.icon ? <LabelIconView name={draft.icon} size={24} /> : <span className="small">Aa</span>}
         </span>
         <div className="field" style={{ flex: 1 }}>
@@ -84,12 +86,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
       </div>
       <fieldset className="group">
         <legend>Colour</legend>
-        <div className="swatches">
-          <button type="button" className={`swatch swatch-none${!draft.color ? ' is-on' : ''}`} aria-label="No colour" aria-pressed={!draft.color} onClick={() => setDraft({ ...draft, color: null })} />
-          {LABEL_COLORS.map((c) => (
-            <button key={c} type="button" className={`swatch${draft.color === c ? ' is-on' : ''}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={draft.color === c} onClick={() => setDraft({ ...draft, color: c })} />
-          ))}
-        </div>
+        <ColorSwatches value={draft.color} onChange={(color) => setDraft({ ...draft, color })} none={{ label: 'No colour' }} />
       </fieldset>
       <fieldset className="group">
         <legend>Icon</legend>
@@ -125,7 +122,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
                 key={name}
                 type="button"
                 className={`icon-choice${on ? ' is-on' : ''}`}
-                style={on && draft.color ? { background: draft.color, borderColor: draft.color, color: '#fff' } : undefined}
+                style={on && draft.color ? { background: draft.color, borderColor: draft.color, color: onColor(draft.color) } : undefined}
                 aria-label={name.replace(/_/g, ' ')}
                 title={name}
                 aria-pressed={on}
@@ -175,7 +172,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
                     setDraft({ original: s.name, name: s.name, color: s.color, icon: s.icon })
                   }}
                 >
-                  <span className="label-swatch" style={{ background: s.color ?? '#eef0ec', color: s.color ? '#fff' : 'var(--ink-2)' }}>
+                  <span className="label-swatch" style={{ background: s.color ?? '#eef0ec', color: s.color ? onColor(s.color) : 'var(--ink-2)' }}>
                     {s.icon ? <LabelIconView name={s.icon} size={20} /> : <span className="small">Aa</span>}
                   </span>
                   <span className="label-name">{s.name}</span>
