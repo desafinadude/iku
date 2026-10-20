@@ -40,7 +40,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const drop = useDroppable({ id: 'card:' + item.id, data: zone, disabled: !draggable || continuing })
   const hint = useContext(DropHintContext)
   const dropClass = drop.isOver && hint?.id === item.id ? (hint.after ? ' drop-after' : ' drop-before') : ''
-  const { itemStyle } = useLabels()
+  const { itemStyle, tagStyle } = useLabels()
   // The first coloured tag sets the card's colour; all tags sit in the bar at the bottom, that one first.
   const c = itemStyle(item)
   const ordered = c.name ? [c.name, ...item.tags.filter((t) => t !== c.name)] : item.tags
@@ -54,12 +54,14 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const imageShown = !!image && !(variant === 'plan' && continuing)
   // Nothing but the picture (a photo with no title, or title and details turned off): show it whole, alone.
   const photoOnly = imageShown && (isPhotoCard(item) || (!show.title && !show.details))
-  // A card is never empty: without a picture the title always shows.
-  const titleShown = !photoOnly && (show.title || !imageShown)
   const time = variant === 'plan' && !!item.time && !continuing
   const fullMeta = show.details && (item.pinned || time || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
-  const shortMeta = !show.details && titleShown && (item.pinned || time || !!span)
   const note = show.details && !!item.note && !continuing
+  const footShown = show.tags && (shownTags.length > 0 || showCreator)
+  const iconsShown = show.tagIcons && shownTags.some((t) => tagStyle(t).color || tagStyle(t).icon)
+  // The title shows when it's ticked, or when the card would otherwise be empty.
+  const titleShown = !photoOnly && (show.title || (!imageShown && !fullMeta && !note && !footShown && !iconsShown))
+  const shortMeta = !show.details && titleShown && (item.pinned || time || !!span)
   const compact = !show.details
 
   return (
@@ -132,7 +134,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           </span>
         </div>
       )}
-      {show.tags && (shownTags.length > 0 || showCreator) && (
+      {footShown && (
         <div className="card-foot">
           <TagChips tags={shownTags} small />
           {showCreator && (
