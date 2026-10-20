@@ -12,7 +12,7 @@
   --drop: #eef6f3;
   --drop-line: #8fb8af;
   --danger: #b42318;
-  --radius: 12px;
+  --radius: 5px;
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --body: 'DM Sans', system-ui, sans-serif;
   color-scheme: light;
@@ -130,7 +130,7 @@ h1, h2 { margin: 0; }
 
 /* ---------- Days board ---------- */
 .day-columns { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 4px; }
-.day-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px; border-radius: 14px; background: #edeeea; border: 1px solid transparent; transition: background .15s; }
+.day-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px; border-radius: 8px; background: #edeeea; border: 1px solid transparent; transition: background .15s; }
 .day-col.is-selected { background: var(--surface); border-color: var(--accent); }
 .day-col.is-over { background: var(--drop); border-color: var(--drop-line); border-style: dashed; }
 .day-col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 4px; border: 0; background: transparent; text-align: left; }
@@ -138,6 +138,8 @@ h1, h2 { margin: 0; }
 .day-col-label { display: flex; flex-direction: column; font-size: 13px; flex: 1; }
 .day-col-label .muted { font-size: 12px; }
 .day-col-items { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; }
+/* Cards keep their full height; the column scrolls instead of squashing them. */
+.day-col-items > * { flex-shrink: 0; }
 .drop-hint { border: 1.5px dashed var(--drop-line); background: var(--drop); border-radius: 10px; padding: 14px 10px; text-align: center; font-size: 13px; color: var(--accent); }
 
 /* ---------- Day plan (phone) ---------- */
@@ -154,7 +156,7 @@ h1, h2 { margin: 0; }
 .timeline { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .timeline li { display: flex; gap: 10px; }
 .tl-time { width: 44px; flex: none; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; padding-top: 14px; }
-.tl-card { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: flex-start; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; text-align: left; }
+.tl-card { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: flex-start; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); text-align: left; }
 .tl-num { width: 26px; height: 26px; flex: none; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
 .tl-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .tl-booking { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-dark); font-size: 13px; }
@@ -388,7 +390,7 @@ h1, h2 { margin: 0; }
 .all-day { display: flex; gap: 8px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--ground); position: sticky; top: 0; z-index: 3; }
 .all-day-label { width: 52px; flex: none; font-size: 12px; color: var(--muted); padding-top: 8px; text-align: right; }
 .all-day-items { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.all-day-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 36px; padding: 4px 10px; border: 0; border-radius: 8px; color: #fff; text-align: left; font-size: 14px; }
+.all-day-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 36px; padding: 4px 10px; border: 0; border-radius: 3px; color: #fff; text-align: left; font-size: 14px; }
 .all-day-item.is-repeat { opacity: .75; }
 .all-day-item:not(.is-repeat) { cursor: grab; touch-action: manipulation; }
 .all-day-item.is-dragging { opacity: .35; }
@@ -402,7 +404,7 @@ h1, h2 { margin: 0; }
 .hour-slot:first-child .hour-label { top: 2px; }
 .hour-add { position: absolute; left: 60px; right: 0; top: 0; bottom: 0; border: 0; background: transparent; cursor: copy; }
 .hour-add:hover { background: rgba(14,107,96,.05); }
-.hour-event { position: absolute; z-index: 2; display: flex; gap: 8px; padding: 4px 8px; border: 0; border-left: 4px solid; border-radius: 8px; overflow: hidden; cursor: grab; box-shadow: 0 1px 2px rgba(23,32,29,.08); box-sizing: border-box; }
+.hour-event { position: absolute; z-index: 2; display: flex; gap: 8px; padding: 4px 8px; border: 0; border-left: 4px solid; border-radius: 3px; overflow: hidden; cursor: grab; box-shadow: 0 1px 2px rgba(23,32,29,.08); box-sizing: border-box; }
 .hour-event.is-dragging { opacity: .4; }
 .hour-event-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
 .hour-event-body b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -571,7 +573,7 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .pane-ideas, .detail-scroll, .sheet-body, .day-col-items, .pane-dayplan, .pane-docs, .hours-scroll { overflow-x: hidden; }
 
 /* A day's opening image */
-.day-cover { position: relative; display: block; flex: none; margin: -10px -10px 0; padding: 0; border: 0; border-radius: 10px 10px 0 0; overflow: hidden; background: var(--soft); text-align: left; cursor: pointer; }
+.day-cover { position: relative; display: block; flex: none; margin: -10px -10px 0; padding: 0; border: 0; border-radius: 7px 7px 0 0; overflow: hidden; background: var(--soft); text-align: left; cursor: pointer; }
 .day-cover img { display: block; width: 100%; height: 132px; object-fit: cover; }
 .day-cover-title { position: absolute; inset: auto 0 0 0; padding: 26px 12px 10px; background: linear-gradient(to top, rgba(10, 16, 14, .72), rgba(10, 16, 14, 0)); color: #fff; font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
 .day-cover-phone { margin: 10px 0 0; border-radius: 14px; cursor: default; }
@@ -579,10 +581,14 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .day-image-pick img { max-height: 180px; object-fit: cover; }
 
 /* Tag icons along the top of a card */
-.tag-icons { display: flex; flex-wrap: wrap; gap: 4px; padding: 7px 8px; border-bottom: 1px solid var(--line); background: var(--surface); }
-.tag-icon { width: 24px; height: 24px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
+.tag-icons { display: flex; flex: none; }
+/* Solid, flush blocks of colour that share the card's full width (De Stijl rather than rounded badges). */
+.tag-icon { flex: 1 1 0; min-width: 28px; height: 30px; display: grid; place-items: center; }
 .tag-icon-letter { font-size: 12px; font-weight: 700; text-transform: uppercase; }
-.tl-body .tag-icons { padding: 0 0 4px; border: 0; background: none; }
+.tl-card.has-icons { flex-wrap: wrap; overflow: hidden; }
+.tl-card > .tag-icons { flex: 0 0 calc(100% + 24px); margin: -12px -12px 0; }
+.tl-card.is-compact > .tag-icons { margin-top: -8px; }
+.tl-card.has-image > .tag-icons { margin-top: 0; }
 
 /* Checkbox menus (what cards show; the tag filter) */
 .menu-check-item { cursor: pointer; }
