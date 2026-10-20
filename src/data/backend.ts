@@ -21,6 +21,11 @@ export interface LinkPreview {
   image: string | null
   lat: number | null
   lng: number | null
+  description?: string | null
+  /** Where a saved post points (a Pinterest pin's original link). */
+  sourceUrl?: string | null
+  /** The cleaned-up URL of the page itself (e.g. the full pin link for a pin.it short link). */
+  pageUrl?: string | null
 }
 
 export interface Backend {
@@ -371,7 +376,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     unfurl: async (url) => {
       const { data, error } = await sb.functions.invoke('unfurl', { body: { url } })
       if (error || !data || data.error) return null
-      return { title: data.title ?? null, image: data.image ?? null, lat: data.lat ?? null, lng: data.lng ?? null }
+      return { title: data.title ?? null, image: data.image ?? null, lat: data.lat ?? null, lng: data.lng ?? null, description: data.description ?? null, sourceUrl: data.sourceUrl ?? null, pageUrl: data.url ?? null }
     },
     deleteItem: async (id) => {
       // Rows cascade in the database, but the files themselves have to be removed from storage.

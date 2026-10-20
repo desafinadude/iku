@@ -51,6 +51,12 @@ npx supabase functions deploy unfurl --project-ref <your-project-ref>
 
 Keep "Verify JWT" on (the default), so only signed-in trip members can use it. Run `supabase/migrations/003_link_previews.sql` to store the images.
 
+## Ideas board, view mode and Pinterest
+
+- **Ideas board:** on tablets and desktop, switch **Plan / Ideas** in the top bar for a full-width Pinterest-style board of your ideas (tick *Include planned* to see everything). Click a card and it opens on the right half while the board narrows to four columns.
+- **View mode:** tapping an entry anywhere shows it read-only: image, tags, when, booking, place with Google Maps and Directions, link, notes with clickable links, attachments and who added it. **Edit** opens the editor, and saving returns you to the view.
+- **Pinterest:** paste a pin link (`pin.it/…` or `pinterest.com/pin/…`) and the entry gets the pin's image, its caption as the title and note, and the pin's original link (Instagram, a blog…) as its link, with "Pinned from …" kept in the note. This runs through the `unfurl` Edge Function, because Pinterest doesn't allow browsers to fetch it directly. Redeploy the function after updating.
+
 ## Card images
 
 Every entry can have an image, even when a link doesn't provide one:

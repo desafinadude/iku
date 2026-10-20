@@ -6,6 +6,7 @@ import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
 import { AttachmentList, type PendingFile } from './AttachmentList'
 import { CardImage } from './CardImage'
+import { Lightbox } from './Lightbox'
 import { PlaceSearch } from './PlaceSearch'
 import { PlaceInfo } from './PlaceInfo'
 import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
@@ -104,8 +105,17 @@ export function ItemSheet(props: Props) {
     setDraft((d) => {
       if (d.url !== url) return d // the link was changed while we waited
       const placeholderTitle = !d.title.trim() || d.title === domainOf(url)
+      // A saved post (e.g. a Pinterest pin) links to the real page: use that as the link,
+      // and keep the caption and the pin in the note.
+      const source = p?.sourceUrl && p.sourceUrl !== url ? p.sourceUrl : null
+      if (source) lastFetched.current = source
+      const pinLine = source && p?.pageUrl ? `Pinned from ${p.pageUrl}` : null
+      const note = d.note?.trim() ? d.note : [p?.description, pinLine].filter(Boolean).join('\n\n') || d.note
       return {
         ...d,
+        // A pin with no source keeps the full pin link rather than a pin.it short link.
+        url: source ?? (p?.pageUrl && /pinterest\./i.test(p.pageUrl) ? p.pageUrl : d.url),
+        note: source ? note : d.note,
         title: placeholderTitle && p?.title ? p.title : d.title,
         imageUrl: p?.image && (replaceImage || !d.imageUrl) ? p.image : d.imageUrl,
         lat: d.lat ?? p?.lat ?? null,
@@ -463,31 +473,5 @@ export function ItemSheet(props: Props) {
         />
       </div>
     </Sheet>
-  )
-}
-
-function Lightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose])
-  return (
-    <div className="viewer" role="dialog" aria-modal="true" aria-label="Image" onClick={onClose}>
-      <header className="viewer-head" onClick={(e) => e.stopPropagation()}>
-        <b className="viewer-title">Image</b>
-        <button className="icon-btn" aria-label="Close" onClick={onClose}>
-          <Icon name="close" />
-        </button>
-      </header>
-      <div className="viewer-body">
-        <CardImage imageUrl={imageUrl} loading="eager" />
-      </div>
-    </div>
   )
 }

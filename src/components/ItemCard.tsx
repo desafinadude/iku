@@ -20,9 +20,11 @@ interface Props {
   fileCount?: number
   /** Show tags on the repeated (later-day) cards of multi-day entries. */
   tagsOnRepeats?: boolean
+  /** Highlighted as the one open beside the ideas board. */
+  selected?: boolean
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false }: Props) {
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
@@ -41,7 +43,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   return (
     <article
       ref={setNodeRef}
-      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}`}
+      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}`}
       {...listeners}
       {...attributes}
       role="button"

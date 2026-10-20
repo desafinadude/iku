@@ -1,7 +1,7 @@
 // Supabase Edge Function: fetches a web page and returns its link preview
 // (title, description, image, coordinates). Only signed-in users can call it,
 // because Supabase checks the caller's JWT before this code runs.
-import { parsePreview, type Preview } from './parse.ts'
+import { parsePreview, pinterestPinUrl, splitCaption, type Preview } from './parse.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
   } catch {
     /* blocked or unreachable: try the fallback below */
   }
+  // Pinterest (including pin.it short links): the pin page has the image and the source link;
+  // oEmbed has the real caption (the page title is just "Found this on Pinterest").
+  const pin = pinterestPinUrl(preview?.url ?? target.href)
+  if (pin) preview = await withPinterestCaption(preview, pin)
+
   // Sites like TripAdvisor and Airbnb block preview bots; Microlink's free tier often gets through.
   if (!preview?.image) {
     const fallback = await fromMicrolink(target.href).catch(() => null)
@@ -48,6 +53,25 @@ Deno.serve(async (req) => {
   }
   return preview ? json(preview) : json({ error: 'Couldn’t load a preview for that link' }, 502)
 })
+
+async function withPinterestCaption(preview: Preview | null, pin: string): Promise<Preview> {
+  const base: Preview = { url: pin, title: null, description: null, image: null, siteName: 'Pinterest', lat: null, lng: null, ...(preview ?? {}) }
+  base.url = pin
+  if (/^found this on pinterest$/i.test(base.title ?? '')) base.title = null
+  try {
+    const res = await fetch(`https://www.pinterest.com/oembed.json?url=${encodeURIComponent(pin)}`, { signal: AbortSignal.timeout(6000) })
+    if (res.ok) {
+      const o = await res.json()
+      const { title, description } = splitCaption(o.title)
+      base.title = title ?? base.title
+      base.description = description ?? base.description
+      base.image ??= o.thumbnail_url ?? null
+    }
+  } catch {
+    /* keep what the page gave us */
+  }
+  return base
+}
 
 async function fromMicrolink(url: string): Promise<Preview | null> {
   const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) })
