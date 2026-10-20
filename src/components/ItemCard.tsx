@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { displayTitle, domainOf, isPhotoCard, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
-import { LabelIconView } from '../labels/LabelIconView'
 import type { Item, Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
@@ -31,9 +30,12 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
   const { itemStyle } = useLabels()
-  // The first coloured tag is the card's label; the other tags show as chips.
+  // The first coloured tag sets the card's colour; all tags sit in the bar at the bottom, that one first.
   const c = itemStyle(item)
-  const otherTags = item.tags.filter((t) => t !== c.name)
+  const ordered = c.name ? [c.name, ...item.tags.filter((t) => t !== c.name)] : item.tags
+  // Repeat cards of multi-day entries keep just the colour tag unless "Show tags on repeats" is on.
+  const shownTags = continuing && !tagsOnRepeats ? ordered.slice(0, c.name ? 1 : 0) : ordered
+  const showCreator = !!creator && !continuing
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
   const image = item.imageUrl && !imgBroken ? item.imageUrl : null
@@ -64,19 +66,6 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       {variant === 'pin' && image && (
         <div className={`card-photo${photoOnly ? ' is-whole' : ''}`}>
           <CardImage imageUrl={image} onBroken={() => setImgBroken(true)} />
-          {domain && <span className="card-domain card-domain-over">{domain}</span>}
-          {photoOnly && (
-            <span className="photo-overlay">
-              <TagChips tags={otherTags} small />
-              {fileCount > 0 && (
-                <span className="file-badge on-photo">
-                  <Icon name="paperclip" size={12} />
-                  {fileCount}
-                </span>
-              )}
-              {creator && <Avatar member={creator} size={22} ring />}
-            </span>
-          )}
         </div>
       )}
       {variant === 'pin' && !image && domain && (
@@ -88,39 +77,44 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       )}
       {!(photoOnly && variant === 'pin') && (
         <div className="card-body">
-          <div className="card-meta">
-            {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
-            {span && <span className="span-label">{span}</span>}
-            {c.name && (
-              <span className="type-label" style={{ color: c.color, background: variant === 'plan' ? c.bg : undefined }}>
-                <LabelIconView name={c.icon} size={12} />
-                {c.name}
-              </span>
-            )}
-            {fileCount > 0 && (
-              <span className="file-badge" aria-label={`${fileCount} attachments`}>
-                <Icon name="paperclip" size={13} />
-                {fileCount}
-              </span>
-            )}
-            {item.booked && (
-              <span className="booked">
-                <Icon name="check" size={13} strokeWidth={2.4} />
-                Booked
-              </span>
-            )}
-          </div>
-          {!photoOnly && <div className="card-title">{item.title}</div>}
-          {item.note && !continuing && <div className="card-note">{item.note}</div>}
-          {(!continuing || (tagsOnRepeats && otherTags.length > 0)) && (otherTags.length > 0 || creator) && (
-            <div className="tag-row">
-              <TagChips tags={otherTags} small={continuing} />
-              {creator && !continuing && (
-                <span className="card-creator">
-                  <Avatar member={creator} size={20} />
+          {((variant === 'plan' && item.time && !continuing) || span || (variant === 'pin' && image && domain) || fileCount > 0 || item.booked) && (
+            <div className="card-meta">
+              {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
+              {span && <span className="span-label">{span}</span>}
+              {variant === 'pin' && image && domain && <span className="card-domain">{domain}</span>}
+              {fileCount > 0 && (
+                <span className="file-badge" aria-label={`${fileCount} attachments`}>
+                  <Icon name="paperclip" size={13} />
+                  {fileCount}
+                </span>
+              )}
+              {item.booked && (
+                <span className="booked">
+                  <Icon name="check" size={13} strokeWidth={2.4} />
+                  Booked
                 </span>
               )}
             </div>
+          )}
+          {!photoOnly && <div className="card-title">{item.title}</div>}
+          {item.note && !continuing && <div className="card-note">{item.note}</div>}
+        </div>
+      )}
+      {photoOnly && variant === 'pin' && fileCount > 0 && (
+        <div className="card-meta card-meta-photo">
+          <span className="file-badge" aria-label={`${fileCount} attachments`}>
+            <Icon name="paperclip" size={13} />
+            {fileCount}
+          </span>
+        </div>
+      )}
+      {(shownTags.length > 0 || showCreator) && (
+        <div className="card-foot">
+          <TagChips tags={shownTags} small />
+          {showCreator && (
+            <span className="card-creator">
+              <Avatar member={creator!} size={20} />
+            </span>
           )}
         </div>
       )}
