@@ -81,7 +81,7 @@ function Planner() {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, moveToSlot, unschedule, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
   const [online, setOnline] = useState(() => navigator.onLine)
   useEffect(() => {
@@ -179,6 +179,7 @@ function Planner() {
     time: null,
     endTime: null,
     booked: false,
+    pinned: false,
     bookingRef: null,
     place: null,
     placeId: null,
@@ -241,6 +242,8 @@ function Planner() {
         arrange(id, list, targetId, after, list.some((x) => x.id === id) ? item.day : null)
         if (prefs.ideasOrder !== 'custom') setPrefs({ ideasOrder: 'custom' })
       }
+    } else if (String(target).startsWith('allday:')) {
+      unschedule(id, String(target).slice(7))
     } else if (String(target).startsWith('slot:')) {
       const [, day, hour] = String(target).split(':')
       moveToSlot(id, day, `${hour}:00`)
@@ -292,6 +295,11 @@ function Planner() {
   // Wide plan view: show or hide the map, and give the days view the whole workspace.
   const maxToggle = wide ? (
     <>
+      {prefs.mainView === 'plan' && !daysMax && (
+        <button className="icon-btn head-btn" aria-label={prefs.planIdeas ? 'Hide the ideas' : 'Show the ideas'} title={prefs.planIdeas ? 'Hide the ideas' : 'Show the ideas'} aria-pressed={prefs.planIdeas} onClick={() => setPrefs({ planIdeas: !prefs.planIdeas })}>
+          <Icon name="ideas" size={16} />
+        </button>
+      )}
       {prefs.mainView === 'plan' && !daysMax && (
         <button className="icon-btn head-btn" aria-label={prefs.planMap ? 'Hide the map' : 'Show the map'} title={prefs.planMap ? 'Hide the map' : 'Show the map'} aria-pressed={prefs.planMap} onClick={() => setPrefs({ planMap: !prefs.planMap })}>
           <Icon name="map" size={16} />
@@ -449,6 +457,7 @@ function Planner() {
                       <button className="primary-btn" onClick={() => edit(activeEntry)}>
                         Edit
                       </button>
+                      <PinButton item={activeEntry} onToggle={() => save({ ...activeEntry, pinned: !activeEntry.pinned })} />
                       <span className="spacer" />
                       <button className="icon-btn" aria-label="Close" onClick={() => setActiveId(null)}>
                         <Icon name="close" />
@@ -472,8 +481,8 @@ function Planner() {
               <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
             ) : wide ? (
               <>
-                {!daysMax && ideasPane}
-                {!daysMax && resizer('ideas', 'Resize the ideas', 'left', 200, 0.5)}
+                {!daysMax && prefs.planIdeas && ideasPane}
+                {!daysMax && prefs.planIdeas && resizer('ideas', 'Resize the ideas', 'left', 200, 0.5)}
                 {prefs.daysView === 'hours' ? (
                 hourView
               ) : prefs.daysView === 'month' ? (
@@ -642,9 +651,12 @@ function Planner() {
                 title={entry.day ? 'Plan' : 'Idea'}
                 onClose={() => setSheet(null)}
                 footer={
-                  <button className="primary-btn wide" onClick={() => edit(entry)}>
-                    Edit
-                  </button>
+                  <>
+                    <PinButton item={entry} onToggle={() => save({ ...entry, pinned: !entry.pinned })} />
+                    <button className="primary-btn wide" onClick={() => edit(entry)}>
+                      Edit
+                    </button>
+                  </>
                 }
               >
                 <ItemView
@@ -680,5 +692,14 @@ function Planner() {
         {viewing && <FileViewer attachment={viewing} getUrl={fileUrl} onClose={() => setViewing(null)} />}
       </div>
     </LabelsProvider>
+  )
+}
+
+/** Pins an entry to the top of its day (or of the ideas), or unpins it. */
+function PinButton({ item, onToggle }: { item: Item; onToggle: () => void }) {
+  return (
+    <button className={`secondary-btn pin-btn${item.pinned ? ' is-on' : ''}`} aria-pressed={item.pinned} onClick={onToggle} title={item.pinned ? 'Unpin' : `Keep at the top of ${item.day ? 'its day' : 'the ideas'}`}>
+      <Icon name="pushpin" size={16} /> {item.pinned ? 'Pinned' : 'Pin to top'}
+    </button>
   )
 }

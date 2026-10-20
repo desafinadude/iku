@@ -19,7 +19,8 @@ export interface Prefs {
   /** Which parts each card shows (days and ideas separately). */
   daysShow: CardShow
   ideasShow: CardShow
-  /** Plan view on wide screens: show the map pane. */
+  /** Plan view on wide screens: show the ideas and map panes. */
+  planIdeas: boolean
   planMap: boolean
   /** Wide screens: pane widths in px, set by dragging the handles between panes. */
   ideasWidth: number
@@ -46,7 +47,7 @@ export const SHOW_ALL: CardShow = { image: true, title: true, details: true, tag
 export const PANE_DEFAULTS = { ideas: 320, map: 380, detail: 640 }
 
 const KEY = 'iku:prefs'
-const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysShow: SHOW_ALL, ideasShow: SHOW_ALL, planMap: true, ideasWidth: PANE_DEFAULTS.ideas, mapWidth: PANE_DEFAULTS.map, detailWidth: PANE_DEFAULTS.detail }
+const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysShow: SHOW_ALL, ideasShow: SHOW_ALL, planIdeas: true, planMap: true, ideasWidth: PANE_DEFAULTS.ideas, mapWidth: PANE_DEFAULTS.map, detailWidth: PANE_DEFAULTS.detail }
 
 export function usePrefs() {
   const [prefs, setPrefs] = useState<Prefs>(() => {

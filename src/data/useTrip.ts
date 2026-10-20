@@ -150,6 +150,17 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [save]
   )
 
+  /** Drops an entry onto a day's "All day" strip: keeps it on that day but clears its times. */
+  const unschedule = useCallback(
+    (id: string, day: string) => {
+      const item = itemsRef.current.find((x) => x.id === id)
+      if (!item || (item.day === day && !item.time)) return
+      const endDay = item.day && item.endDay ? addDays(day, daysBetween(item.day, item.endDay)) : null
+      save({ ...item, day, endDay, time: null, endTime: null })
+    },
+    [save]
+  )
+
   /** Drops an entry onto an hour: sets its day and start time, keeping its length. */
   const moveToSlot = useCallback(
     (id: string, day: string, time: string) => {
@@ -289,6 +300,6 @@ export function useTrip(backend: Backend, enabled: boolean) {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, moveToSlot, unschedule, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   }
 }

@@ -183,12 +183,14 @@ export function spanLabel(item: Item, day: string): string | null {
 }
 
 /** Entries for a day: ones continuing from earlier days first, then by time. */
-/** A day's entries: ones continuing from earlier days first, then the day's own in the chosen order. */
+/** A day's entries: pinned ones first, then ones continuing from earlier days, then the day's own in the chosen order. */
 export function itemsForDay(items: Item[], day: string, order: DayOrder = 'time') {
   const by = order === 'custom' ? bySort : order === 'title' ? byTitle : byTime
-  return items.filter((x) => onDay(x, day)).sort((a, b) => Number(a.day === day) - Number(b.day === day) || by(a, b))
+  return items.filter((x) => onDay(x, day)).sort((a, b) => byPinned(a, b) || Number(a.day === day) - Number(b.day === day) || by(a, b))
 }
 
+/** Pinned entries first (e.g. a hotel with no time). */
+export const byPinned = (a: Item, b: Item) => Number(!!b.pinned) - Number(!!a.pinned)
 export const bySort = (a: Item, b: Item) => a.sort - b.sort
 export const byTitle = (a: Item, b: Item) => displayTitle(a).localeCompare(displayTitle(b), undefined, { sensitivity: 'base' })
 
@@ -197,7 +199,7 @@ export function orderIdeas(list: Item[], order: IdeasOrder) {
   const newest = (a: Item, b: Item) => b.createdAt.localeCompare(a.createdAt)
   const byTag = (a: Item, b: Item) => (a.tags[0] ?? '\uffff').localeCompare(b.tags[0] ?? '\uffff', undefined, { sensitivity: 'base' }) || byTitle(a, b)
   const by = { newest, oldest: (a: Item, b: Item) => -newest(a, b), custom: bySort, title: byTitle, tag: byTag }[order]
-  return [...list].sort(by)
+  return [...list].sort((a, b) => byPinned(a, b) || by(a, b))
 }
 
 export function formatSize(bytes: number | null) {

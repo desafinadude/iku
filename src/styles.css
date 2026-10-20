@@ -613,3 +613,13 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .filter-tag button { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: -4px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: .8; }
 .filter-tag button:hover { opacity: 1; background: color-mix(in srgb, currentColor 18%, transparent); }
 .filter-chosen { gap: 6px; }
+
+/* Pinned entries */
+.pin-badge { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 3px; background: var(--ink); color: #fff; flex: none; }
+.tl-body b .pin-badge { display: inline-grid; vertical-align: -3px; margin-right: 6px; width: 18px; height: 18px; }
+.pin-btn.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pin-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The hours view's All day strip doubles as a drop zone that takes times off */
+.all-day.is-over { background: var(--drop); outline: 1.5px dashed var(--drop-line); outline-offset: -2px; }
+.all-day-empty { font-size: 13px; color: var(--muted); padding: 6px 0; }

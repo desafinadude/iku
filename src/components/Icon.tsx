@@ -23,6 +23,7 @@ const PATHS = {
   camera: 'M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 10a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z',
   external: 'M14 4h6v6 M20 4l-9 9 M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
   edit: 'M4 20h4L19 9l-4-4L4 16z M14 6l4 4',
+  pushpin: 'M9 3h6 M10 3v6l-3 4h10l-3-4V3 M12 13v8',
   more: 'M5 12h.01 M12 12h.01 M19 12h.01',
   shrink: 'M4 14h6v6 M20 10h-6V4 M14 10l7-7 M3 21l7-7',
   cardsFull: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M4 12h16 M8 15.5h8',
