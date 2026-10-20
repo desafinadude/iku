@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { useState } from 'react'
-import { domainOf, spanLabel } from '../lib'
+import { displayTitle, domainOf, isPhotoCard, spanLabel } from '../lib'
+import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Item, Member } from '../types'
@@ -32,6 +33,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
   const image = item.imageUrl && !imgBroken ? item.imageUrl : null
+  // A picture with no title: show the whole image, uncropped.
+  const photoOnly = isPhotoCard(item) && !!image
 
   return (
     <article
@@ -41,21 +44,33 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       {...attributes}
       role="button"
       tabIndex={0}
-      aria-label={`${item.title}, ${item.type}${item.day ? '' : ', unplanned'}`}
+      aria-label={`${displayTitle(item)}, ${item.type}${item.day ? '' : ', unplanned'}`}
       onClick={() => onOpen(item)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') onOpen(item)
       }}
     >
       {variant === 'plan' && image && !continuing && (
-        <div className="card-photo card-photo-plan">
-          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
+        <div className={`card-photo card-photo-plan${photoOnly ? ' is-whole' : ''}`}>
+          <CardImage imageUrl={image} onBroken={() => setImgBroken(true)} />
         </div>
       )}
       {variant === 'pin' && image && (
-        <div className="card-photo">
-          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setImgBroken(true)} />
+        <div className={`card-photo${photoOnly ? ' is-whole' : ''}`}>
+          <CardImage imageUrl={image} onBroken={() => setImgBroken(true)} />
           {domain && <span className="card-domain card-domain-over">{domain}</span>}
+          {photoOnly && (
+            <span className="photo-overlay">
+              <TagChips tags={item.tags} small />
+              {fileCount > 0 && (
+                <span className="file-badge on-photo">
+                  <Icon name="paperclip" size={12} />
+                  {fileCount}
+                </span>
+              )}
+              {creator && <Avatar member={creator} size={22} ring />}
+            </span>
+          )}
         </div>
       )}
       {variant === 'pin' && !image && domain && (
@@ -65,40 +80,42 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           </span>
         </div>
       )}
-      <div className="card-body">
-        <div className="card-meta">
-          {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
-          {span && <span className="span-label">{span}</span>}
-          <span className="type-label" style={{ color: c.color, background: variant === 'plan' ? c.bg : undefined }}>
-            <LabelIconView name={c.icon} size={12} />
-            {item.type}
-          </span>
-          {fileCount > 0 && (
-            <span className="file-badge" aria-label={`${fileCount} attachments`}>
-              <Icon name="paperclip" size={13} />
-              {fileCount}
+      {!(photoOnly && variant === 'pin') && (
+        <div className="card-body">
+          <div className="card-meta">
+            {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
+            {span && <span className="span-label">{span}</span>}
+            <span className="type-label" style={{ color: c.color, background: variant === 'plan' ? c.bg : undefined }}>
+              <LabelIconView name={c.icon} size={12} />
+              {item.type}
             </span>
-          )}
-          {item.booked && (
-            <span className="booked">
-              <Icon name="check" size={13} strokeWidth={2.4} />
-              Booked
-            </span>
-          )}
-        </div>
-        <div className="card-title">{item.title}</div>
-        {item.note && !continuing && <div className="card-note">{item.note}</div>}
-        {(!continuing || (tagsOnRepeats && item.tags.length > 0)) && (item.tags.length > 0 || creator) && (
-          <div className="tag-row">
-            <TagChips tags={item.tags} small={continuing} />
-            {creator && !continuing && (
-              <span className="card-creator">
-                <Avatar member={creator} size={20} />
+            {fileCount > 0 && (
+              <span className="file-badge" aria-label={`${fileCount} attachments`}>
+                <Icon name="paperclip" size={13} />
+                {fileCount}
+              </span>
+            )}
+            {item.booked && (
+              <span className="booked">
+                <Icon name="check" size={13} strokeWidth={2.4} />
+                Booked
               </span>
             )}
           </div>
-        )}
-      </div>
+          {!photoOnly && <div className="card-title">{item.title}</div>}
+          {item.note && !continuing && <div className="card-note">{item.note}</div>}
+          {(!continuing || (tagsOnRepeats && item.tags.length > 0)) && (item.tags.length > 0 || creator) && (
+            <div className="tag-row">
+              <TagChips tags={item.tags} small={continuing} />
+              {creator && !continuing && (
+                <span className="card-creator">
+                  <Avatar member={creator} size={20} />
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </article>
   )
 }

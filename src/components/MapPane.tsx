@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { dayLabel, itemsForDay } from '../lib'
+import { dayLabel, displayTitle, itemsForDay } from '../lib'
 import { markGoogleBroken, useGoogleOk } from '../maps/config'
 import type { MapPin } from '../maps/types'
 import { useLabels } from '../labels/LabelsContext'
@@ -63,9 +63,9 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
       label: String(scopeAll ? days.indexOf(x.day!) + 1 : i + 1),
       ...pinStyle(x),
       idea: false,
-      title: scopeAll ? `Day ${days.indexOf(x.day!) + 1}: ${x.title}` : x.title
+      title: scopeAll ? `Day ${days.indexOf(x.day!) + 1}: ${displayTitle(x)}` : displayTitle(x)
     })),
-    ...ideas.map((x) => ({ id: x.id, lat: x.lat, lng: x.lng, label: '', ...pinStyle(x), idea: true, title: x.title }))
+    ...ideas.map((x) => ({ id: x.id, lat: x.lat, lng: x.lng, label: '', ...pinStyle(x), idea: true, title: displayTitle(x) }))
   ]
   const view = {
     pins,

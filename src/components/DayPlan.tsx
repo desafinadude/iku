@@ -1,4 +1,5 @@
-import { dayLabel, itemsForDay, onDay, spanLabel } from '../lib'
+import { dayLabel, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
+import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
@@ -63,13 +64,13 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
               <button className={`tl-card${item.imageUrl && !continuing ? ' has-image' : ''}`} onClick={() => onOpen(item)}>
                 {item.imageUrl && !continuing && (
-                  <img className="tl-photo" src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  <CardImage className={`tl-photo${isPhotoCard(item) ? ' is-whole' : ''}`} imageUrl={item.imageUrl} />
                 )}
                 <span className="tl-num" style={{ background: c.color }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">
-                  <b>{item.title}</b>
+                  {!isPhotoCard(item) && <b>{item.title}</b>}
                   {span && <span className="span-label">{span}</span>}
                   <span className="muted small tl-type">
                     <span style={{ color: c.color }}>

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import type { LinkPreview } from '../data/backend'
-import { addDays, dayLabel, daysBetween, fromMinutes, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { isCoverRef, type LinkPreview } from '../data/backend'
+import { addDays, dayLabel, daysBetween, displayTitle, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
 import { AttachmentList, type PendingFile } from './AttachmentList'
+import { CardImage } from './CardImage'
 import { PlaceSearch } from './PlaceSearch'
 import { PlaceInfo } from './PlaceInfo'
 import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
@@ -20,6 +21,10 @@ interface Props {
   members: Member[]
   onUnfurl: (url: string) => Promise<LinkPreview | null>
   onManageLabels: () => void
+  /** Uploads a card image; resolves to the reference to store in imageUrl. */
+  onUploadCover: (file: File) => Promise<string>
+  /** Deletes an uploaded card image that ended up unused. */
+  onDiscardCover: (ref: string) => void
   /** Day to use when switching an idea onto the plan. */
   defaultDay: string
   near: { lat: number; lng: number } | null
@@ -38,7 +43,48 @@ interface Props {
 }
 
 export function ItemSheet(props: Props) {
-  const { item, isNew, days, allTags, members, onUnfurl, onSave, onDelete, onClose } = props
+  const { item, isNew, days, allTags, members, onUnfurl, onDelete } = props
+  // Card images uploaded while this sheet is open; any not kept are deleted again.
+  const uploaded = useRef<string[]>([])
+  const [imageBusy, setImageBusy] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [lightbox, setLightbox] = useState(false)
+  const imageInput = useRef<HTMLInputElement>(null)
+  const discardUnused = (keep: string | null) => uploaded.current.filter((r) => r !== keep).forEach(props.onDiscardCover)
+  const onClose = () => {
+    discardUnused(item.imageUrl)
+    props.onClose()
+  }
+  const onSave = (it: Item, files: File[]) => {
+    discardUnused(it.imageUrl)
+    props.onSave(it, files)
+  }
+  const useImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) return setImageError('That isn’t an image.')
+    setImageBusy(true)
+    setImageError(null)
+    try {
+      const ref = await props.onUploadCover(await prepareUpload(file))
+      uploaded.current.push(ref)
+      setDraft((d) => ({ ...d, imageUrl: ref }))
+    } catch (e) {
+      setImageError((e as Error).message)
+    } finally {
+      setImageBusy(false)
+    }
+  }
+  // Paste an image anywhere in the sheet to use it as the card image.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'))
+      if (!file) return
+      e.preventDefault()
+      useImageFile(file)
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  })
   const [draft, setDraft] = useState(item)
   const [pending, setPending] = useState<PendingFile[]>([])
   const googleOk = useGoogleOk()
@@ -95,13 +141,13 @@ export function ItemSheet(props: Props) {
               className="icon-btn danger"
               aria-label="Delete"
               onClick={() => {
-                if (confirm(`Delete “${draft.title}”?`)) onDelete(draft.id)
+                if (confirm(`Delete “${displayTitle(draft)}”?`)) onDelete(draft.id)
               }}
             >
               <Icon name="trash" />
             </button>
           )}
-          <button className="primary-btn wide" disabled={!draft.title.trim()} onClick={() => onSave({ ...draft, title: draft.title.trim() }, pending.map((p) => p.file))}>
+          <button className="primary-btn wide" disabled={(!draft.title.trim() && !draft.imageUrl) || imageBusy} onClick={() => onSave({ ...draft, title: draft.title.trim() }, pending.map((p) => p.file))}>
             {draft.day ? 'Save to ' + dayLabel(draft.day).dow + ' ' + dayLabel(draft.day).num + (draft.endDay ? '–' + dayLabel(draft.endDay).num : '') : 'Save to Ideas'}
           </button>
         </>
@@ -121,7 +167,68 @@ export function ItemSheet(props: Props) {
           </span>
         </div>
       )}
-      {draft.imageUrl && <PreviewImage src={draft.imageUrl} onRemove={() => set({ imageUrl: '' })} />}
+      <div className="image-field">
+        {draft.imageUrl ? (
+          <div className="sheet-image">
+            <button type="button" className="sheet-image-open" aria-label="View image full screen" onClick={() => setLightbox(true)}>
+              <CardImage imageUrl={draft.imageUrl} loading="eager" />
+            </button>
+            <div className="sheet-image-actions">
+              <button type="button" className="chip" onClick={() => imageInput.current?.click()} disabled={imageBusy}>
+                <Icon name="image" size={15} /> Replace
+              </button>
+              <button type="button" className="chip" aria-label="Remove image" onClick={() => set({ imageUrl: '' })}>
+                <Icon name="close" size={15} /> Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="image-empty">
+            <button type="button" className="secondary-btn" onClick={() => imageInput.current?.click()} disabled={imageBusy}>
+              <Icon name="image" size={16} /> {imageBusy ? 'Uploading…' : 'Add photo'}
+            </button>
+            <button type="button" className="secondary-btn" onClick={() => setLinkOpen((v) => !v)}>
+              <Icon name="link" size={16} /> Image link
+            </button>
+            <span className="muted small">or paste an image</span>
+          </div>
+        )}
+        {linkOpen && !draft.imageUrl && (
+          <input
+            className="image-link-input"
+            type="url"
+            placeholder="https://…/photo.jpg"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                e.currentTarget.blur()
+              }
+            }}
+            onBlur={(e) => {
+              const v = e.target.value.trim()
+              if (isUrl(v)) {
+                set({ imageUrl: v })
+                setLinkOpen(false)
+              }
+            }}
+          />
+        )}
+        {imageBusy && draft.imageUrl && <span className="muted small">Uploading…</span>}
+        {imageError && <p className="error">{imageError}</p>}
+        <input
+          ref={imageInput}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''
+            if (f) useImageFile(f)
+          }}
+        />
+      </div>
+      {lightbox && draft.imageUrl && <Lightbox imageUrl={draft.imageUrl} onClose={() => setLightbox(false)} />}
       {domain && (
         <div className="link-row">
           <a className="link-preview" href={draft.url!} target="_blank" rel="noreferrer">
@@ -146,7 +253,7 @@ export function ItemSheet(props: Props) {
           placeholder="https://"
           value={draft.url ?? ''}
           onChange={(e) => set({ url: e.target.value || null })}
-          onBlur={() => draft.url && draft.url !== lastFetched.current && fetchPreview(draft.url, true)}
+          onBlur={() => draft.url && draft.url !== lastFetched.current && fetchPreview(draft.url, !isCoverRef(draft.imageUrl))}
         />
       </div>
 
@@ -373,16 +480,28 @@ export function ItemSheet(props: Props) {
   )
 }
 
-function PreviewImage({ src, onRemove }: { src: string; onRemove: () => void }) {
-  const [broken, setBroken] = useState(false)
-  useEffect(() => setBroken(false), [src])
-  if (broken) return null
+function Lightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [onClose])
   return (
-    <div className="sheet-image">
-      <img src={src} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
-      <button type="button" className="sheet-image-remove" aria-label="Remove image" onClick={onRemove}>
-        <Icon name="close" size={16} />
-      </button>
+    <div className="viewer" role="dialog" aria-modal="true" aria-label="Image" onClick={onClose}>
+      <header className="viewer-head" onClick={(e) => e.stopPropagation()}>
+        <b className="viewer-title">Image</b>
+        <button className="icon-btn" aria-label="Close" onClick={onClose}>
+          <Icon name="close" />
+        </button>
+      </header>
+      <div className="viewer-body">
+        <CardImage imageUrl={imageUrl} loading="eager" />
+      </div>
     </div>
   )
 }

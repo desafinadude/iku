@@ -206,3 +206,13 @@ export function fromMinutes(mins: number) {
   const m = Math.max(0, Math.min(mins, 23 * 60 + 59))
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
+
+/** An entry's title, or "Photo" for an image-only card. */
+export function displayTitle(item: Item) {
+  return item.title.trim() || (item.imageUrl ? 'Photo' : 'Untitled')
+}
+
+/** An image-only card: a picture with no title, which should be shown whole. */
+export function isPhotoCard(item: Item) {
+  return !item.title.trim() && !!item.imageUrl
+}

@@ -6,6 +6,7 @@ import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
 import { HourView } from './components/HourView'
+import { InstallPrompt } from './components/InstallPrompt'
 import { MonthView } from './components/MonthView'
 import { usePrefs } from './usePrefs'
 import { LabelsManager } from './components/LabelsManager'
@@ -19,13 +20,13 @@ import { ItemSheet } from './components/ItemSheet'
 import { MapPane } from './components/MapPane'
 import { ProfileSheet } from './components/ProfileSheet'
 import { Unlock } from './components/Unlock'
-import { createBackend } from './data/backend'
+import { isCoverRef } from './data/backend'
+import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { domainOf, isUrl, matches, onDay, tripDays, tripRange, uid } from './lib'
+import { displayTitle, domainOf, isUrl, matches, onDay, prepareUpload, tripDays, tripRange, uid } from './lib'
 import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
-const backend = createBackend()
 
 // Drop on whatever is under the pointer (small calendar cells and hour rows need this);
 // fall back to overlap when the pointer is between targets.
@@ -79,7 +80,11 @@ function Planner() {
   /** Types & tags manager; opens on top of other sheets so an entry being edited isn't lost. */
   const [managing, setManaging] = useState<false | 'type' | 'tag'>(false)
   const wide = useMediaQuery('(min-width: 900px)')
-  const [tab, setTab] = useState<Tab>('ideas')
+  // Home-screen shortcuts open a tab directly (./?tab=days).
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = new URLSearchParams(location.search).get('tab')
+    return t === 'days' || t === 'map' || t === 'docs' ? t : 'ideas'
+  })
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [sheet, setSheet] = useState<SheetState>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
@@ -162,6 +167,17 @@ function Planner() {
     else save(blank({ title: text }))
   }
   const open = (item: Item) => setSheet({ kind: 'item', item, isNew: false })
+  /** Pasted or dropped images become picture cards straight away. */
+  const captureImages = async (files: File[]) => {
+    for (const file of files) {
+      try {
+        const ref = await backend.uploadCover(trip.id, await prepareUpload(file))
+        await save(blank({ imageUrl: ref }))
+      } catch (e) {
+        setError((e as Error).message)
+      }
+    }
+  }
 
   const onDragEnd = (e: DragEndEvent) => {
     setDragging(null)
@@ -223,7 +239,7 @@ function Planner() {
     />
   )
 
-  const ideasPane = <IdeasPane ideas={ideas} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onOpen={open} />
+  const ideasPane = <IdeasPane ideas={ideas} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -262,6 +278,7 @@ function Planner() {
           )}
         </header>
 
+        <InstallPrompt />
         {(offlineSince || !online) && (
           <div className="offline-bar" role="status">
             <Icon name="offline" size={16} />
@@ -348,7 +365,7 @@ function Planner() {
               mapPane
             )}
           </main>
-          <DragOverlay>{dragging && <div className="card drag-overlay">{dragging.title}</div>}</DragOverlay>
+          <DragOverlay>{dragging && <div className="card drag-overlay">{displayTitle(dragging)}</div>}</DragOverlay>
         </DndContext>
 
         {!wide && (
@@ -386,6 +403,8 @@ function Planner() {
             members={members}
             onUnfurl={backend.unfurl}
             onManageLabels={() => setManaging('type')}
+          onUploadCover={(file) => backend.uploadCover(trip.id, file)}
+          onDiscardCover={(ref) => isCoverRef(ref) && backend.deleteCover(ref).catch(() => {})}
             defaultDay={selectedDay}
             near={near}
             attachments={attachments.filter((a) => a.itemId === sheet.item.id)}

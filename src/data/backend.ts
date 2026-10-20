@@ -47,6 +47,11 @@ export interface Backend {
   renameLabel(tripId: string, kind: Label['kind'], from: string, to: string): Promise<void>
   /** Removes a tag from every entry. */
   deleteTag(tripId: string, tag: string): Promise<void>
+  /** Stores a card image you chose; returns the reference to save as the entry's imageUrl. */
+  uploadCover(tripId: string, file: File): Promise<string>
+  /** A displayable URL for an uploaded card image reference. */
+  coverUrl(ref: string): Promise<string>
+  deleteCover(ref: string): Promise<void>
   saveItem(item: Item): Promise<void>
   deleteItem(id: string): Promise<void>
   /** Calls back whenever someone else changes the trip. Returns an unsubscribe function. */
@@ -57,6 +62,9 @@ export interface Backend {
 
 const LOCAL_KEY = 'iku:v1'
 const LOCAL_FILES = 'iku-local-files'
+/** imageUrl values starting with this point at an uploaded image in the private bucket, not the web. */
+export const COVER_PREFIX = 'storage:'
+export const isCoverRef = (url: string | null | undefined): url is string => !!url && url.startsWith(COVER_PREFIX)
 const safeName = (name: string) => name.replace(/[^\w.-]+/g, '_').slice(-80)
 
 /** Removes this device's offline copies when someone signs out. */
@@ -149,6 +157,19 @@ function localBackend(): Backend {
       const exists = data.labels.some((l) => l.kind === kind && l.name === to)
       const labels = exists ? data.labels.filter((l) => !(l.kind === kind && l.name === from)) : data.labels.map((l) => (l.kind === kind && l.name === from ? { ...l, name: to } : l))
       write({ ...data, items, labels })
+    },
+    uploadCover: async (tripId, file) => {
+      const path = `${tripId}/covers/${crypto.randomUUID()}-${safeName(file.name)}`
+      await (await caches.open(LOCAL_FILES)).put('/' + path, new Response(file, { headers: { 'Content-Type': file.type || 'image/jpeg' } }))
+      return COVER_PREFIX + path
+    },
+    coverUrl: async (ref) => {
+      const res = await (await caches.open(LOCAL_FILES)).match('/' + ref.slice(COVER_PREFIX.length))
+      if (!res) throw new Error('Image not found')
+      return URL.createObjectURL(await res.blob())
+    },
+    deleteCover: async (ref) => {
+      await (await caches.open(LOCAL_FILES)).delete('/' + ref.slice(COVER_PREFIX.length))
     },
     deleteTag: async (_tripId, tag) => {
       const data = read()
@@ -397,6 +418,20 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     renameLabel: async (tripId, kind, from, to) => {
       const res = await sb.rpc('rename_label', { p_trip: tripId, p_kind: kind, p_from: from, p_to: to })
       if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
+    uploadCover: async (tripId, file) => {
+      const path = `${tripId}/covers/${crypto.randomUUID()}-${safeName(file.name)}`
+      const up = await files().upload(path, file, { contentType: file.type || 'image/jpeg' })
+      if (up.error) throw new Error(/bucket/i.test(up.error.message) ? 'Run supabase/migrations/004_attachments_and_spans.sql to upload images.' : up.error.message)
+      return COVER_PREFIX + path
+    },
+    coverUrl: async (ref) => {
+      const { data, error } = await files().createSignedUrl(ref.slice(COVER_PREFIX.length), 3600)
+      if (error || !data) throw new Error('Couldn’t load that image.')
+      return data.signedUrl
+    },
+    deleteCover: async (ref) => {
+      await files().remove([ref.slice(COVER_PREFIX.length)])
     },
     deleteTag: async (tripId, tag) => {
       const res = await sb.rpc('delete_tag', { p_trip: tripId, p_tag: tag })

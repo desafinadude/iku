@@ -11,6 +11,15 @@ npm run dev
 
 With no environment variables set it runs in **local mode**: sample trip data is saved in your browser only (shown by the "Local" badge).
 
+## Install on your phone
+
+Iku is an installable app (PWA):
+
+- **Android / Chrome / Edge:** an **Install** banner appears at the top (also in your profile sheet). Or use the browser menu → *Install app*.
+- **iPhone / iPad:** open the site in **Safari**, tap **Share**, then **Add to Home Screen**. The banner's **How?** button shows the same steps.
+
+Once installed it opens full screen with its own icon. It works offline using the last synced trip and any files you saved to the device. Long-press the icon for shortcuts to **Today's plan** and **Map**. Updates install themselves the next time you open it.
+
 ## Connect Supabase (shared, password-protected)
 
 1. Create a Supabase project and run `supabase/schema.sql` in the SQL editor, then each file in `supabase/migrations/` in order.
@@ -41,6 +50,14 @@ npx supabase functions deploy unfurl --project-ref <your-project-ref>
 ```
 
 Keep "Verify JWT" on (the default), so only signed-in trip members can use it. Run `supabase/migrations/003_link_previews.sql` to store the images.
+
+## Card images
+
+Every entry can have an image, even when a link doesn't provide one:
+
+- **In an entry:** **Add photo** (camera on phones), **Image link**, or paste an image anywhere in the sheet. **Replace** and **Remove** sit on the preview; tap it for full screen.
+- **Picture cards:** paste an image into the Ideas box, drop image files onto Ideas, or use the photo button in the box. Each becomes a card right away. With no title, a card is just the picture, shown whole and uncropped, with its tags and who added it on top.
+- **Storage:** uploaded images are shrunk to about 2000px and stored in the private `attachments` bucket (migration 004). They're shown through signed links, never public URLs. Replaced or removed images, and those on deleted entries, are deleted from storage.
 
 ## Attachments, docs and offline
 
