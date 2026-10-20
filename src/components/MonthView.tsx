@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
+import { inkColor, onColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -16,6 +17,7 @@ interface Props {
   prefs: Prefs
   selectedDay: string
   viewSwitch?: ReactNode
+  maxToggle?: ReactNode
   /** Opens a day (the hour-by-hour view). */
   onOpenDay: (day: string) => void
   onOpen: (item: Item) => void
@@ -35,7 +37,7 @@ function weeksFor(days: string[]) {
   return weeks
 }
 
-export function MonthView({ days, items, prefs, selectedDay, viewSwitch, onOpenDay, onOpen }: Props) {
+export function MonthView({ days, items, prefs, selectedDay, viewSwitch, maxToggle, onOpenDay, onOpen }: Props) {
   const weeks = weeksFor(days)
   const inTrip = new Set(days)
   const months = [...new Set(days.map((d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' })))]
@@ -45,6 +47,8 @@ export function MonthView({ days, items, prefs, selectedDay, viewSwitch, onOpenD
       <div className="pane-head">
         <h2>{months.join(' – ')}</h2>
         {viewSwitch}
+        <span className="spacer" />
+        {maxToggle}
       </div>
       <div className="month-scroll">
         <div className="month-grid" role="grid">
@@ -81,7 +85,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
           {firstOfMonth ? `${l.num} ${l.month}` : l.num}
         </button>
         {inTrip && (ds.title || ds.tag) && (
-          <span className="month-day-title" style={ds.color ? { color: ds.color } : undefined}>
+          <span className="month-day-title" style={ds.color ? { color: inkColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
         )}
@@ -94,7 +98,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
             <button
               key={x.id}
               className={`month-bar${x.day === day ? ' is-start' : ''}${x.endDay === day ? ' is-end' : ''}`}
-              style={{ background: s.color }}
+              style={{ background: s.color, color: onColor(s.color) }}
               onClick={() => onOpen(x)}
               title={displayTitle(x)}
             >
@@ -106,7 +110,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
               {x.imageUrl ? (
                 <CardImage imageUrl={x.imageUrl} />
               ) : (
-                <span className="month-icon" style={{ color: s.color }}>
+                <span className="month-icon" style={{ color: inkColor(s.color) }}>
                   <LabelIconView name={s.icon} size={13} />
                 </span>
               )}

@@ -37,6 +37,8 @@ export interface DayStyle {
   color: string | null
   /** Soft tint for the day's background. */
   bg: string | null
+  /** Opening image at the top of the day. */
+  image: string | null
 }
 
 const NEUTRAL = '#4A5550'
@@ -72,7 +74,7 @@ export function LabelsProvider({ tripId, labels, items, days = [], children }: {
       dayStyle: (day) => {
         const info = days.find((d) => d.day === day) ?? null
         const color = info?.color ?? (info?.tag ? tagStyle(info.tag).color : null)
-        return { info, title: info?.title ?? null, tag: info?.tag ?? null, color, bg: color ? tint(color, 0.13) : null }
+        return { info, title: info?.title ?? null, tag: info?.tag ?? null, color, bg: color ? tint(color, 0.13) : null, image: info?.image ?? null }
       },
       labels: styled
     }

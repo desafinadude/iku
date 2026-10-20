@@ -1,4 +1,5 @@
 import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { onColor } from '../colors'
 import { dayLabel, displayTitle, itemsForDay } from '../lib'
 import { markGoogleBroken, useGoogleOk } from '../maps/config'
 import type { MapPin } from '../maps/types'
@@ -19,12 +20,14 @@ interface Props {
   onOpen: (item: Item) => void
   /** Fills the workspace (the Map main view) with the day chips and legend, no full-screen toggle. */
   full?: boolean
+  /** Wide screens: the pane's width in px (from its resize handle). */
+  width?: number
 }
 
 type Located = Item & { lat: number; lng: number }
 const located = (x: Item): x is Located => x.lat != null && x.lng != null
 
-export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = false }: Props) {
+export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = false, width }: Props) {
   const [showIdeas, setShowIdeas] = useState(false)
   const [overlay, setExpanded] = useState(false)
   const expanded = overlay || full
@@ -78,7 +81,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
   }
 
   return (
-    <section aria-label="Map" className={`pane pane-map${overlay ? ' is-expanded' : ''}${full ? ' is-full' : ''}`}>
+    <section aria-label="Map" style={width && !overlay && !full ? { flexBasis: width } : undefined} className={`pane pane-map${overlay ? ' is-expanded' : ''}${full ? ' is-full' : ''}`}>
       <div className="pane-head map-head">
         <h2>Map</h2>
         {!expanded && (
@@ -141,7 +144,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
                 .filter((t) => t.color && pins.some((p) => itemStyle(items.find((x) => x.id === p.id)!).name === t.name))
                 .map((s) => (
                   <li key={s.name}>
-                    <span className="legend-pin" style={{ background: s.color! }}>
+                    <span className="legend-pin" style={{ background: s.color!, color: onColor(s.color) }}>
                       <LabelIconView name={s.icon} size={12} />
                     </span>
                     {s.name}

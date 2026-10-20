@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { avatarFromFile, displayName } from '../lib'
-import { MEMBER_COLORS, type Item, type Member } from '../types'
+import { ColorSwatches } from './ColorSwatches'
+import type { Item, Member } from '../types'
 import type { Profile } from '../data/backend'
 import { Avatar } from './Avatar'
 import { Sheet } from './Sheet'
@@ -74,11 +75,7 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
       </div>
       <fieldset className="group">
         <legend>Colour</legend>
-        <div className="swatches">
-          {MEMBER_COLORS.map((c) => (
-            <button key={c} type="button" className={`swatch${(color ?? '') === c ? ' is-on' : ''}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={color === c} onClick={() => setColor(c)} />
-          ))}
-        </div>
+        <ColorSwatches value={color} onChange={(c) => c && setColor(c)} />
       </fieldset>
       {installMode && (
         <div className="group">

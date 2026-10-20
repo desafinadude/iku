@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useRef, useState, type ReactNode } from 'react'
 import type { Attachment, Item, Member } from '../types'
+import type { CardLook } from '../usePrefs'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
 
@@ -18,9 +19,12 @@ interface Props {
   selectedId?: string | null
   /** Extra controls in the header (e.g. "Include planned"). */
   headExtra?: ReactNode
+  look?: CardLook
+  /** Wide screens: the pane's width in px (from its resize handle). */
+  width?: number
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, look = 'full', width }: Props) {
   const [fileOver, setFileOver] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
@@ -38,6 +42,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
       aria-label="Ideas"
       className={`pane pane-ideas${full ? ' pane-ideas-full' : ''}${isOver || fileOver ? ' is-over' : ''}`}
       ref={setNodeRef}
+      style={width ? { flexBasis: width } : undefined}
       // Image files dragged in from the desktop become picture cards.
       onDragOver={(e) => {
         if ([...e.dataTransfer.items].some((i) => i.kind === 'file')) {
@@ -58,6 +63,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
         <h2>
           Ideas <span className="muted">{totalIdeas} unplanned</span>
         </h2>
+        <span className="spacer" />
         {headExtra}
       </div>
       <form
@@ -108,7 +114,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
       </form>
       <div className={`masonry${full ? (selectedId ? ' masonry-4' : ' masonry-full') : ''}`}>
         {ideas.map((item) => (
-          <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
+          <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} look={look} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
         ))}
         {ideas.length === 0 && <p className="empty">Nothing here. Paste a link above to start collecting.</p>}
       </div>

@@ -1,4 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { inkColor, onColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -18,6 +19,8 @@ interface Props {
   items: Item[]
   prefs: Prefs
   viewSwitch?: ReactNode
+  /** Wide screens: the button that gives this view the whole workspace. */
+  maxToggle?: ReactNode
   onSelectDay: (day: string) => void
   onOpen: (item: Item) => void
   onAddAt: (day: string, time: string) => void
@@ -61,7 +64,7 @@ function layout(items: Item[]): Placed[] {
   return placed
 }
 
-export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onOpen, onAddAt, onEditDay }: Props) {
+export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSelectDay, onOpen, onAddAt, onEditDay }: Props) {
   const { itemStyle, dayStyle } = useLabels()
   const ds = dayStyle(day)
   const dayItems = itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day)
@@ -83,7 +86,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
           {l.dow} {l.num} {l.month}
         </h2>
         {(ds.title || ds.tag) && (
-          <span className="day-banner" style={ds.color ? { background: ds.color } : undefined}>
+          <span className="day-banner" style={ds.color ? { background: ds.color, color: onColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
         )}
@@ -101,6 +104,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
         <button className="icon-btn nav-btn" aria-label="Next day" disabled={idx >= days.length - 1} onClick={() => onSelectDay(addDays(day, 1))}>
           <Icon name="chevronRight" size={18} />
         </button>
+        {maxToggle}
       </div>
 
       <div className="hours-scroll">
@@ -113,7 +117,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
                 const span = spanLabel(x, day)
                 const repeat = x.day !== day
                 return (
-                  <button key={x.id} className={`all-day-item${repeat ? ' is-repeat' : ''}`} style={{ background: s.color }} onClick={() => onOpen(x)}>
+                  <button key={x.id} className={`all-day-item${repeat ? ' is-repeat' : ''}`} style={{ background: s.color, color: onColor(s.color) }} onClick={() => onOpen(x)}>
                     <LabelIconView name={s.icon} size={16} />
                     <b>{displayTitle(x)}</b>
                     {span && <span className="all-day-span">{span}</span>}
@@ -175,7 +179,7 @@ function HourEvent({ p, first, onOpen }: { p: Placed; first: number; onOpen: (it
     >
       {tall && p.item.imageUrl && <CardImage className="hour-thumb" imageUrl={p.item.imageUrl} />}
       <div className="hour-event-body">
-        <span className="hour-event-time" style={{ color: s.color }}>
+        <span className="hour-event-time" style={{ color: inkColor(s.color) }}>
           <LabelIconView name={s.icon} size={14} /> {p.item.time}
           {p.item.endTime ? `–${p.item.endTime}` : ''}
         </span>

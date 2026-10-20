@@ -1,4 +1,5 @@
 import { AdvancedMarker, Map, useMap } from '@vis.gl/react-google-maps'
+import { inkColor, onColor } from '../colors'
 import { useEffect } from 'react'
 import { LabelIconView } from '../labels/LabelIconView'
 import { GOOGLE_MAP_ID } from './config'
@@ -57,11 +58,11 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick }: MapVie
       {pins.map((p) => (
         <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} title={p.title} onClick={() => onPinClick(p.id)}>
           {p.idea ? (
-            <span className="map-pin map-pin-idea" style={{ borderColor: p.color, color: p.color }}>
+            <span className="map-pin map-pin-idea" style={{ borderColor: inkColor(p.color), color: inkColor(p.color) }}>
               <LabelIconView name={p.icon} size={14} />
             </span>
           ) : (
-            <span className="map-pin" style={{ background: p.color, color: '#fff' }}>
+            <span className="map-pin" style={{ background: p.color, color: onColor(p.color) }}>
               <LabelIconView name={p.icon} size={18} />
               {p.label && <b className="pin-num">{p.label}</b>}
             </span>
