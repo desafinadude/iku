@@ -2,11 +2,14 @@ import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, 
 import { useEffect, useMemo, useState } from 'react'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
+import { DaySheet } from './components/DaySheet'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
 import { HourView } from './components/HourView'
 import { InstallPrompt } from './components/InstallPrompt'
+import { ItemView } from './components/ItemView'
+import { Lightbox } from './components/Lightbox'
 import { MonthView } from './components/MonthView'
 import { usePrefs } from './usePrefs'
 import { LabelsManager } from './components/LabelsManager'
@@ -36,7 +39,7 @@ const collisions: CollisionDetection = (args) => {
 }
 
 type Tab = 'ideas' | 'days' | 'map' | 'docs'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | null
+type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -60,6 +63,7 @@ export default function App() {
 
 function Planner() {
   const {
+    dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, moveToSlot, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
@@ -77,8 +81,11 @@ function Planner() {
   const canEdit = online && !offlineSince
   const [viewing, setViewing] = useState<Attachment | null>(null)
   const [prefs, setPrefs] = usePrefs()
-  /** Types & tags manager; opens on top of other sheets so an entry being edited isn't lost. */
-  const [managing, setManaging] = useState<false | 'type' | 'tag'>(false)
+  /** The entry open beside the wide ideas board. */
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<string | null>(null)
+  /** Tags manager; opens on top of other sheets so an entry being edited isn't lost. */
+  const [managing, setManaging] = useState(false)
   const wide = useMediaQuery('(min-width: 900px)')
   // Home-screen shortcuts open a tab directly (./?tab=days).
   const [tab, setTab] = useState<Tab>(() => {
@@ -125,15 +132,12 @@ function Planner() {
 
   const visible = useMemo(() => items.filter((x) => matches(x, filters)), [items, filters])
   const ideas = visible.filter((x) => !x.day).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const boardEntries = prefs.ideasIncludePlanned ? [...visible].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : ideas
   const unplannedCount = items.filter((x) => !x.day).length
 
   if (!trip || !selectedDay) {
     return <div className="loading">{error ?? 'Loading trip…'}</div>
   }
-
-  // New entries get the trip's first type (the built-in 'Sight' until types are customised).
-  const typeRows = labels.filter((l) => l.kind === 'type').sort((a, b) => a.sort - b.sort)
-  const defaultType = typeRows.find((l) => l.name === 'Sight')?.name ?? typeRows[0]?.name ?? 'Sight'
 
   const blank = (patch: Partial<Item> = {}): Item => ({
     id: uid(),
@@ -142,7 +146,6 @@ function Planner() {
     url: null,
     imageUrl: null,
     note: null,
-    type: defaultType,
     tags: [],
     day: null,
     endDay: null,
@@ -166,7 +169,11 @@ function Planner() {
     if (isUrl(text)) setSheet({ kind: 'item', item: blank({ url: text, title: domainOf(text) ?? '' }), isNew: true })
     else save(blank({ title: text }))
   }
-  const open = (item: Item) => setSheet({ kind: 'item', item, isNew: false })
+  // Tapping an entry shows it read-only; Edit opens the editor. On the wide ideas board it opens beside the grid.
+  const ideasBoard = wide && prefs.mainView === 'ideas'
+  const activeEntry = ideasBoard && activeId ? (items.find((x) => x.id === activeId) ?? null) : null
+  const open = (item: Item) => (ideasBoard ? setActiveId(item.id) : setSheet({ kind: 'view', id: item.id }))
+  const edit = (item: Item) => setSheet({ kind: 'item', item, isNew: false, back: sheet?.kind === 'view' ? sheet.id : undefined })
   /** Pasted or dropped images become picture cards straight away. */
   const captureImages = async (files: File[]) => {
     for (const file of files) {
@@ -202,7 +209,7 @@ function Planner() {
     onOpenFile: setViewing,
     onDeleteFile: deleteAttachment,
     onToggleOffline: toggleOffline,
-    onOpenItem: (item: Item) => setSheet({ kind: 'item', item, isNew: false })
+    onOpenItem: (item: Item) => setSheet({ kind: 'view', id: item.id })
   }
 
   const viewSwitch = (
@@ -220,9 +227,10 @@ function Planner() {
       ))}
     </div>
   )
+  const editDay = (day: string) => setSheet({ kind: 'day', day })
   const addAt = (day: string, time: string) => setSheet({ kind: 'item', item: blank({ day, time }), isNew: true })
   const hourView = (
-    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} />
+    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} onEditDay={editDay} />
   )
   const monthView = (
     <MonthView
@@ -243,7 +251,7 @@ function Planner() {
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
-    <LabelsProvider labels={labels} items={items}>
+    <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
       <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
         <header className="top-bar">
           <div className="brand">
@@ -256,6 +264,20 @@ function Planner() {
             <b>{trip.name}</b>
             <span className="muted">{tripRange(trip)}</span>
           </div>
+          {wide && (
+            <div className="seg main-switch" role="group" aria-label="Main view">
+              {(
+                [
+                  ['plan', 'Plan'],
+                  ['ideas', 'Ideas']
+                ] as const
+              ).map(([v, label]) => (
+                <button key={v} type="button" className={prefs.mainView === v ? 'is-on' : ''} aria-pressed={prefs.mainView === v} onClick={() => setPrefs({ mainView: v })}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <span className="spacer" />
           {wide && (
             <button className="secondary-btn docs-btn" onClick={() => setSheet({ kind: 'docs' })}>
@@ -288,7 +310,7 @@ function Planner() {
           </div>
         )}
 
-        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} topTags={allTags.slice(0, 4)} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
+        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
 
         {error && (
           <div className="error-bar" role="alert">
@@ -301,7 +323,50 @@ function Planner() {
 
         <DndContext sensors={sensors} collisionDetection={collisions} onDragStart={(e) => setDragging(items.find((x) => x.id === e.active.id) ?? null)} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
           <main className="workspace">
-            {wide ? (
+            {ideasBoard ? (
+              <>
+                <IdeasPane
+                  full
+                  ideas={boardEntries}
+                  selectedId={activeEntry?.id ?? null}
+                  members={members}
+                  attachments={attachments}
+                  totalIdeas={unplannedCount}
+                  onCapture={capture}
+                  onCaptureImages={captureImages}
+                  onOpen={open}
+                  headExtra={
+                    <label className="check small-check">
+                      <input type="checkbox" checked={prefs.ideasIncludePlanned} onChange={(e) => setPrefs({ ideasIncludePlanned: e.target.checked })} /> Include planned
+                    </label>
+                  }
+                />
+                {activeEntry && (
+                  <section className="pane pane-detail" aria-label={displayTitle(activeEntry)}>
+                    <div className="detail-bar">
+                      <button className="primary-btn" onClick={() => edit(activeEntry)}>
+                        Edit
+                      </button>
+                      <span className="spacer" />
+                      <button className="icon-btn" aria-label="Close" onClick={() => setActiveId(null)}>
+                        <Icon name="close" />
+                      </button>
+                    </div>
+                    <div className="detail-scroll">
+                      <ItemView
+                        item={activeEntry}
+                        members={members}
+                        attachments={attachments.filter((a) => a.itemId === activeEntry.id)}
+                        offlineIds={offlineIds}
+                        onOpenFile={setViewing}
+                        onToggleOffline={toggleOffline}
+                        onViewImage={() => setLightbox(activeEntry.imageUrl)}
+                      />
+                    </div>
+                  </section>
+                )}
+              </>
+            ) : wide ? (
               <>
                 {ideasPane}
                 {prefs.daysView === 'hours' ? (
@@ -320,6 +385,7 @@ function Planner() {
                   onSelectDay={setSelectedDay}
                   onOpen={open}
                   onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })}
+                  onEditDay={editDay}
                 />
               )}
                 {mapPane}
@@ -351,6 +417,7 @@ function Planner() {
                   onSelectDay={setSelectedDay}
                   onOpen={open}
                   onShowIdeas={() => setTab('ideas')}
+                  onEditDay={editDay}
                 />
               )}
             </div>
@@ -402,7 +469,7 @@ function Planner() {
             allTags={allTags}
             members={members}
             onUnfurl={backend.unfurl}
-            onManageLabels={() => setManaging('type')}
+            onManageLabels={() => setManaging(true)}
           onUploadCover={(file) => backend.uploadCover(trip.id, file)}
           onDiscardCover={(ref) => isCoverRef(ref) && backend.deleteCover(ref).catch(() => {})}
             defaultDay={selectedDay}
@@ -415,9 +482,9 @@ function Planner() {
             onOpenFile={setViewing}
             onDeleteFile={deleteAttachment}
             onToggleOffline={toggleOffline}
-            onClose={() => setSheet(null)}
+            onClose={() => setSheet(sheet.back ? { kind: 'view', id: sheet.back } : null)}
             onSave={async (item, pendingFiles) => {
-              setSheet(null)
+              setSheet(sheet.back ? { kind: 'view', id: sheet.back } : null)
               // Files need the entry to exist first.
               if ((await save(item)) && pendingFiles.length) upload(item.id, pendingFiles)
             }}
@@ -434,7 +501,7 @@ function Planner() {
             members={members}
             onManage={() => {
               setSheet(null)
-              setManaging('type')
+              setManaging(true)
             }}
             prefs={prefs}
             onPrefs={setPrefs}
@@ -456,6 +523,34 @@ function Planner() {
             }}
           />
         )}
+        {sheet?.kind === 'view' &&
+          (() => {
+            const entry = items.find((x) => x.id === sheet.id)
+            if (!entry) return null
+            return (
+              <Sheet
+                title={entry.day ? 'Plan' : 'Idea'}
+                onClose={() => setSheet(null)}
+                footer={
+                  <button className="primary-btn wide" onClick={() => edit(entry)}>
+                    Edit
+                  </button>
+                }
+              >
+                <ItemView
+                  item={entry}
+                  members={members}
+                  attachments={attachments.filter((a) => a.itemId === entry.id)}
+                  offlineIds={offlineIds}
+                  onOpenFile={setViewing}
+                  onToggleOffline={toggleOffline}
+                  onViewImage={() => setLightbox(entry.imageUrl)}
+                />
+              </Sheet>
+            )
+          })()}
+        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onClose={() => setSheet(null)} />}
+        {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
           <Sheet title="Docs" onClose={() => setSheet(null)}>
             <DocsPane {...docsProps} />
@@ -465,7 +560,6 @@ function Planner() {
           <LabelsManager
             tripId={trip.id}
             items={items}
-            initialTab={managing}
             onSave={saveLabels}
             onDelete={deleteLabel}
             onRename={renameLabel}

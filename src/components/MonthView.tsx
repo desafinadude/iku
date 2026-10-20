@@ -63,19 +63,32 @@ export function MonthView({ days, items, prefs, selectedDay, viewSwitch, onOpenD
 }
 
 function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: { day: string; inTrip: boolean; selected: boolean; items: Item[]; prefs: Prefs; onOpenDay: (d: string) => void; onOpen: (i: Item) => void }) {
-  const { typeStyle } = useLabels()
+  const { itemStyle, dayStyle } = useLabels()
+  const ds = dayStyle(day)
   const { setNodeRef, isOver } = useDroppable({ id: 'day:' + day, disabled: !inTrip })
   const list = inTrip ? itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day) : []
   const l = dayLabel(day)
   const firstOfMonth = l.num === '1'
   return (
-    <div ref={setNodeRef} role="gridcell" className={`month-cell${inTrip ? '' : ' is-outside'}${selected ? ' is-selected' : ''}${isOver ? ' is-over' : ''}`}>
-      <button className="month-date" disabled={!inTrip} onClick={() => onOpenDay(day)} aria-label={`${l.dow} ${l.num} ${l.month}: open hour by hour`}>
-        {firstOfMonth ? `${l.num} ${l.month}` : l.num}
-      </button>
+    <div
+      ref={setNodeRef}
+      role="gridcell"
+      className={`month-cell${inTrip ? '' : ' is-outside'}${selected ? ' is-selected' : ''}${isOver ? ' is-over' : ''}`}
+      style={inTrip && ds.color ? { background: ds.bg!, boxShadow: `inset 0 4px 0 ${ds.color}` } : undefined}
+    >
+      <div className="month-cell-head">
+        <button className="month-date" disabled={!inTrip} onClick={() => onOpenDay(day)} aria-label={`${l.dow} ${l.num} ${l.month}: open hour by hour`}>
+          {firstOfMonth ? `${l.num} ${l.month}` : l.num}
+        </button>
+        {inTrip && (ds.title || ds.tag) && (
+          <span className="month-day-title" style={ds.color ? { color: ds.color } : undefined}>
+            {ds.title ?? ds.tag}
+          </span>
+        )}
+      </div>
       <div className="month-items">
         {list.slice(0, MAX_PER_DAY).map((x) => {
-          const s = typeStyle(x.type)
+          const s = itemStyle(x)
           const multi = !!(x.endDay && x.endDay !== x.day)
           return multi ? (
             <button

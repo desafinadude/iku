@@ -51,6 +51,12 @@ npx supabase functions deploy unfurl --project-ref <your-project-ref>
 
 Keep "Verify JWT" on (the default), so only signed-in trip members can use it. Run `supabase/migrations/003_link_previews.sql` to store the images.
 
+## Ideas board, view mode and Pinterest
+
+- **Ideas board:** on tablets and desktop, switch **Plan / Ideas** in the top bar for a full-width Pinterest-style board of your ideas (tick *Include planned* to see everything). Click a card and it opens on the right half while the board narrows to four columns.
+- **View mode:** tapping an entry anywhere shows it read-only: image, tags, when, booking, place with Google Maps and Directions, link, notes with clickable links, attachments and who added it. **Edit** opens the editor, and saving returns you to the view.
+- **Pinterest:** paste a pin link (`pin.it/…` or `pinterest.com/pin/…`) and the entry gets the pin's image, its caption as the title and note, and the pin's original link (Instagram, a blog…) as its link, with "Pinned from …" kept in the note. This runs through the `unfurl` Edge Function, because Pinterest doesn't allow browsers to fetch it directly. Redeploy the function after updating.
+
 ## Card images
 
 Every entry can have an image, even when a link doesn't provide one:
@@ -100,15 +106,17 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
 
-## Types & tags
+## Day titles, tags and colours
 
-Open **Manage types & tags** from the filter sheet, or **Edit types** in an entry.
+Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. Run `supabase/migrations/009_trip_days.sql` to save day settings.
 
-- **Types:** every entry has one. Rename them, change their colour (12 colours chosen to keep white icons readable) or icon (any [Material Symbol](https://fonts.google.com/icons), with travel icons suggested first), add your own (e.g. *Onsen*), or delete one and move its entries to another type. Until you edit them, a trip uses the built-in six.
-- **Tags:** give a tag a colour and/or icon. Coloured tags show as solid chips on cards, filters and the map legend. Rename a tag to an existing one to merge them, or delete a tag from every entry.
-- **On the map:** pins show the type's icon in its colour, with the day number as a badge. The full-screen map has a **By type / By tag** switch with a legend.
+## Tags
 
-Renames and merges update every entry in one step, using database functions. Run `supabase/migrations/006_labels.sql`.
+Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry, to give a tag a colour and an icon (any [Material Symbol](https://fonts.google.com/icons)). You can also rename tags, merge one into another by renaming it to an existing name, delete them, or create new ones.
+
+- **An entry's look:** its first coloured tag sets the colour and icon of its card label, blocks in the hours and month views, and its map pin. Its other tags show as chips.
+- **Stays:** multi-day entries tagged Stay, Hotel, Ryokan, Airbnb or similar get Check-in / Night / Check-out wording.
+- **Upgrading from types:** `supabase/migrations/008_tags_only.sql` turns each entry's old type into its first tag, strips `#` from all tags, and keeps the type colours and icons as tag styles. Until it runs, the app does the same conversion as data loads.
 
 ## Trip members
 

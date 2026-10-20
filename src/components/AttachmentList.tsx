@@ -17,6 +17,8 @@ interface Props {
   offlineIds: Set<string>
   uploading?: boolean
   canAdd: boolean
+  /** View mode: open and keep offline only; no adding or deleting. */
+  readOnly?: boolean
   addLabel?: string
   emptyText?: string
   onAdd: (files: File[]) => void
@@ -72,6 +74,7 @@ export function AttachmentList(props: Props) {
               >
                 <Icon name={saved ? 'offline' : 'download'} size={18} />
               </button>
+              {!props.readOnly && (
               <button
                 type="button"
                 className="icon-btn file-action"
@@ -82,6 +85,7 @@ export function AttachmentList(props: Props) {
               >
                 <Icon name="trash" size={18} />
               </button>
+              )}
             </li>
           )
         })}
@@ -103,7 +107,7 @@ export function AttachmentList(props: Props) {
         ))}
         {props.uploading && <li className="file-row is-pending muted small">Uploading…</li>}
       </ul>
-      {props.canAdd && (
+      {props.canAdd && !props.readOnly && (
         <div className="file-add">
           <button type="button" className="secondary-btn" onClick={() => fileRef.current?.click()}>
             <Icon name="paperclip" size={16} /> {props.addLabel ?? 'Attach file'}
@@ -115,7 +119,7 @@ export function AttachmentList(props: Props) {
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
         </div>
       )}
-      {!props.canAdd && <p className="muted small" style={{ margin: 0 }}>You’re offline. Files marked for offline use still open.</p>}
+      {!props.canAdd && !props.readOnly && <p className="muted small" style={{ margin: 0 }}>You’re offline. Files marked for offline use still open.</p>}
     </div>
   )
 }

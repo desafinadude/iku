@@ -27,17 +27,13 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
   const [expanded, setExpanded] = useState(false)
   const [allDays, setAllDays] = useState(false)
   const googleOk = useGoogleOk()
-  const { typeStyle, tagStyle, types, tags } = useLabels()
-  // Pins take their colour and icon from the type, or from the entry's first styled tag.
-  const [colorBy, setColorBy] = useState<'type' | 'tag'>('type')
+  const { itemStyle, tags, dayStyle } = useLabels()
+  // Pins take their colour and icon from the entry's first coloured tag.
   const pinStyle = (x: Item) => {
-    if (colorBy === 'tag') {
-      const st = x.tags.map(tagStyle).find((t) => t.color || t.icon)
-      return { color: st?.color ?? '#8a918c', icon: st?.icon ?? 'pin' }
-    }
-    const s = typeStyle(x.type)
+    const s = itemStyle(x)
     return { color: s.color, icon: s.icon }
   }
+
 
   useEffect(() => {
     if (!expanded) return
@@ -110,7 +106,9 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
                   onSelectDay(d)
                 }}
               >
+                {dayStyle(d).color && <span className="dot" style={{ background: dayStyle(d).color! }} />}
                 <span className="small">Day {i + 1}</span> {dl.dow} {dl.num}
+                {dayStyle(d).title && <span className="small"> · {dayStyle(d).title}</span>}
               </button>
             )
           })}
@@ -133,28 +131,19 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen }: Props
         </div>
         {expanded && (
           <div className="map-legend">
-            <div className="seg seg-small" role="group" aria-label="Colour pins by">
-              <button type="button" className={colorBy === 'type' ? 'is-on' : ''} aria-pressed={colorBy === 'type'} onClick={() => setColorBy('type')}>
-                By type
-              </button>
-              <button type="button" className={colorBy === 'tag' ? 'is-on' : ''} aria-pressed={colorBy === 'tag'} onClick={() => setColorBy('tag')}>
-                By tag
-              </button>
-            </div>
             <ul>
-              {(colorBy === 'type'
-                ? types.filter((t) => pins.some((p) => items.find((x) => x.id === p.id)?.type === t.name))
-                : tags.filter((t) => (t.color || t.icon) && pins.some((p) => items.find((x) => x.id === p.id)?.tags.includes(t.name)))
-              ).map((s) => (
-                <li key={s.name}>
-                  <span className="legend-pin" style={{ background: s.color ?? '#8a918c' }}>
-                    <LabelIconView name={s.icon} size={12} />
-                  </span>
-                  {s.name}
-                </li>
-              ))}
+              {tags
+                .filter((t) => t.color && pins.some((p) => itemStyle(items.find((x) => x.id === p.id)!).name === t.name))
+                .map((s) => (
+                  <li key={s.name}>
+                    <span className="legend-pin" style={{ background: s.color! }}>
+                      <LabelIconView name={s.icon} size={12} />
+                    </span>
+                    {s.name}
+                  </li>
+                ))}
             </ul>
-            {colorBy === 'tag' && !tags.some((t) => t.color || t.icon) && <p className="muted small">Give tags a colour in Manage types &amp; tags.</p>}
+            {!tags.some((t) => t.color) && <p className="muted small">Give tags a colour in Manage tags to colour the pins.</p>}
             {scopeAll && <p className="muted small">Numbers show the day.</p>}
           </div>
         )}

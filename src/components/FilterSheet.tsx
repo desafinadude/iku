@@ -27,7 +27,7 @@ const STATUSES: { id: Status; label: string }[] = [
 ]
 
 export function FilterSheet({ filters, items, allTags, members, onManage, prefs, onPrefs, onChange, onClose }: Props) {
-  const { types, tagStyle } = useLabels()
+  const { tagStyle } = useLabels()
   const shown = items.filter((x) => matches(x, filters)).length
   return (
     <Sheet
@@ -74,22 +74,6 @@ export function FilterSheet({ filters, items, allTags, members, onManage, prefs,
         </fieldset>
       )}
       <fieldset className="group">
-        <legend>Type</legend>
-        <div className="chip-wrap">
-          {types.map((s) => s.name).map((t) => {
-            const on = filters.types.includes(t)
-            return (
-              <button key={t} className={`chip${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, types: toggle(filters.types, t) })}>
-                <span className="chip-icon" style={{ color: on ? undefined : types.find((s) => s.name === t)!.color }}>
-                  <LabelIconView name={types.find((s) => s.name === t)!.icon} size={15} />
-                </span>
-                {t} <span className="chip-count">{items.filter((x) => x.type === t).length}</span>
-              </button>
-            )
-          })}
-        </div>
-      </fieldset>
-      <fieldset className="group">
         <legend>Tags</legend>
         <div className="chip-wrap">
           {allTags.map((tag) => {
@@ -130,7 +114,7 @@ export function FilterSheet({ filters, items, allTags, members, onManage, prefs,
         </label>
       </fieldset>
       <button type="button" className="secondary-btn manage-btn" onClick={onManage}>
-        Manage types &amp; tags: colours, icons, names
+        Manage tags: colours, icons, names
       </button>
       <label className="switch-row">
         <span>

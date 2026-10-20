@@ -8,6 +8,8 @@ export interface Preview {
   siteName: string | null
   lat: number | null
   lng: number | null
+  /** Where a saved post points (e.g. the page a Pinterest pin links to), if different from url. */
+  sourceUrl?: string | null
 }
 
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
@@ -72,7 +74,8 @@ export function parsePreview(html: string, pageUrl: string): Preview {
     ),
     siteName: clean(first('og:site_name', 'application-name')),
     lat,
-    lng
+    lng,
+    sourceUrl: abs(first('pinterestapp:source', 'og:see_also'))
   }
 }
 
@@ -80,4 +83,17 @@ function clean(s: string | null) {
   if (!s) return null
   const t = s.replace(/\s+/g, ' ').trim()
   return t ? t.slice(0, 500) : null
+}
+
+/** "https://www.pinterest.com/pin/123/sent/?invite_code=…" → "https://www.pinterest.com/pin/123/" */
+export function pinterestPinUrl(url: string): string | null {
+  const m = url.match(/^https?:\/\/(?:[a-z]{2,3}\.)?(?:www\.)?pinterest\.[a-z.]+\/pin\/(\d+)/i)
+  return m ? `https://www.pinterest.com/pin/${m[1]}/` : null
+}
+
+/** A pin's caption: first line as the title (hashtags removed), the rest as a description. */
+export function splitCaption(caption: string | null | undefined) {
+  if (!caption) return { title: null, description: null }
+  const lines = caption.split(/\n+/).map((l) => l.replace(/(^|\s)#[\p{L}\p{N}_]+/gu, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean)
+  return { title: lines[0]?.slice(0, 200) ?? null, description: lines.slice(1).join('\n').slice(0, 800) || null }
 }

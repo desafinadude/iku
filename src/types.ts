@@ -1,8 +1,5 @@
-/** A type name, e.g. 'Food'. Trips can add their own types in the manager. */
-export type ItemType = string
-
-/** Built-in types, used until a trip customises its own. */
-export const DEFAULT_TYPES: { name: string; color: string; icon: string }[] = [
+/** Colours and icons for common tags; used for new trips and for trips made before types became tags. */
+export const DEFAULT_TAG_STYLES: { name: string; color: string; icon: string }[] = [
   { name: 'Food', color: '#B4461F', icon: 'restaurant' },
   { name: 'Sight', color: '#0E6B60', icon: 'photo_camera' },
   { name: 'Stay', color: '#3A5BA0', icon: 'hotel' },
@@ -11,10 +8,10 @@ export const DEFAULT_TYPES: { name: string; color: string; icon: string }[] = [
   { name: 'Shop', color: '#8A5A0B', icon: 'shopping_bag' }
 ]
 
-/** Colours offered for types and tags. Each keeps white icons and text readable. */
+/** Colours offered for tags. Each keeps white icons and text readable. */
 export const LABEL_COLORS = ['#B4461F', '#C2410C', '#8A5A0B', '#3F6B22', '#0E6B60', '#0F6E8C', '#3A5BA0', '#5F4FA0', '#A23B72', '#B42318', '#4A5550', '#17201D']
 
-/** Style for a type or a tag, stored per trip. */
+/** Style for a tag, stored per trip. ('type' rows are from before types became tags.) */
 export interface Label {
   id: string
   tripId: string
@@ -40,7 +37,6 @@ export interface Item {
   /** Preview image from the link (og:image), or null. */
   imageUrl: string | null
   note: string | null
-  type: ItemType
   tags: string[]
   /** YYYY-MM-DD; null means it is still an unplanned idea. */
   day: string | null
@@ -84,7 +80,6 @@ export function statusOf(item: Item): Status {
 
 export interface Filters {
   search: string
-  types: ItemType[]
   tags: string[]
   statuses: Status[]
   /** Emails of the members who added the items. */
@@ -92,7 +87,7 @@ export interface Filters {
   matchAllTags: boolean
 }
 
-export const EMPTY_FILTERS: Filters = { search: '', types: [], tags: [], statuses: [], people: [], matchAllTags: false }
+export const EMPTY_FILTERS: Filters = { search: '', tags: [], statuses: [], people: [], matchAllTags: false }
 
 export interface Attachment {
   id: string
@@ -105,4 +100,13 @@ export interface Attachment {
   size: number | null
   createdBy: string | null
   createdAt: string
+}
+
+/** A day's title, tag and colour (e.g. the city you're in). */
+export interface DayInfo {
+  day: string
+  title: string | null
+  /** One tag for the whole day; its colour is used unless color is set. */
+  tag: string | null
+  color: string | null
 }

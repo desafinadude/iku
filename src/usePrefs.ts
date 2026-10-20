@@ -8,10 +8,14 @@ export interface Prefs {
   tagsOnRepeats: boolean
   /** How the days are shown: columns (list on phones), hour by hour, or a month calendar. */
   daysView: 'board' | 'hours' | 'month'
+  /** Wide screens: the planner (ideas, days, map) or a full-width ideas board. */
+  mainView: 'plan' | 'ideas'
+  /** Ideas board: include entries already on the plan. */
+  ideasIncludePlanned: boolean
 }
 
 const KEY = 'iku:prefs'
-const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board' }
+const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, daysView: 'board', mainView: 'plan', ideasIncludePlanned: false }
 
 export function usePrefs() {
   const [prefs, setPrefs] = useState<Prefs>(() => {
