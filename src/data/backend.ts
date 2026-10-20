@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Attachment, Item, Label, Member, Trip } from '../types'
 import { clearSnapshot, removeFile, savedFileIds } from './offline'
+import { cleanTags } from '../lib'
+import { normalizeItem } from './normalize'
 import { LOCAL_ME, SEED_ITEMS, SEED_MEMBERS, SEED_TRIP } from './seed'
 
 export interface TripData {
@@ -85,7 +87,7 @@ function localBackend(): Backend {
       const raw = localStorage.getItem(LOCAL_KEY)
       if (raw) {
         const data = JSON.parse(raw)
-        return { members: SEED_MEMBERS, attachments: [], labels: [], ...data }
+        return { members: SEED_MEMBERS, attachments: [], labels: [], ...data, items: (data.items ?? []).map(normalizeItem) }
       }
     } catch {
       /* fall through to seed */
@@ -149,13 +151,13 @@ function localBackend(): Backend {
       const data = read()
       write({ ...data, labels: data.labels.filter((l) => l.id !== id) })
     },
-    renameLabel: async (_tripId, kind, from, to) => {
+    renameLabel: async (_tripId, _kind, from, to) => {
       const data = read()
       const items = data.items.map((x) =>
-        kind === 'type' ? (x.type === from ? { ...x, type: to } : x) : x.tags.includes(from) ? { ...x, tags: [...new Set(x.tags.map((t) => (t === from ? to : t)))] } : x
+        x.tags.includes(from) ? { ...x, tags: cleanTags(x.tags.map((t) => (t === from ? to : t))) } : x
       )
-      const exists = data.labels.some((l) => l.kind === kind && l.name === to)
-      const labels = exists ? data.labels.filter((l) => !(l.kind === kind && l.name === from)) : data.labels.map((l) => (l.kind === kind && l.name === from ? { ...l, name: to } : l))
+      const exists = data.labels.some((l) => l.name === to)
+      const labels = exists ? data.labels.filter((l) => l.name !== from) : data.labels.map((l) => (l.name === from ? { ...l, name: to } : l))
       write({ ...data, items, labels })
     },
     uploadCover: async (tripId, file) => {
@@ -188,7 +190,7 @@ interface ItemRow {
   url: string | null
   image_url?: string | null
   note: string | null
-  type: Item['type']
+  type?: string | null
   tags: string[]
   day: string | null
   end_day?: string | null
@@ -253,14 +255,14 @@ interface MemberRow {
   color?: string | null
 }
 
-const fromRow = (r: ItemRow): Item => ({
+const fromRow = (r: ItemRow): Item => normalizeItem({
+  type: r.type,
   id: r.id,
   tripId: r.trip_id,
   title: r.title,
   url: r.url,
   imageUrl: r.image_url || null,
   note: r.note,
-  type: r.type,
   tags: r.tags ?? [],
   day: r.day,
   endDay: r.end_day ?? null,
@@ -288,7 +290,8 @@ const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean): ItemRow => ({
   // Clearing an image sends '' (read back as no image).
   ...(i.imageUrl !== null ? { image_url: i.imageUrl } : {}),
   note: i.note,
-  type: i.type,
+  // Types are now tags; the column stays empty so a removed tag never comes back from it.
+  type: '',
   tags: i.tags,
   day: i.day,
   // end_day only exists after migration 004; leave it out before that so saving keeps working.

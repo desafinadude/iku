@@ -1,4 +1,5 @@
-import type { Item, ItemType, Member, Trip } from '../types'
+import { cleanTags } from '../lib'
+import type { Item, Member, Trip } from '../types'
 
 export const LOCAL_ME = 'you@local'
 
@@ -10,13 +11,13 @@ export const SEED_MEMBERS: Member[] = [
 export const SEED_TRIP: Trip = { id: 'local-trip', name: 'Japan, spring', startDate: '2027-04-12', endDate: '2027-04-20' }
 
 let n = 0
-function item(type: ItemType, title: string, o: Partial<Item> = {}): Item {
+/** A sample entry; its first tag (e.g. 'Food') gives it its colour and icon. */
+function item(kind: string, title: string, o: Partial<Item> = {}): Item {
   n += 1
-  return {
+  const entry: Item = {
     id: `seed-${n}`,
     tripId: SEED_TRIP.id,
     title,
-    type,
     url: null,
     imageUrl: null,
     note: null,
@@ -38,20 +39,21 @@ function item(type: ItemType, title: string, o: Partial<Item> = {}): Item {
     updatedAt: null,
     ...o
   }
+  return { ...entry, tags: cleanTags([kind, ...(o.tags ?? [])]) }
 }
 
 export const SEED_ITEMS: Item[] = [
-  item('Sight', 'Fushimi Inari at dawn', { url: 'https://www.youtube.com/', tags: ['#must-do', '#early'], place: 'Fushimi, Kyoto', lat: 34.9671, lng: 135.7727 }),
-  item('Food', 'Kaiseki dinner in Gion', { url: 'https://tabelog.com/', note: 'Book 30 days ahead', tags: ['#splurge'], place: 'Gion, Kyoto', lat: 35.0037, lng: 135.7788 }),
-  item('Food', 'Ask Kenji for his ramen spot in Shinjuku', { tags: ['#friends'] }),
-  item('Sight', 'teamLab Borderless', { url: 'https://www.teamlab.art/', tags: ['#rainy-day', '#must-do'], place: 'Azabudai Hills, Tokyo', lat: 35.6604, lng: 139.7404 }),
-  item('Nature', 'Nakasendo walk, Magome to Tsumago', { url: 'https://www.japan-guide.com/', tags: ['#day-trip'], lat: 35.5276, lng: 137.5663 }),
+  item('Sight', 'Fushimi Inari at dawn', { url: 'https://www.youtube.com/', tags: ['Must do', 'Early'], place: 'Fushimi, Kyoto', lat: 34.9671, lng: 135.7727 }),
+  item('Food', 'Kaiseki dinner in Gion', { url: 'https://tabelog.com/', note: 'Book 30 days ahead', tags: ['Splurge'], place: 'Gion, Kyoto', lat: 35.0037, lng: 135.7788 }),
+  item('Food', 'Ask Kenji for his ramen spot in Shinjuku', { tags: ['Friends'] }),
+  item('Sight', 'teamLab Borderless', { url: 'https://www.teamlab.art/', tags: ['Rainy day', 'Must do'], place: 'Azabudai Hills, Tokyo', lat: 35.6604, lng: 139.7404 }),
+  item('Nature', 'Nakasendo walk, Magome to Tsumago', { url: 'https://www.japan-guide.com/', tags: ['Day trip'], lat: 35.5276, lng: 137.5663 }),
   item('Transport', 'Land at Haneda', { day: '2027-04-12', time: '15:40', booked: true, bookingRef: '[REF]', lat: 35.5494, lng: 139.7798, place: 'Haneda Airport' }),
   item('Stay', 'Shinjuku hotel', { day: '2027-04-12', endDay: '2027-04-14', time: '15:00', booked: true, bookingRef: '[REF]', lat: 35.6938, lng: 139.7034 }),
-  item('Food', 'Omoide Yokocho', { day: '2027-04-12', time: '19:30', tags: ['#first-night'], lat: 35.6933, lng: 139.6995 }),
+  item('Food', 'Omoide Yokocho', { day: '2027-04-12', time: '19:30', tags: ['First night'], lat: 35.6933, lng: 139.6995 }),
   item('Food', 'Tsukiji outer market', { day: '2027-04-13', time: '08:00', lat: 35.6655, lng: 139.7707 }),
-  item('Sight', 'Senso-ji & Nakamise', { day: '2027-04-13', time: '10:30', tags: ['#must-do', '#temples'], place: 'Asakusa', lat: 35.7148, lng: 139.7967 }),
-  item('Sight', 'Yanaka old-town walk', { day: '2027-04-13', time: '14:00', tags: ['#slow'], lat: 35.7266, lng: 139.7676 }),
+  item('Sight', 'Senso-ji & Nakamise', { day: '2027-04-13', time: '10:30', tags: ['Must do', 'Temples'], place: 'Asakusa', lat: 35.7148, lng: 139.7967 }),
+  item('Sight', 'Yanaka old-town walk', { day: '2027-04-13', time: '14:00', tags: ['Slow'], lat: 35.7266, lng: 139.7676 }),
   item('Sight', 'Shibuya Sky at sunset', { day: '2027-04-13', time: '19:00', booked: true, bookingRef: '[REF]', note: '2 tickets', lat: 35.6585, lng: 139.7023 }),
   item('Transport', 'Shinkansen to Kyoto', { day: '2027-04-14', time: '09:12', booked: true, bookingRef: '[REF]', lat: 35.6812, lng: 139.7671, place: 'Tokyo Station' }),
   item('Stay', 'Higashiyama ryokan', { day: '2027-04-14', endDay: '2027-04-17', time: '15:00', booked: true, bookingRef: '[REF]', lat: 34.9986, lng: 135.7813 }),

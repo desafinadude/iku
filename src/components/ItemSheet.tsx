@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { isCoverRef, type LinkPreview } from '../data/backend'
-import { addDays, dayLabel, daysBetween, displayTitle, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { addDays, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
@@ -88,7 +88,7 @@ export function ItemSheet(props: Props) {
   const [draft, setDraft] = useState(item)
   const [pending, setPending] = useState<PendingFile[]>([])
   const googleOk = useGoogleOk()
-  const { types, tagStyle } = useLabels()
+  const { tags: knownTags, tagStyle } = useLabels()
   const [tagText, setTagText] = useState('')
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
 
@@ -119,13 +119,19 @@ export function ItemSheet(props: Props) {
   }, [])
 
   const addTag = (raw: string) => {
-    const t = normalizeTag(raw)
-    if (t && !draft.tags.includes(t)) set({ tags: [...draft.tags, t] })
+    const typed = normalizeTag(raw)
+    // Reuse an existing tag's spelling ("food" → "Food").
+    const t = knownTags.find((k) => k.name.toLowerCase() === typed.toLowerCase())?.name ?? typed
+    if (t && !draft.tags.some((x) => x.toLowerCase() === t.toLowerCase())) set({ tags: [...draft.tags, t] })
     setTagText('')
   }
 
 
-  const suggestions = allTags.filter((t) => !draft.tags.includes(t) && t.includes(normalizeTag(tagText).slice(1))).slice(0, 5)
+  // Tag picks: coloured tags first, then others in use; filtered as you type.
+  const q = normalizeTag(tagText).toLowerCase()
+  const suggestions = [...new Set([...knownTags.map((t) => t.name), ...allTags])]
+    .filter((t) => !draft.tags.includes(t) && (!q || t.toLowerCase().includes(q)))
+    .slice(0, q ? 8 : 14)
   const domain = domainOf(draft.url)
   const creator = memberFor(members, item.createdBy)
   const editor = item.updatedBy && item.updatedBy !== item.createdBy ? memberFor(members, item.updatedBy) : null
@@ -257,68 +263,48 @@ export function ItemSheet(props: Props) {
         />
       </div>
 
-      <fieldset className="group">
-        <legend>Type</legend>
-        <div className="chip-wrap">
-          {types.map((s) => {
-            const on = draft.type === s.name
-            return (
-              <button
-                key={s.name}
-                type="button"
-                className="chip type-chip"
-                style={on ? { background: s.bg, borderColor: s.color, color: s.color, fontWeight: 600 } : undefined}
-                aria-pressed={on}
-                onClick={() => set({ type: s.name })}
-              >
-                <span className="chip-icon" style={{ color: s.color }}>
-                  <LabelIconView name={s.icon} size={15} />
-                </span>
-                {s.name}
-              </button>
-            )
-          })}
-          <button type="button" className="chip chip-more" onClick={props.onManageLabels}>
-            Edit types
-          </button>
-        </div>
-      </fieldset>
-
       <div className="field">
         <label htmlFor="f-tags">Tags</label>
         <div className="tag-input">
           {draft.tags.map((t) => {
             const st = tagStyle(t)
             return (
-              <button key={t} type="button" className="tag-chip" style={st.color ? { background: st.color } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
-                {st.icon && <LabelIconView name={st.icon} size={13} />}
+              <button key={t} type="button" className={`tag-chip${st.color ? '' : ' is-plain'}`} style={st.color ? { background: st.color } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
+                {st.icon && <LabelIconView name={st.icon} size={14} />}
                 {t} ×
               </button>
             )
           })}
           <input
             id="f-tags"
-            placeholder="Add tag"
+            placeholder={draft.tags.length ? 'Add tag' : 'e.g. Food, Must do, Rainy day'}
             value={tagText}
             onChange={(e) => setTagText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault()
                 addTag(tagText)
+              } else if (e.key === 'Backspace' && !tagText && draft.tags.length) {
+                set({ tags: draft.tags.slice(0, -1) })
               }
             }}
             onBlur={() => tagText && addTag(tagText)}
           />
         </div>
-        {suggestions.length > 0 && (
-          <div className="chip-wrap">
-            {suggestions.map((t) => (
-              <button key={t} type="button" className="suggest" onClick={() => addTag(t)}>
-                + {t}
+        <div className="chip-wrap tag-picks">
+          {suggestions.map((t) => {
+            const st = tagStyle(t)
+            return (
+              <button key={t} type="button" className="suggest" style={st.color ? { borderColor: st.color, color: st.color } : undefined} onClick={() => addTag(t)}>
+                {st.icon ? <LabelIconView name={st.icon} size={14} /> : '+'} {t}
               </button>
-            ))}
-          </div>
-        )}
+            )
+          })}
+          <button type="button" className="suggest suggest-manage" onClick={props.onManageLabels}>
+            Edit tags
+          </button>
+        </div>
+        <span className="muted small">The first coloured tag sets the card’s colour and map pin.</span>
       </div>
 
       <fieldset className="group">
@@ -334,7 +320,7 @@ export function ItemSheet(props: Props) {
         {draft.day && (
           <div className="date-row">
             <div className="field">
-              <label htmlFor="f-from">{draft.endDay ? (draft.type === 'Stay' ? 'Check-in' : 'From') : 'Date'}</label>
+              <label htmlFor="f-from">{draft.endDay ? (isStay(draft) ? 'Check-in' : 'From') : 'Date'}</label>
               <input
                 id="f-from"
                 type="date"
@@ -350,7 +336,7 @@ export function ItemSheet(props: Props) {
               />
             </div>
             <div className="field">
-              <label htmlFor="f-to">{draft.type === 'Stay' ? 'Check-out' : 'To'}</label>
+              <label htmlFor="f-to">{isStay(draft) ? 'Check-out' : 'To'}</label>
               <div className="input-with-btn">
                 <input
                   id="f-to"
@@ -373,7 +359,7 @@ export function ItemSheet(props: Props) {
           <span className="muted small">
             {dayLabel(draft.day).dow} {dayLabel(draft.day).num} {dayLabel(draft.day).month}
             {draft.endDay
-              ? draft.type === 'Stay'
+              ? isStay(draft)
                 ? ` → ${dayLabel(draft.endDay).dow} ${dayLabel(draft.endDay).num} · ${daysBetween(draft.day, draft.endDay)} nights`
                 : ` → ${dayLabel(draft.endDay).dow} ${dayLabel(draft.endDay).num} · ${daysBetween(draft.day, draft.endDay) + 1} days`
               : ' · leave “To” empty for a single day'}
@@ -384,7 +370,7 @@ export function ItemSheet(props: Props) {
       {draft.day && (
         <div className="field-row">
           <div className="field">
-            <label htmlFor="f-time">{draft.type === 'Stay' && draft.endDay ? 'Check-in' : 'From'}</label>
+            <label htmlFor="f-time">{isStay(draft) && draft.endDay ? 'Check-in' : 'From'}</label>
             <input
               id="f-time"
               type="time"
@@ -397,7 +383,7 @@ export function ItemSheet(props: Props) {
               }}
             />
           </div>
-          {!(draft.type === 'Stay' && draft.endDay) && (
+          {!(isStay(draft) && draft.endDay) && (
             <div className="field">
               <label htmlFor="f-end-time">Until</label>
               <input

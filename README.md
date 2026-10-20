@@ -100,15 +100,13 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
 
-## Types & tags
+## Tags
 
-Open **Manage types & tags** from the filter sheet, or **Edit types** in an entry.
+Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry, to give a tag a colour and an icon (any [Material Symbol](https://fonts.google.com/icons)). You can also rename tags, merge one into another by renaming it to an existing name, delete them, or create new ones.
 
-- **Types:** every entry has one. Rename them, change their colour (12 colours chosen to keep white icons readable) or icon (any [Material Symbol](https://fonts.google.com/icons), with travel icons suggested first), add your own (e.g. *Onsen*), or delete one and move its entries to another type. Until you edit them, a trip uses the built-in six.
-- **Tags:** give a tag a colour and/or icon. Coloured tags show as solid chips on cards, filters and the map legend. Rename a tag to an existing one to merge them, or delete a tag from every entry.
-- **On the map:** pins show the type's icon in its colour, with the day number as a badge. The full-screen map has a **By type / By tag** switch with a legend.
-
-Renames and merges update every entry in one step, using database functions. Run `supabase/migrations/006_labels.sql`.
+- **An entry's look:** its first coloured tag sets the colour and icon of its card label, blocks in the hours and month views, and its map pin. Its other tags show as chips.
+- **Stays:** multi-day entries tagged Stay, Hotel, Ryokan, Airbnb or similar get Check-in / Night / Check-out wording.
+- **Upgrading from types:** `supabase/migrations/008_tags_only.sql` turns each entry's old type into its first tag, strips `#` from all tags, and keeps the type colours and icons as tag styles. Until it runs, the app does the same conversion as data loads.
 
 ## Trip members
 

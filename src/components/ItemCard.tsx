@@ -28,8 +28,10 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const span = day ? spanLabel(item, day) : null
   const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
-  const { typeStyle } = useLabels()
-  const c = typeStyle(item.type)
+  const { itemStyle } = useLabels()
+  // The first coloured tag is the card's label; the other tags show as chips.
+  const c = itemStyle(item)
+  const otherTags = item.tags.filter((t) => t !== c.name)
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
   const image = item.imageUrl && !imgBroken ? item.imageUrl : null
@@ -44,7 +46,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
       {...attributes}
       role="button"
       tabIndex={0}
-      aria-label={`${displayTitle(item)}, ${item.type}${item.day ? '' : ', unplanned'}`}
+      aria-label={`${displayTitle(item)}${item.tags.length ? ', ' + item.tags.join(', ') : ''}${item.day ? '' : ', unplanned'}`}
       onClick={() => onOpen(item)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') onOpen(item)
@@ -61,7 +63,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           {domain && <span className="card-domain card-domain-over">{domain}</span>}
           {photoOnly && (
             <span className="photo-overlay">
-              <TagChips tags={item.tags} small />
+              <TagChips tags={otherTags} small />
               {fileCount > 0 && (
                 <span className="file-badge on-photo">
                   <Icon name="paperclip" size={12} />
@@ -85,10 +87,12 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           <div className="card-meta">
             {variant === 'plan' && item.time && !continuing && <span className="card-time">{item.time}</span>}
             {span && <span className="span-label">{span}</span>}
-            <span className="type-label" style={{ color: c.color, background: variant === 'plan' ? c.bg : undefined }}>
-              <LabelIconView name={c.icon} size={12} />
-              {item.type}
-            </span>
+            {c.name && (
+              <span className="type-label" style={{ color: c.color, background: variant === 'plan' ? c.bg : undefined }}>
+                <LabelIconView name={c.icon} size={12} />
+                {c.name}
+              </span>
+            )}
             {fileCount > 0 && (
               <span className="file-badge" aria-label={`${fileCount} attachments`}>
                 <Icon name="paperclip" size={13} />
@@ -104,9 +108,9 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
           </div>
           {!photoOnly && <div className="card-title">{item.title}</div>}
           {item.note && !continuing && <div className="card-note">{item.note}</div>}
-          {(!continuing || (tagsOnRepeats && item.tags.length > 0)) && (item.tags.length > 0 || creator) && (
+          {(!continuing || (tagsOnRepeats && otherTags.length > 0)) && (otherTags.length > 0 || creator) && (
             <div className="tag-row">
-              <TagChips tags={item.tags} small={continuing} />
+              <TagChips tags={otherTags} small={continuing} />
               {creator && !continuing && (
                 <span className="card-creator">
                   <Avatar member={creator} size={20} />

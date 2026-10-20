@@ -77,8 +77,8 @@ function Planner() {
   const canEdit = online && !offlineSince
   const [viewing, setViewing] = useState<Attachment | null>(null)
   const [prefs, setPrefs] = usePrefs()
-  /** Types & tags manager; opens on top of other sheets so an entry being edited isn't lost. */
-  const [managing, setManaging] = useState<false | 'type' | 'tag'>(false)
+  /** Tags manager; opens on top of other sheets so an entry being edited isn't lost. */
+  const [managing, setManaging] = useState(false)
   const wide = useMediaQuery('(min-width: 900px)')
   // Home-screen shortcuts open a tab directly (./?tab=days).
   const [tab, setTab] = useState<Tab>(() => {
@@ -131,10 +131,6 @@ function Planner() {
     return <div className="loading">{error ?? 'Loading trip…'}</div>
   }
 
-  // New entries get the trip's first type (the built-in 'Sight' until types are customised).
-  const typeRows = labels.filter((l) => l.kind === 'type').sort((a, b) => a.sort - b.sort)
-  const defaultType = typeRows.find((l) => l.name === 'Sight')?.name ?? typeRows[0]?.name ?? 'Sight'
-
   const blank = (patch: Partial<Item> = {}): Item => ({
     id: uid(),
     tripId: trip.id,
@@ -142,7 +138,6 @@ function Planner() {
     url: null,
     imageUrl: null,
     note: null,
-    type: defaultType,
     tags: [],
     day: null,
     endDay: null,
@@ -243,7 +238,7 @@ function Planner() {
   const mapPane = <MapPane items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
-    <LabelsProvider labels={labels} items={items}>
+    <LabelsProvider tripId={trip.id} labels={labels} items={items}>
       <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
         <header className="top-bar">
           <div className="brand">
@@ -288,7 +283,7 @@ function Planner() {
           </div>
         )}
 
-        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} topTags={allTags.slice(0, 4)} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
+        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
 
         {error && (
           <div className="error-bar" role="alert">
@@ -402,7 +397,7 @@ function Planner() {
             allTags={allTags}
             members={members}
             onUnfurl={backend.unfurl}
-            onManageLabels={() => setManaging('type')}
+            onManageLabels={() => setManaging(true)}
           onUploadCover={(file) => backend.uploadCover(trip.id, file)}
           onDiscardCover={(ref) => isCoverRef(ref) && backend.deleteCover(ref).catch(() => {})}
             defaultDay={selectedDay}
@@ -434,7 +429,7 @@ function Planner() {
             members={members}
             onManage={() => {
               setSheet(null)
-              setManaging('type')
+              setManaging(true)
             }}
             prefs={prefs}
             onPrefs={setPrefs}
@@ -465,7 +460,6 @@ function Planner() {
           <LabelsManager
             tripId={trip.id}
             items={items}
-            initialTab={managing}
             onSave={saveLabels}
             onDelete={deleteLabel}
             onRename={renameLabel}

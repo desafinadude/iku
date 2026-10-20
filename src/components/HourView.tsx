@@ -61,7 +61,7 @@ function layout(items: Item[]): Placed[] {
 }
 
 export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onOpen, onAddAt }: Props) {
-  const { typeStyle } = useLabels()
+  const { itemStyle } = useLabels()
   const dayItems = itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day)
   const allDay = dayItems.filter(isAllDay)
   const placed = layout(dayItems.filter((x) => !isAllDay(x)))
@@ -99,7 +99,7 @@ export function HourView({ day, days, items, prefs, viewSwitch, onSelectDay, onO
             <span className="all-day-label">All day</span>
             <div className="all-day-items">
               {allDay.map((x) => {
-                const s = typeStyle(x.type)
+                const s = itemStyle(x)
                 const span = spanLabel(x, day)
                 const repeat = x.day !== day
                 return (
@@ -144,9 +144,9 @@ function HourSlot({ day, hour, top, onAdd }: { day: string; hour: number; top: n
 }
 
 function HourEvent({ p, first, onOpen }: { p: Placed; first: number; onOpen: (item: Item) => void }) {
-  const { typeStyle } = useLabels()
+  const { itemStyle } = useLabels()
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: p.item.id })
-  const s = typeStyle(p.item.type)
+  const s = itemStyle(p.item)
   const height = Math.max(28, ((p.end - p.start) / 60) * HOUR - 2)
   const width = `calc((100% - 64px) / ${p.lanes})`
   const tall = height >= 56

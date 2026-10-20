@@ -63,7 +63,7 @@ export function MonthView({ days, items, prefs, selectedDay, viewSwitch, onOpenD
 }
 
 function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: { day: string; inTrip: boolean; selected: boolean; items: Item[]; prefs: Prefs; onOpenDay: (d: string) => void; onOpen: (i: Item) => void }) {
-  const { typeStyle } = useLabels()
+  const { itemStyle } = useLabels()
   const { setNodeRef, isOver } = useDroppable({ id: 'day:' + day, disabled: !inTrip })
   const list = inTrip ? itemsForDay(items, day).filter((x) => !prefs.hideRepeats || x.day === day) : []
   const l = dayLabel(day)
@@ -75,7 +75,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
       </button>
       <div className="month-items">
         {list.slice(0, MAX_PER_DAY).map((x) => {
-          const s = typeStyle(x.type)
+          const s = itemStyle(x)
           const multi = !!(x.endDay && x.endDay !== x.day)
           return multi ? (
             <button

@@ -42,10 +42,28 @@ export function isUrl(text: string) {
   return /^https?:\/\/\S+$/i.test(text.trim())
 }
 
+/** Tags are plain words: no leading '#', trimmed, single spaces. */
 export function normalizeTag(tag: string) {
-  const t = tag.trim().toLowerCase().replace(/\s+/g, '-')
-  if (!t) return ''
-  return t.startsWith('#') ? t : '#' + t
+  return tag.replace(/^#+/, '').replace(/\s+/g, ' ').trim()
+}
+
+/** Tags in order, normalised, without duplicates (case-insensitive; first spelling wins). */
+export function cleanTags(tags: (string | null | undefined)[]) {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of tags) {
+    const t = normalizeTag(raw ?? '')
+    if (t && !seen.has(t.toLowerCase())) {
+      seen.add(t.toLowerCase())
+      out.push(t)
+    }
+  }
+  return out
+}
+
+/** Entries tagged as somewhere to sleep get Check-in / Night / Check-out wording when they span days. */
+export function isStay(item: Item) {
+  return item.tags.some((t) => /^(stay|stays|hotel|hostel|ryokan|airbnb|accommodation|lodging|camping|bnb|b&b)$/i.test(t))
 }
 
 export function matches(item: Item, f: Filters) {
@@ -54,7 +72,6 @@ export function matches(item: Item, f: Filters) {
     const hay = [item.title, item.note, item.place, item.url, ...item.tags].join(' ').toLowerCase()
     if (!hay.includes(q)) return false
   }
-  if (f.types.length && !f.types.includes(item.type)) return false
   if (f.statuses.length && !f.statuses.includes(statusOf(item))) return false
   if (f.people.length && !(item.createdBy && f.people.includes(item.createdBy))) return false
   if (f.tags.length) {
@@ -69,7 +86,7 @@ export function byTime(a: Item, b: Item) {
 }
 
 export function activeFilterCount(f: Filters) {
-  return f.types.length + f.tags.length + f.statuses.length + f.people.length + (f.search ? 1 : 0)
+  return f.tags.length + f.statuses.length + f.people.length + (f.search ? 1 : 0)
 }
 
 export function uid() {
@@ -156,7 +173,7 @@ export function spanLabel(item: Item, day: string): string | null {
   if (!item.day || !item.endDay || item.endDay === item.day) return null
   const i = daysBetween(item.day, day)
   const total = daysBetween(item.day, item.endDay)
-  if (item.type === 'Stay') {
+  if (isStay(item)) {
     if (i === 0) return `Check-in · ${total} ${total === 1 ? 'night' : 'nights'}`
     if (day === item.endDay) return 'Check-out'
     return `Night ${i + 1} of ${total}`

@@ -24,7 +24,7 @@ interface Props {
 
 /** Portrait (phone) view of a single day. */
 export function DayPlan({ tripName, days, items, members, attachments, prefs, selectedDay, unplannedCount, onSelectDay, onOpen, onShowIdeas }: Props) {
-  const { typeStyle } = useLabels()
+  const { itemStyle } = useLabels()
   const today = itemsForDay(items, selectedDay).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
@@ -54,7 +54,8 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
       </div>
       <ol className="timeline">
         {today.map((item, i) => {
-          const c = typeStyle(item.type)
+          const c = itemStyle(item)
+          const otherTags = item.tags.filter((t) => t !== c.name)
           const creator = memberFor(members, item.createdBy)
           const span = spanLabel(item, selectedDay)
           const continuing = item.day !== selectedDay
@@ -73,10 +74,14 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                   {!isPhotoCard(item) && <b>{item.title}</b>}
                   {span && <span className="span-label">{span}</span>}
                   <span className="muted small tl-type">
-                    <span style={{ color: c.color }}>
-                      <LabelIconView name={c.icon} size={13} />
-                    </span>{' '}
-                    {item.type}
+                    {c.name && (
+                      <>
+                        <span style={{ color: c.color }}>
+                          <LabelIconView name={c.icon} size={13} />
+                        </span>{' '}
+                        {c.name}
+                      </>
+                    )}
                     {files > 0 && (
                       <span className="file-badge">
                         {' '}
@@ -85,9 +90,9 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                       </span>
                     )}
                   </span>
-                  {(!continuing || prefs.tagsOnRepeats) && item.tags.length > 0 && (
+                  {(!continuing || prefs.tagsOnRepeats) && otherTags.length > 0 && (
                     <span className="tag-row">
-                      <TagChips tags={item.tags} small />
+                      <TagChips tags={otherTags} small />
                     </span>
                   )}
                   {item.booked && (

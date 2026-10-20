@@ -1,10 +1,11 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import { DEFAULT_TYPES, type Item, type Label } from '../types'
+import { normalizeLabels } from '../data/normalize'
+import type { Item, Label } from '../types'
 
 export interface Style {
   name: string
   color: string
-  /** Light tint of the colour, for chip and card backgrounds. */
+  /** Light tint of the colour, for card and block backgrounds. */
   bg: string
   icon: string
 }
@@ -14,15 +15,16 @@ export interface TagStyle {
   color: string | null
   bg: string | null
   icon: string | null
+  /** Saved style row (null when the tag has no style yet). */
+  label: Label | null
 }
 
 interface LabelsApi {
-  /** Types in display order: the trip's own, else the built-ins, plus any found on entries. */
-  types: Style[]
-  typeStyle: (name: string) => Style
-  tagStyle: (tag: string) => TagStyle
-  /** Styled tags plus tags used on entries, most used first. */
+  /** Every tag: styled ones in their order, then the rest by how often they're used. */
   tags: TagStyle[]
+  tagStyle: (tag: string) => TagStyle
+  /** An entry's look: its first tag with a colour, else neutral. */
+  itemStyle: (item: Item) => Style
   labels: Label[]
 }
 
@@ -37,36 +39,28 @@ export function tint(hex: string, amount = 0.12) {
 
 const Ctx = createContext<LabelsApi | null>(null)
 
-export function LabelsProvider({ labels, items, children }: { labels: Label[]; items: Item[]; children: ReactNode }) {
+export function LabelsProvider({ tripId, labels, items, children }: { tripId: string; labels: Label[]; items: Item[]; children: ReactNode }) {
   const api = useMemo<LabelsApi>(() => {
-    const typeRows = labels.filter((l) => l.kind === 'type').sort((a, b) => a.sort - b.sort)
-    const base = typeRows.length
-      ? typeRows.map((l) => ({ name: l.name, color: l.color ?? NEUTRAL, icon: l.icon ?? 'location_on' }))
-      : DEFAULT_TYPES
-    const types: Style[] = base.map((t) => ({ ...t, bg: tint(t.color) }))
-    // Entries may use a type that has no style yet (e.g. renamed elsewhere): still show it.
-    for (const name of new Set(items.map((x) => x.type))) {
-      if (!types.some((t) => t.name === name)) types.push({ name, color: NEUTRAL, bg: tint(NEUTRAL), icon: 'location_on' })
+    const styled = normalizeLabels(labels, items, tripId).sort((a, b) => a.sort - b.sort)
+    const byName = new Map(styled.map((l) => [l.name.toLowerCase(), l]))
+    const tagStyle = (tag: string): TagStyle => {
+      const l = byName.get(tag.toLowerCase()) ?? null
+      return { name: tag, color: l?.color ?? null, bg: l?.color ? tint(l.color) : null, icon: l?.icon ?? null, label: l }
     }
-    const byType = new Map(types.map((t) => [t.name, t]))
-
-    const tagRows = new Map(labels.filter((l) => l.kind === 'tag').map((l) => [l.name, l]))
     const counts = new Map<string, number>()
     items.forEach((x) => x.tags.forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)))
-    const tagNames = [...new Set([...tagRows.keys(), ...counts.keys()])].sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b))
-    const tagStyle = (tag: string): TagStyle => {
-      const l = tagRows.get(tag)
-      return { name: tag, color: l?.color ?? null, bg: l?.color ? tint(l.color) : null, icon: l?.icon ?? null }
-    }
-
+    const unstyled = [...counts.keys()].filter((t) => !byName.has(t.toLowerCase())).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b))
+    const neutral: Style = { name: '', color: NEUTRAL, bg: tint(NEUTRAL, 0.08), icon: 'location_on' }
     return {
-      types,
-      typeStyle: (name) => byType.get(name) ?? { name, color: NEUTRAL, bg: tint(NEUTRAL), icon: 'location_on' },
+      tags: [...styled.map((l) => tagStyle(l.name)), ...unstyled.map(tagStyle)],
       tagStyle,
-      tags: tagNames.map(tagStyle),
-      labels
+      itemStyle: (item) => {
+        const t = item.tags.map(tagStyle).find((s) => s.color)
+        return t ? { name: t.name, color: t.color!, bg: t.bg!, icon: t.icon ?? 'location_on' } : neutral
+      },
+      labels: styled
     }
-  }, [labels, items])
+  }, [labels, items, tripId])
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }
 
