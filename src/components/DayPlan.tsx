@@ -1,10 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useSwipe } from '../useSwipe'
-import { inkColor, onColor } from '../colors'
+import { onColor } from '../colors'
 import { bands, dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
-import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
 import type { Prefs } from '../usePrefs'
 import { TagChips } from './TagChips'
@@ -108,9 +107,10 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
             )
           const i = num++
           const c = itemStyle(item)
-          const otherTags = item.tags.filter((t) => t !== c.name)
+          const ordered = c.name ? [c.name, ...item.tags.filter((t) => t !== c.name)] : item.tags
           const span = spanLabel(item, selectedDay)
           const continuing = item.day !== selectedDay
+          const rowTags = continuing && !prefs.tagsOnRepeats ? ordered.slice(0, c.name ? 1 : 0) : ordered
           const files = attachments.filter((a) => a.itemId === item.id).length
           // Which parts to show (the same choice as the day cards on wide screens).
           const show = prefs.daysShow
@@ -140,14 +140,6 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                   {span && <span className="span-label">{span}</span>}
                   {!compact && (
                   <span className="muted small tl-type">
-                    {c.name && (
-                      <>
-                        <span style={{ color: inkColor(c.color) }}>
-                          <LabelIconView name={c.icon} size={13} />
-                        </span>{' '}
-                        {c.name}
-                      </>
-                    )}
                     {files > 0 && (
                       <span className="file-badge">
                         {' '}
@@ -157,9 +149,10 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                     )}
                   </span>
                   )}
-                  {show.tags && (!continuing || prefs.tagsOnRepeats) && (otherTags.length > 0 || (item.people ?? []).length > 0) && (
+                  {/* Tags as solid chips (the colour tag first, in its icon colour), as on the cards; repeats keep just the colour tag. */}
+                  {show.tags && (rowTags.length > 0 || (!continuing || prefs.tagsOnRepeats) && (item.people ?? []).length > 0) && (
                     <span className="tag-row">
-                      <TagChips tags={otherTags} small />
+                      <TagChips tags={rowTags} small />
                       <PeopleBadges people={item.people} members={members} small />
                     </span>
                   )}

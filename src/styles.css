@@ -847,3 +847,11 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .strength { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 4px 4px 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .strength input { flex: 1; accent-color: var(--accent); }
 .strength-value { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* Trip name and dates */
+button.trip-title { border: 0; background: none; padding: 4px 8px; margin: -4px -8px; border-radius: 8px; text-align: left; color: inherit; cursor: pointer; }
+button.trip-title:hover { background: var(--soft); }
+.trip-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.trip-warning { padding: 12px 14px; border-radius: 10px; background: #fdf3dc; border: 1px solid #f3d58a; font-size: 14px; }
+.trip-warning ul { margin: 6px 0 4px; padding-left: 18px; }
+.trip-warning b + ul + b { display: block; margin-top: 8px; }

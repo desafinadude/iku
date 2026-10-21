@@ -7,6 +7,7 @@ import { useImageSrc } from './components/CardImage'
 import { colorCss } from './colors'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
+import { TripSheet } from './components/TripSheet'
 import { DaySelect, IdeaPicker } from './components/DayAssign'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
@@ -60,7 +61,7 @@ function pointerY(e: { activatorEvent: Event | null; delta: { y: number } }) {
 }
 
 type Tab = 'ideas' | 'days' | 'map' | 'docs'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | { kind: 'pick'; day: string } | null
+type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | { kind: 'pick'; day: string } | { kind: 'trip' } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -84,7 +85,7 @@ export default function App() {
 
 function Planner() {
   const {
-    dayInfos, saveDays, saveBackground,
+    dayInfos, saveDays, saveBackground, saveTrip,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
@@ -397,10 +398,10 @@ function Planner() {
             </span>
             <span className="brand-name">iku</span>
           </div>
-          <div className="trip-title">
+          <button type="button" className="trip-title" title="Trip name and dates" onClick={() => setSheet({ kind: 'trip' })}>
             <b>{trip.name}</b>
             <span className="muted">{tripRange(trip)}</span>
-          </div>
+          </button>
           {wide && (
             <div className="seg main-switch" role="group" aria-label="Main view">
               {(
@@ -715,6 +716,19 @@ function Planner() {
             )
           })()}
         {sheet?.kind === 'pick' && <IdeaPicker day={sheet.day} ideas={orderIdeas(items.filter((x) => !x.day), prefs.ideasOrder)} onAdd={(id) => moveTo(id, sheet.day)} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'trip' && (
+          <TripSheet
+            trip={trip}
+            items={items}
+            onClose={() => setSheet(null)}
+            onSave={async (patch, unplan, clamp) => {
+              // Save the dates first; only then move entries that fall outside them (nothing is deleted).
+              if (!(await saveTrip(patch))) return
+              unplan.forEach((x) => save({ ...x, day: null, endDay: null, time: null, endTime: null, part: null }))
+              clamp.forEach((x) => save({ ...x, endDay: patch.endDate === x.day ? null : patch.endDate }))
+            }}
+          />
+        )}
         {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onAddTitleCard={(day, title) => setSheet({ kind: 'item', item: blank({ day, title, chapter: true }), isNew: true })} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (

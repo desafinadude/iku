@@ -59,6 +59,8 @@ export interface Backend {
   saveDays(tripId: string, days: DayInfo[]): Promise<void>
   /** Sets (or clears, with null) the trip's page background. */
   saveBackground(tripId: string, background: string | null): Promise<void>
+  /** Renames the trip or changes its dates. */
+  saveTrip(tripId: string, patch: { name: string; startDate: string; endDate: string }): Promise<void>
   /** Stores a card image you chose; returns the reference to save as the entry's imageUrl. */
   uploadCover(tripId: string, file: File): Promise<string>
   /** A displayable URL for an uploaded card image reference. */
@@ -169,6 +171,10 @@ function localBackend(): Backend {
       const exists = data.labels.some((l) => l.name === to)
       const labels = exists ? data.labels.filter((l) => l.name !== from) : data.labels.map((l) => (l.name === from ? { ...l, name: to } : l))
       write({ ...data, items, labels })
+    },
+    saveTrip: async (_tripId, patch) => {
+      const data = read()
+      write({ ...data, trip: { ...data.trip, ...patch } })
     },
     saveBackground: async (_tripId, background) => {
       const data = read()
@@ -481,6 +487,10 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     renameLabel: async (tripId, kind, from, to) => {
       const res = await sb.rpc('rename_label', { p_trip: tripId, p_kind: kind, p_from: from, p_to: to })
       if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
+    saveTrip: async (tripId, patch) => {
+      const rows = must(await sb.from('trips').update({ name: patch.name, start_date: patch.startDate, end_date: patch.endDate }).eq('id', tripId).select())
+      if (!rows?.length) throw new Error('Couldn’t change the trip: your account may not be allowed to edit it.')
     },
     saveBackground: async (tripId, background) => {
       const res = await sb.from('trips').update({ background }).eq('id', tripId)
