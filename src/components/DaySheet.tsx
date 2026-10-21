@@ -3,7 +3,7 @@ import { useLabels } from '../labels/LabelsContext'
 import { dayLabel } from '../lib'
 import { Icon } from './Icon'
 import { colorCss, colorStops, firstColor, onColor } from '../colors'
-import { tint } from '../labels/LabelsContext'
+import { DEFAULT_COLUMN_STRENGTH, tint } from '../labels/LabelsContext'
 import type { DayInfo } from '../types'
 import { ColorField } from './ColorField'
 import { Sheet } from './Sheet'
@@ -28,7 +28,8 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
   const [header, setHeader] = useState<string | null>(current?.headerColor ?? null)
   const [headerText, setHeaderText] = useState<string | null>(current?.headerText ?? null)
   // With no column colour of its own, the column is a very pale version of the header colour.
-  const autoColumn = colorStops(header).map((c) => tint(c, 0.12)).join('>') || null
+  const [strength, setStrength] = useState<number>(current?.columnStrength ?? DEFAULT_COLUMN_STRENGTH)
+  const autoColumn = colorStops(header).map((c) => tint(c, strength / 100)).join('>') || null
   const [through, setThrough] = useState(day)
   const l = dayLabel(day)
   const later = days.filter((d) => d > day)
@@ -39,8 +40,8 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
     onSave(
       range.map((d) =>
         clear
-          ? { day: d, title: null, tag: null, color: null, image: null, headerColor: null, headerText: null, blendColor: null }
-          : { day: d, title: title.trim() || null, tag: null, color: colA ?? null, image: null, headerColor: header, headerText, blendColor: colB ?? null }
+          ? { day: d, title: null, tag: null, color: null, image: null, headerColor: null, headerText: null, blendColor: null, columnStrength: null }
+          : { day: d, title: title.trim() || null, tag: null, color: colA ?? null, image: null, headerColor: header, headerText, blendColor: colB ?? null, columnStrength: strength === DEFAULT_COLUMN_STRENGTH ? null : strength }
       )
     )
     onClose()
@@ -84,6 +85,13 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
         <ColorField label="Header" value={header} onChange={setHeader} none="Default grey" emptyText="Default" gradient />
         <ColorField label="Header text" value={headerText} onChange={setHeaderText} none="Automatic" emptyText="Automatic" quick />
         <ColorField label="Column" value={column} onChange={setColumn} none="Automatic (pale header colour)" emptyText={header ? 'Pale header colour' : 'None'} gradient />
+        {!column && header && (
+          <label className="strength">
+            <span>Column strength</span>
+            <input type="range" min={0} max={40} step={1} value={strength} onChange={(e) => setStrength(Number(e.target.value))} aria-label="Column strength" />
+            <span className="strength-value">{strength}%</span>
+          </label>
+        )}
         <span className="muted small">The column is a very pale version of the header unless you pick its own colour. Tick Gradient on the header for a travel day, e.g. Tokyo’s colour at the top fading into Kyoto’s.</span>
       </div>
 

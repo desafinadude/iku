@@ -844,3 +844,6 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .palette-row-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
 .palette-gradient .check { min-height: 0; margin: 0; }
 .palette-gradient { min-height: 0; }
+.strength { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 4px 4px 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.strength input { flex: 1; accent-color: var(--accent); }
+.strength-value { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }

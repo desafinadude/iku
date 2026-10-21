@@ -53,6 +53,9 @@ export interface DayStyle {
 
 const NEUTRAL = '#4A5550'
 
+/** Default strength (%) of a day column's automatic colour, from its header colour. */
+export const DEFAULT_COLUMN_STRENGTH = 6
+
 /** Mixes a colour with white: a 12% tint for backgrounds. */
 export function tint(hex: string, amount = 0.12) {
   const n = parseInt(hex.slice(1), 16)
@@ -87,7 +90,7 @@ export function LabelsProvider({ tripId, labels, items, days = [], children }: {
         const info = days.find((d) => d.day === day) ?? null
         const headerStops = colorStops(info?.headerColor)
         // Without its own column colour, a day takes a very pale version of its header colour (gradient too).
-        const veryLight = (c: string) => tint(c, 0.12)
+        const veryLight = (c: string) => tint(c, (info?.columnStrength ?? DEFAULT_COLUMN_STRENGTH) / 100)
         const fromHeader = !info?.color && headerStops.length > 0
         const color = info?.color ?? headerStops[0] ?? (info?.tag ? tagStyle(info.tag).color : null)
         const background = fromHeader
