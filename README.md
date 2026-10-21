@@ -119,6 +119,10 @@ The Days area has three views, switched at the top (Columns / Parts / Month on w
 - **Pane widths:** on tablets and desktop, drag the thin handles between the ideas, days and map (or beside an open idea on the Ideas board) to resize them. Double-click a handle to reset it. The ideas tile into as many columns as fit, down to one. Widths are kept per device.
 - **Whole screen:** on tablets and desktop, the expand arrow on the Columns, Parts and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
 
+## Trip name and dates
+
+Tap the trip's name at the top to rename it or change its first and last day (there are quick **+ a day at the end / start** buttons). Making a trip longer changes nothing else. Making it shorter never deletes anything: the sheet lists entries on days that drop off, which go back to Ideas, and stays running past the new end, which are cut short to it.
+
 ## Trip background
 
 Open your profile (the avatars, top right) and set a **Trip background**: a photo (upload or paste a link) or a colour. Everyone on the trip sees it behind the planner. Run `supabase/migrations/013_icon_colour_and_background.sql` to save it.

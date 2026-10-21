@@ -290,6 +290,24 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [backend, dayInfos, trip]
   )
 
+  /** Renames the trip or changes its dates. */
+  const saveTrip = useCallback(
+    async (patch: { name: string; startDate: string; endDate: string }) => {
+      if (!trip) return false
+      const before = trip
+      setTrip({ ...trip, ...patch })
+      try {
+        await backend.saveTrip(trip.id, patch)
+        return true
+      } catch (e) {
+        setTrip(before)
+        setError((e as Error).message)
+        return false
+      }
+    },
+    [backend, trip]
+  )
+
   /** The trip's page background (shared): a colour, an image, or null for none. */
   const saveBackground = useCallback(
     async (background: string | null) => {
@@ -307,7 +325,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
   )
 
   return {
-    dayInfos, saveDays, saveBackground,
+    dayInfos, saveDays, saveBackground, saveTrip,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
