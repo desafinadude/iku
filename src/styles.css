@@ -110,6 +110,16 @@ h1, h2 { margin: 0; }
 .workspace > .pane-map:not(.is-expanded) { background: var(--panel-map); }
 .workspace > .pane-map:not(.is-expanded) > .pane-head { color: var(--panel-map-fg); }
 .workspace > .pane > .pane-head .muted { color: inherit; opacity: .75; }
+/* Wide screens: the panels sit flush, edge to edge. Ideas and the map float just above the day planner. */
+.is-wide .workspace { gap: 0; padding: 0; }
+.is-wide .workspace > .pane:not(.pane-detail) { border-radius: 0; padding: 14px 16px 16px; }
+.is-wide .workspace > .pane-detail { border-radius: 0; border-width: 0 0 0 1px; }
+.is-wide .workspace > :is(.pane-days, .pane-dayplan) { position: relative; z-index: 1; }
+.is-wide .workspace > .pane-ideas, .is-wide .workspace > .pane-map:not(.is-expanded) { position: relative; z-index: 2; }
+.is-wide .workspace > .pane-ideas { box-shadow: 1px 0 0 rgba(23, 32, 29, .08), 6px 0 16px -4px rgba(23, 32, 29, .16); }
+.is-wide .workspace > .pane-map:not(.is-expanded) { box-shadow: -1px 0 0 rgba(23, 32, 29, .08), -6px 0 16px -4px rgba(23, 32, 29, .16); }
+.is-wide .workspace > .pane-ideas.is-over { outline-offset: -6px; }
+.is-wide .workspace > .resizer { margin: 0 -6px; }
 /* Phones show one panel at a time: its colour fills the screen behind it, rather than a box in a box. */
 .is-narrow .workspace > .pane { padding: 0; border-radius: 0; background: transparent; }
 .is-narrow .workspace.tab-ideas { background: var(--panel-ideas); color: var(--panel-ideas-fg); }
