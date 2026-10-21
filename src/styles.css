@@ -691,25 +691,32 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .filter-dot { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
 .is-narrow .search input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 
-/* Day by parts: All day, then Morning / Afternoon / Evening / Night */
+/* Day by parts: one planner page, banded All day / Morning / Afternoon / Evening / Night */
 .field > .field-label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .part-seg { flex-wrap: wrap; }
 .pane-parts { flex: 1; }
-.parts-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 12px; padding: 2px 2px 12px; }
-.parts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
-.part-block { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: #edeeea; border: 1px solid transparent; box-shadow: var(--shadow); min-height: 96px; transition: background .15s; }
-.part-block.is-over { background: var(--drop); border-color: var(--drop-line); border-style: dashed; }
-.part-allday { background: #e6e8e3; min-height: 0; }
-.part-morning { background: #f6efd9; }
-.part-afternoon { background: #f6e6d6; }
-.part-evening { background: #e6e3f1; }
-.part-night { background: #dde2ea; }
-.part-head { display: flex; align-items: baseline; gap: 8px; }
-.part-head b { font-family: var(--display); font-size: 16px; }
-.icon-btn.part-add { width: 30px; height: 30px; align-self: center; background: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: none; }
-.part-items { display: flex; flex-direction: column; gap: 8px; }
+.parts-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px 2px 12px; }
+.planner { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); background: var(--surface); }
+.part-band { display: grid; grid-template-columns: 96px minmax(0, 1fr); min-height: 140px; border-top: 1px solid rgba(23, 32, 29, .08); transition: background .15s; }
+.part-band:first-child { border-top: 0; }
+.part-band.part-allday { min-height: 64px; }
+.part-band.is-over { box-shadow: inset 0 0 0 2px var(--drop-line); }
+.part-allday { background: #eef0ec; }
+.part-morning { background: #fbf4df; }
+.part-afternoon { background: #fbebdc; }
+.part-evening { background: #ece8f5; }
+.part-night { background: #e1e6ee; }
+.part-side { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 8px 10px 12px; border-right: 1px solid rgba(23, 32, 29, .08); }
+.part-side b { font-family: var(--display); font-size: 15px; line-height: 1.2; }
+.part-side .small { color: var(--ink-2); opacity: .75; }
+.icon-btn.part-add { width: 30px; height: 30px; margin-top: 6px; background: rgba(255, 255, 255, .6); box-shadow: none; }
+.part-items { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
 .part-items > * { flex-shrink: 0; }
-.part-empty { font-size: 13px; color: var(--muted); padding: 6px 2px; }
+.is-narrow .part-band { grid-template-columns: 78px minmax(0, 1fr); }
+.is-narrow .part-side { padding-left: 10px; }
 .card-part { text-transform: none; color: var(--accent-dark); }
-.parts-scroll > * { flex-shrink: 0; }
 .zoom-control button { -webkit-tap-highlight-color: transparent; }
+.is-narrow .part-band { grid-template-columns: 88px minmax(0, 1fr); }
+.is-narrow .part-side b { font-size: 14px; }
+/* The display face's capital I overhangs to the left; keep it inside the pane's clip. */
+.pane-ideas .pane-head { padding-left: 2px; }
