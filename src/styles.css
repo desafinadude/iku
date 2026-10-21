@@ -552,11 +552,18 @@ h1, h2 { margin: 0; }
 /* The days, hours or month view using the whole workspace */
 .workspace.is-max > .pane { flex: 1 1 auto; min-width: 0; }
 
-/* Colour picker: pastel → deep rows */
-.swatch-grid { display: flex; flex-direction: column; gap: 6px; }
-.swatch-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; max-width: 456px; }
-.swatch-grid .swatch { width: 100%; height: auto; aspect-ratio: 1; border-width: 2px; min-width: 0; }
-.swatch-grid .swatch-none { width: 34px; height: 34px; aspect-ratio: auto; margin-bottom: 2px; }
+/* Colour picker: shade rows across 16 hues, the muted originals, and a custom colour */
+.swatch-grid { display: flex; flex-direction: column; gap: 5px; }
+.swatch-row { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 4px; max-width: 600px; }
+.swatch-row + .swatch-row { margin-top: 2px; }
+.is-narrow .swatch-row, .sheet .swatch-row { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
+@media (min-width: 700px) { .sheet .swatch-row { grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 4px; } }
+.swatch-grid .swatch { width: 100%; height: auto; aspect-ratio: 1; border-width: 2px; min-width: 0; border-radius: 6px; }
+.swatch-grid .swatch.is-on { box-shadow: 0 0 0 2px var(--ink); }
+.swatch-extra { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.swatch-grid .swatch-extra .swatch { width: 34px; height: 34px; aspect-ratio: auto; flex: none; }
+.swatch-custom { position: relative; cursor: pointer; background: conic-gradient(#f87171, #fbbf24, #a3e635, #34d399, #22d3ee, #60a5fa, #a78bfa, #f472b6, #f87171); }
+.swatch-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 
 /* Scrollbars: slim, rounded and quiet everywhere (WebKit/Blink; Firefox gets thin + colours) */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
