@@ -14,8 +14,6 @@ interface Props {
   members: Member[]
   attachments: Attachment[]
   prefs: Prefs
-  /** The Columns / Hours / Month switch. */
-  viewSwitch: ReactNode
   /** Sort and card-size controls. */
   controls: ReactNode
   maxToggle?: ReactNode
@@ -26,12 +24,11 @@ interface Props {
   onEditDay: (day: string) => void
 }
 
-export function DaysBoard({ days, items, members, attachments, prefs, viewSwitch, controls, maxToggle, selectedDay, onSelectDay, onOpen, onAdd, onEditDay }: Props) {
+export function DaysBoard({ days, items, members, attachments, prefs, controls, maxToggle, selectedDay, onSelectDay, onOpen, onAdd, onEditDay }: Props) {
   return (
     <section aria-label="Days" className="pane pane-days">
       <div className="pane-head">
         <h2>Days</h2>
-        {viewSwitch}
         <span className="muted hide-narrow">Drag ideas onto a day</span>
         <span className="spacer" />
         {controls}

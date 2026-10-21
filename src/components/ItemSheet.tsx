@@ -91,6 +91,15 @@ export function ItemSheet(props: Props) {
   const googleOk = useGoogleOk()
   const { tags: knownTags, tagStyle } = useLabels()
   const [tagText, setTagText] = useState('')
+  // The tag list opens under the box while you pick; tap a tag to tick or untick it.
+  const [tagsOpen, setTagsOpen] = useState(false)
+  const tagBox = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!tagsOpen) return
+    const onDown = (e: PointerEvent) => !tagBox.current?.contains(e.target as Node) && setTagsOpen(false)
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [tagsOpen])
   const set = (patch: Partial<Item>) => setDraft((d) => ({ ...d, ...patch }))
 
   const [previewState, setPreviewState] = useState<'idle' | 'busy' | 'none'>('idle')
@@ -137,11 +146,11 @@ export function ItemSheet(props: Props) {
   }
 
 
-  // Tag picks: coloured tags first, then others in use; filtered as you type.
+  // Every tag, coloured ones first, then others in use; filtered as you type.
   const q = normalizeTag(tagText).toLowerCase()
-  const suggestions = [...new Set([...knownTags.map((t) => t.name), ...allTags])]
-    .filter((t) => !draft.tags.includes(t) && (!q || t.toLowerCase().includes(q)))
-    .slice(0, q ? 8 : 14)
+  const tagOptions = [...new Set([...knownTags.map((t) => t.name), ...allTags])].filter((t) => !q || t.toLowerCase().includes(q))
+  const canCreate = !!q && ![...knownTags.map((t) => t.name), ...allTags].some((t) => t.toLowerCase() === q)
+  const toggleTag = (t: string) => (draft.tags.includes(t) ? set({ tags: draft.tags.filter((x) => x !== t) }) : set({ tags: [...draft.tags, t] }))
   const domain = domainOf(draft.url)
   const creator = memberFor(members, item.createdBy)
   const editor = item.updatedBy && item.updatedBy !== item.createdBy ? memberFor(members, item.updatedBy) : null
@@ -275,44 +284,86 @@ export function ItemSheet(props: Props) {
 
       <div className="field">
         <label htmlFor="f-tags">Tags</label>
-        <div className="tag-input">
-          {draft.tags.map((t) => {
-            const st = tagStyle(t)
-            return (
-              <button key={t} type="button" className={`tag-chip${st.color ? '' : ' is-plain'}`} style={st.color ? { background: st.color, color: st.fg } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
-                {st.icon && <LabelIconView name={st.icon} size={14} />}
-                {t} ×
-              </button>
-            )
-          })}
-          <input
-            id="f-tags"
-            placeholder={draft.tags.length ? 'Add tag' : 'e.g. Food, Must do, Rainy day'}
-            value={tagText}
-            onChange={(e) => setTagText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ',') {
-                e.preventDefault()
-                addTag(tagText)
-              } else if (e.key === 'Backspace' && !tagText && draft.tags.length) {
-                set({ tags: draft.tags.slice(0, -1) })
-              }
-            }}
-            onBlur={() => tagText && addTag(tagText)}
-          />
-        </div>
-        <div className="chip-wrap tag-picks">
-          {suggestions.map((t) => {
-            const st = tagStyle(t)
-            return (
-              <button key={t} type="button" className="suggest" style={st.color ? { borderColor: st.color, color: st.color } : undefined} onClick={() => addTag(t)}>
-                {st.icon ? <LabelIconView name={st.icon} size={14} /> : '+'} {t}
-              </button>
-            )
-          })}
-          <button type="button" className="suggest suggest-manage" onClick={props.onManageLabels}>
-            Edit tags
-          </button>
+        <div className="tag-select" ref={tagBox}>
+          <div className="tag-input" onClick={() => setTagsOpen(true)}>
+            {draft.tags.map((t) => {
+              const st = tagStyle(t)
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  className={`tag-chip${st.color ? '' : ' is-plain'}`}
+                  style={st.color ? { background: st.color, color: st.fg } : undefined}
+                  aria-label={`Remove ${t}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    set({ tags: draft.tags.filter((x) => x !== t) })
+                  }}
+                >
+                  {st.icon && <LabelIconView name={st.icon} size={14} />}
+                  {t} ×
+                </button>
+              )
+            })}
+            <input
+              id="f-tags"
+              role="combobox"
+              aria-expanded={tagsOpen}
+              aria-controls="f-tags-list"
+              autoComplete="off"
+              placeholder={draft.tags.length ? 'Add tag' : 'Choose tags…'}
+              value={tagText}
+              onFocus={() => setTagsOpen(true)}
+              onChange={(e) => {
+                setTagText(e.target.value)
+                setTagsOpen(true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                  e.preventDefault()
+                  // Enter picks the only match, or makes a new tag from what you typed.
+                  if (tagText.trim()) addTag(tagOptions.length === 1 && !canCreate ? tagOptions[0] : tagText)
+                } else if (e.key === 'Backspace' && !tagText && draft.tags.length) {
+                  set({ tags: draft.tags.slice(0, -1) })
+                } else if (e.key === 'Escape' && tagsOpen) {
+                  e.stopPropagation()
+                  setTagsOpen(false)
+                }
+              }}
+            />
+            <Icon name="chevronDown" size={16} />
+          </div>
+          {tagsOpen && (
+            <div className="tag-select-list" id="f-tags-list" role="listbox" aria-multiselectable="true" aria-label="Tags">
+              {canCreate && (
+                <button type="button" className="tag-option tag-option-new" onClick={() => addTag(tagText)}>
+                  <Icon name="plus" size={14} /> Add “{normalizeTag(tagText)}”
+                </button>
+              )}
+              {tagOptions.map((t) => {
+                const st = tagStyle(t)
+                const on = draft.tags.includes(t)
+                return (
+                  <button key={t} type="button" role="option" aria-selected={on} className={`tag-option${on ? ' is-on' : ''}`} onClick={() => toggleTag(t)}>
+                    <span className="tag-option-check">{on && <Icon name="check" size={13} strokeWidth={3} />}</span>
+                    <span className="tag-option-swatch" style={st.color ? { background: st.color, color: st.fg } : undefined}>
+                      {st.icon && <LabelIconView name={st.icon} size={13} />}
+                    </span>
+                    {t}
+                  </button>
+                )
+              })}
+              {!tagOptions.length && !canCreate && <p className="muted small tag-option-empty">No tags yet: type one.</p>}
+              <div className="tag-select-foot">
+                <button type="button" className="chip chip-small" onClick={props.onManageLabels}>
+                  Edit tags
+                </button>
+                <button type="button" className="primary-btn" onClick={() => (setTagsOpen(false), setTagText(''))}>
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <span className="muted small">The first coloured tag sets the card’s colour and map pin.</span>
       </div>

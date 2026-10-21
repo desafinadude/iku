@@ -12,11 +12,9 @@ import { DaySelect, IdeaPicker } from './components/DayAssign'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
-import { DayParts } from './components/DayParts'
 import { InstallPrompt } from './components/InstallPrompt'
 import { ItemView } from './components/ItemView'
 import { Lightbox } from './components/Lightbox'
-import { MonthView } from './components/MonthView'
 import { PANE_DEFAULTS, usePrefs } from './usePrefs'
 import { Resizer } from './components/Resizer'
 import { LabelsManager } from './components/LabelsManager'
@@ -270,7 +268,7 @@ function Planner() {
         const patch = samePart ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
         arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
         // Re-ordering within a band of a day column switches the days to your own order, as in plain columns.
-        if (samePart && item.day === zone.day && prefs.daysView === 'board' && prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
+        if (samePart && item.day === zone.day && prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
       } else if (zone.zone === 'day') {
         arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day)
         if (prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
@@ -300,21 +298,6 @@ function Planner() {
     onOpenItem: (item: Item) => setSheet({ kind: 'view', id: item.id })
   }
 
-  const viewSwitch = (
-    <div className="seg seg-small view-switch" role="group" aria-label="Days view">
-      {(
-        [
-          ['board', wide ? 'Columns' : 'Day'],
-          ['hours', 'Parts'],
-          ['month', 'Month']
-        ] as const
-      ).map(([v, label]) => (
-        <button key={v} type="button" className={prefs.daysView === v ? 'is-on' : ''} aria-pressed={prefs.daysView === v} onClick={() => setPrefs({ daysView: v })}>
-          {label}
-        </button>
-      ))}
-    </div>
-  )
   const daysControls = (
     <>
       <CardShowMenu label="Days" show={prefs.daysShow} onChange={(v) => setPrefs({ daysShow: v })} />
@@ -347,37 +330,6 @@ function Planner() {
     </>
   ) : undefined
   const editDay = (day: string) => setSheet({ kind: 'day', day })
-  const hourView = (
-    <DayParts
-      day={selectedDay}
-      days={days}
-      items={visible}
-      members={members}
-      attachments={attachments}
-      prefs={prefs}
-      viewSwitch={wide ? viewSwitch : undefined}
-      maxToggle={maxToggle}
-      onSelectDay={setSelectedDay}
-      onOpen={open}
-      onAdd={(day, part) => setSheet({ kind: 'item', item: blank({ day, part }), isNew: true })}
-      onEditDay={editDay}
-    />
-  )
-  const monthView = (
-    <MonthView
-      days={days}
-      items={visible}
-      prefs={prefs}
-      selectedDay={selectedDay}
-      viewSwitch={wide ? viewSwitch : undefined}
-      maxToggle={maxToggle}
-      onOpenDay={(d) => {
-        setSelectedDay(d)
-        setPrefs({ daysView: 'hours' })
-      }}
-      onOpen={open}
-    />
-  )
 
   const widths = { ideas: liveWidth.ideas ?? prefs.ideasWidth, map: liveWidth.map ?? prefs.mapWidth, detail: liveWidth.detail ?? prefs.detailWidth }
   const resizer = (key: 'ideas' | 'map' | 'detail', label: string, pane: 'left' | 'right', min: number, maxShare: number) => (
@@ -533,18 +485,12 @@ function Planner() {
               <>
                 {!daysMax && prefs.planIdeas && ideasPane}
                 {!daysMax && prefs.planIdeas && resizer('ideas', 'Resize the ideas', 'left', 200, 0.5)}
-                {prefs.daysView === 'hours' ? (
-                hourView
-              ) : prefs.daysView === 'month' ? (
-                monthView
-              ) : (
                 <DaysBoard
                   days={days}
                   items={visible}
                   members={members}
                   attachments={attachments}
                   prefs={prefs}
-                  viewSwitch={viewSwitch}
                   controls={daysControls}
                   maxToggle={maxToggle}
                   selectedDay={selectedDay}
@@ -553,25 +499,12 @@ function Planner() {
                   onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })}
                   onEditDay={editDay}
                 />
-              )}
                 {!daysMax && prefs.planMap && resizer('map', 'Resize the map', 'right', 240, 0.6)}
                 {!daysMax && prefs.planMap && mapPane}
               </>
             ) : tab === 'ideas' ? (
               ideasPane
             ) : tab === 'days' ? (
-              <div className="days-tab">
-              <div className="days-tab-bar">
-                {viewSwitch}
-                <button className="icon-btn" aria-label="Filters and display options" onClick={() => setSheet({ kind: 'filters' })}>
-                  <Icon name="filter" size={18} />
-                </button>
-              </div>
-              {prefs.daysView === 'hours' ? (
-                hourView
-              ) : prefs.daysView === 'month' ? (
-                monthView
-              ) : (
                 <DayPlan
                   tripName={trip.name}
                   days={days}
@@ -586,10 +519,15 @@ function Planner() {
                   onShowIdeas={() => setSheet({ kind: 'pick', day: selectedDay })}
                   onEditDay={editDay}
                   onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })}
-                  controls={daysControls}
+                  controls={
+                    <>
+                      {daysControls}
+                      <button className="icon-btn head-btn" aria-label="Filters and display options" onClick={() => setSheet({ kind: 'filters' })}>
+                        <Icon name="filter" size={16} />
+                      </button>
+                    </>
+                  }
                 />
-              )}
-            </div>
             ) : tab === 'docs' ? (
               <section aria-label="Docs" className="pane pane-docs">
                 <div className="pane-head">
