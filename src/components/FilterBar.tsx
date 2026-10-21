@@ -5,6 +5,7 @@ import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Filters, Item } from '../types'
 import { Icon } from './Icon'
+import { useMediaQuery } from '../useMediaQuery'
 
 interface Props {
   filters: Filters
@@ -23,6 +24,10 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  // Phones: search is just an icon until it's needed, so tags and filters get the row.
+  const narrow = useMediaQuery('(max-width: 899px)')
+  const [searchOpen, setSearchOpen] = useState(!!filters.search)
+  const showSearch = !narrow || searchOpen || !!filters.search
   useEffect(() => {
     if (!open) return
     const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)
@@ -56,11 +61,36 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
 
   return (
     <div className="filter-bar">
-      <label className="search">
-        <Icon name="search" size={16} />
-        <span className="sr-only">Search trip</span>
-        <input type="search" placeholder="Search places, notes, links" value={filters.search} onChange={(e) => onChange({ ...filters, search: e.target.value })} />
-      </label>
+      {showSearch ? (
+        <label className="search">
+          <Icon name="search" size={16} />
+          <span className="sr-only">Search trip</span>
+          <input
+            type="search"
+            placeholder="Search places, notes, links"
+            value={filters.search}
+            autoFocus={narrow && searchOpen && !filters.search}
+            onChange={(e) => onChange({ ...filters, search: e.target.value })}
+          />
+          {narrow && (
+            <button
+              type="button"
+              className="search-close"
+              aria-label="Close search"
+              onClick={() => {
+                onChange({ ...filters, search: '' })
+                setSearchOpen(false)
+              }}
+            >
+              <Icon name="close" size={16} />
+            </button>
+          )}
+        </label>
+      ) : (
+        <button type="button" className="icon-btn filter-icon-btn" aria-label="Search" onClick={() => setSearchOpen(true)}>
+          <Icon name="search" size={18} />
+        </button>
+      )}
       <div className="menu-wrap tag-filter" ref={ref}>
         <button className={`chip tag-filter-btn${filters.tags.length ? ' is-on' : ''}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
           Tags{filters.tags.length ? ` (${filters.tags.length})` : ''}
@@ -98,9 +128,16 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
           <span key={t}>{chip(t, true)}</span>
         ))}
       </div>
-      <button className="chip chip-more" onClick={onMore}>
-        <Icon name="filter" size={14} /> {others > 0 ? `More filters (${others})` : 'More filters'}
-      </button>
+      {narrow ? (
+        <button className={`icon-btn filter-icon-btn${others > 0 ? ' is-on' : ''}`} aria-label={others > 0 ? `More filters (${others} on)` : 'More filters'} onClick={onMore}>
+          <Icon name="filter" size={18} />
+          {others > 0 && <span className="filter-dot">{others}</span>}
+        </button>
+      ) : (
+        <button className="chip chip-more" onClick={onMore}>
+          <Icon name="filter" size={14} /> {others > 0 ? `More filters (${others})` : 'More filters'}
+        </button>
+      )}
     </div>
   )
 }
