@@ -109,8 +109,19 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
                   <Icon name="pushpin" size={12} strokeWidth={2.4} />
                 </span>
               )}
-              {time && <span className="card-time">{item.time}</span>}
-              {partText && <span className="card-time card-part">{partText}</span>}
+              {time && (
+                <span className="card-time">
+                  <Icon name="clock" size={12} strokeWidth={2.4} />
+                  {item.time}
+                  {item.endTime ? `–${item.endTime}` : ''}
+                </span>
+              )}
+              {partText && (
+                <span className="card-time card-part">
+                  <Icon name="sunrise" size={12} strokeWidth={2.2} />
+                  {partText}
+                </span>
+              )}
               {span && <span className="span-label">{span}</span>}
               {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}
               {fullMeta && fileCount > 0 && (

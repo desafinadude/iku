@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
-import { onColor } from '../colors'
 import { dayLabel, displayTitle } from '../lib'
 import type { Item } from '../types'
 import { CardImage } from './CardImage'
@@ -71,7 +70,7 @@ export function IdeaPicker({ day, ideas, onAdd, onClose }: { day: string; ideas:
                 {x.imageUrl ? (
                   <CardImage className="idea-pick-thumb" imageUrl={x.imageUrl} />
                 ) : (
-                  <span className="idea-pick-thumb" style={{ background: s.color, color: onColor(s.color) }}>
+                  <span className="idea-pick-thumb" style={{ background: s.color, color: s.fg }}>
                     <LabelIconView name={s.icon} size={20} />
                   </span>
                 )}

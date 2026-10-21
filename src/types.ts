@@ -19,6 +19,8 @@ export interface Label {
   name: string
   color: string | null
   icon: string | null
+  /** Colour of the icon (and text) on the tag's colour; null picks white or ink automatically. */
+  iconColor?: string | null
   sort: number
 }
 

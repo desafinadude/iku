@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { inkColor, onColor } from '../colors'
+import { inkColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -98,7 +98,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
             <button
               key={x.id}
               className={`month-bar${x.day === day ? ' is-start' : ''}${x.endDay === day ? ' is-end' : ''}`}
-              style={{ background: s.color, color: onColor(s.color) }}
+              style={{ background: s.color, color: s.fg }}
               onClick={() => onOpen(x)}
               title={displayTitle(x)}
             >

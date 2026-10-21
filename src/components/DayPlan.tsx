@@ -108,7 +108,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}${show.tagIcons ? ' has-icons' : ''}`} onClick={() => onOpen(item)}>
                 {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}
-                <span className="tl-num" style={{ background: c.color, color: onColor(c.color) }}>
+                <span className="tl-num" style={{ background: c.color, color: c.fg }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">

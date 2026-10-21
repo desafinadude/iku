@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import { inkColor, onColor } from '../colors'
+import { inkColor } from '../colors'
 import 'leaflet/dist/leaflet.css'
 import { useEffect } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
@@ -11,7 +11,7 @@ function icon(pin: MapPin) {
     ? L.divIcon({ className: '', html: `<span class="map-pin map-pin-idea" style="border-color:${inkColor(pin.color)};color:${inkColor(pin.color)}">${iconHtml(pin.icon, 14, 'currentColor')}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })
     : L.divIcon({
         className: '',
-        html: `<span class="map-pin" style="background:${pin.color}">${iconHtml(pin.icon, 18, onColor(pin.color))}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}</span>`,
+        html: `<span class="map-pin" style="background:${pin.color}">${iconHtml(pin.icon, 18, pin.fg)}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}</span>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16]
       })

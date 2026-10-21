@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_LABEL_ID } from '../data/normalize'
-import { iconName, SUGGESTED_ICONS } from '../labels/icons'
+import { lucideName, SUGGESTED_ICONS } from '../labels/icons'
+import { lucideNames, useLucide } from '../labels/lucide'
 import { LabelIconView } from '../labels/LabelIconView'
 import { useLabels, type TagStyle } from '../labels/LabelsContext'
 import { normalizeTag, uid } from '../lib'
 import { ColorSwatches } from './ColorSwatches'
-import { onColor } from '../colors'
 import { LABEL_COLORS, type Item, type Label } from '../types'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -43,8 +43,8 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
   // Built-in styles aren't stored yet; saving one stores it as the trip's own.
   const labelId = (t: TagStyle) => (t.label && !t.label.id.startsWith(DEFAULT_LABEL_ID) ? t.label.id : uid())
 
-  const store = (t: TagStyle, patch: { color?: string | null; icon?: string | null }) =>
-    onSave([{ id: labelId(t), tripId, kind: 'tag', name: t.name, color: patch.color !== undefined ? patch.color : t.color, icon: patch.icon !== undefined ? patch.icon : t.icon, sort: t.label?.sort ?? nextSort() }])
+  const store = (t: TagStyle, patch: { color?: string | null; icon?: string | null; iconColor?: string | null }) =>
+    onSave([{ id: labelId(t), tripId, kind: 'tag', name: t.name, color: patch.color !== undefined ? patch.color : t.color, icon: patch.icon !== undefined ? patch.icon : t.icon, iconColor: patch.iconColor !== undefined ? patch.iconColor : (t.label?.iconColor ?? null), sort: t.label?.sort ?? nextSort() }])
 
   const rename = async (t: TagStyle, raw: string) => {
     const name = normalizeTag(raw)
@@ -75,7 +75,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
   /** Saves the order shown: every tag gets a stored style row with its position. */
   const orderRows = (names: string[]): Label[] => {
     const byName = new Map(tags.map((t) => [t.name, t]))
-    return names.map((n) => byName.get(n)!).map((t, i) => ({ id: labelId(t), tripId, kind: 'tag' as const, name: t.name, color: t.color, icon: t.icon, sort: i + 1 }))
+    return names.map((n) => byName.get(n)!).map((t, i) => ({ id: labelId(t), tripId, kind: 'tag' as const, name: t.name, color: t.color, icon: t.icon, iconColor: t.label?.iconColor ?? null, sort: i + 1 }))
   }
   const saveOrder = (names: string[]) => onSave(orderRows(names))
   const move = (name: string, by: number) => {
@@ -194,7 +194,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
                 <button
                   type="button"
                   className={`tag-icon-btn${isOpen === 'icon' ? ' is-open' : ''}`}
-                  style={t.color ? { background: t.color, color: onColor(t.color) } : undefined}
+                  style={t.color ? { background: t.color, color: t.fg } : undefined}
                   aria-label={`Icon for ${t.name}`}
                   aria-expanded={isOpen === 'icon'}
                   onClick={() => setOpen(isOpen === 'icon' ? null : { name: t.name, picker: 'icon' })}
@@ -231,7 +231,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
               )}
               {isOpen === 'icon' && (
                 <div className="tag-picker">
-                  <IconPicker value={t.icon} color={t.color} onChange={(icon) => store(t, { icon })} />
+                  <IconPicker value={t.icon} color={t.color} fg={t.fg} iconColor={t.label?.iconColor ?? null} onChange={(icon) => store(t, { icon })} onColorChange={(iconColor) => store(t, { iconColor })} />
                 </div>
               )}
             </li>
@@ -256,44 +256,38 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
   )
 }
 
-/** Searchable grid of Material Symbols, plus any name typed in full. */
-function IconPicker({ value, color, onChange }: { value: string | null; color: string | null; onChange: (icon: string | null) => void }) {
+/** Searchable grid of Lucide icons (suggestions first; search covers the whole set), then the icon's colour. */
+function IconPicker({ value, color, fg, iconColor, onChange, onColorChange }: { value: string | null; color: string | null; fg: string; iconColor: string | null; onChange: (icon: string | null) => void; onColorChange: (c: string | null) => void }) {
   const [q, setQ] = useState('')
-  const names = [
-    // A typed name that isn't suggested is offered as-is (any Material Symbol works).
-    ...(q && /^[a-z0-9_]+$/.test(q) && !SUGGESTED_ICONS.includes(q) ? [q] : []),
-    ...SUGGESTED_ICONS.filter((n) => !q || n.includes(q)),
-    ...(value && !SUGGESTED_ICONS.includes(iconName(value)) && !q ? [iconName(value)] : [])
-  ]
+  useLucide()
+  const current = value ? lucideName(value) : null
+  const query = q.trim().toLowerCase().replace(/[\s_]+/g, '-')
+  const names = query
+    ? lucideNames().filter((n) => n.includes(query)).slice(0, 160)
+    : [...SUGGESTED_ICONS, ...(current && !SUGGESTED_ICONS.includes(current) ? [current] : [])]
   return (
     <>
       <div className="icon-search">
-        <input
-          placeholder="Search, or type any name from fonts.google.com/icons"
-          aria-label="Search icons"
-          autoFocus
-          value={q}
-          onChange={(e) => setQ(e.target.value.toLowerCase().trim().replace(/\s+/g, '_'))}
-        />
-        <a className="small" href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank" rel="noreferrer">
+        <input placeholder="Search all icons, e.g. sushi, temple, train" aria-label="Search icons" autoFocus value={q} onChange={(e) => setQ(e.target.value)} />
+        <a className="small" href="https://lucide.dev/icons/" target="_blank" rel="noreferrer">
           Browse all
         </a>
       </div>
       <div className="icon-grid">
-        {!q && (
+        {!query && (
           <button type="button" className={`icon-choice${!value ? ' is-on' : ''}`} aria-label="No icon" aria-pressed={!value} onClick={() => onChange(null)}>
             <span className="small">none</span>
           </button>
         )}
         {names.map((name) => {
-          const on = !!value && iconName(value) === name
+          const on = current === name
           return (
             <button
               key={name}
               type="button"
               className={`icon-choice${on ? ' is-on' : ''}`}
-              style={on && color ? { background: color, borderColor: color, color: onColor(color) } : undefined}
-              aria-label={name.replace(/_/g, ' ')}
+              style={on && color ? { background: color, borderColor: color, color: fg } : undefined}
+              aria-label={name.replace(/-/g, ' ')}
               title={name}
               aria-pressed={on}
               onClick={() => onChange(name)}
@@ -302,6 +296,11 @@ function IconPicker({ value, color, onChange }: { value: string | null; color: s
             </button>
           )
         })}
+        {query && names.length === 0 && <p className="muted small">No icons match “{q}”.</p>}
+      </div>
+      <div className="icon-colour">
+        <span className="field-label">Icon colour</span>
+        <ColorSwatches value={iconColor} onChange={onColorChange} none={{ label: 'Automatic (white or dark)' }} />
       </div>
     </>
   )

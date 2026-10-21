@@ -1,4 +1,3 @@
-import { onColor } from '../colors'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 
@@ -10,7 +9,7 @@ export function TagIcons({ tags }: { tags: string[] }) {
   return (
     <div className="tag-icons" aria-label={`Tags: ${tags.join(', ')}`}>
       {styled.map((s) => (
-        <span key={s.name} className="tag-icon" title={s.name} style={{ background: s.color ?? 'var(--soft)', color: s.color ? onColor(s.color) : 'var(--ink-2)' }}>
+        <span key={s.name} className="tag-icon" title={s.name} style={{ background: s.color ?? 'var(--soft)', color: s.fg }}>
           {s.icon ? <LabelIconView name={s.icon} size={15} /> : <span className="tag-icon-letter">{s.name.slice(0, 1)}</span>}
         </span>
       ))}

@@ -1,5 +1,4 @@
 import { useLabels } from '../labels/LabelsContext'
-import { onColor } from '../colors'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Prefs } from '../usePrefs'
 import { EMPTY_FILTERS, statusOf, type Filters, type Item, type Member, type Status } from '../types'
@@ -84,7 +83,7 @@ export function FilterSheet({ filters, items, allTags, members, onManage, prefs,
               <button
                 key={tag}
                 className={`chip${on ? ' is-on-dark' : ''}${st.color ? ' chip-solid' : ''}`}
-                style={st.color ? { background: st.color, borderColor: st.color, color: onColor(st.color) } : undefined}
+                style={st.color ? { background: st.color, borderColor: st.color, color: st.fg } : undefined}
                 aria-pressed={on}
                 onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}
               >

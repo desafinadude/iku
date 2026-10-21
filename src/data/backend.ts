@@ -256,11 +256,12 @@ interface LabelRow {
   name: string
   color: string | null
   icon: string | null
+  icon_color?: string | null
   sort: number
 }
 
-const fromLabelRow = (r: LabelRow): Label => ({ id: r.id, tripId: r.trip_id, kind: r.kind, name: r.name, color: r.color, icon: r.icon, sort: r.sort })
-const toLabelRow = (l: Label): LabelRow => ({ id: l.id, trip_id: l.tripId, kind: l.kind, name: l.name, color: l.color, icon: l.icon, sort: l.sort })
+const fromLabelRow = (r: LabelRow): Label => ({ id: r.id, tripId: r.trip_id, kind: r.kind, name: r.name, color: r.color, icon: r.icon, iconColor: r.icon_color ?? null, sort: r.sort })
+const toLabelRow = (l: Label): LabelRow => ({ id: l.id, trip_id: l.tripId, kind: l.kind, name: l.name, color: l.color, icon: l.icon, icon_color: l.iconColor ?? null, sort: l.sort })
 
 const LABELS_MIGRATION = 'Run supabase/migrations/006_labels.sql to manage types and tags.'
 
@@ -444,7 +445,12 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       return data.signedUrl
     },
     saveLabels: async (labels) => {
-      const res = await sb.from('labels').upsert(labels.map(toLabelRow))
+      let res = await sb.from('labels').upsert(labels.map(toLabelRow))
+      // Before migration 013 there is no icon_color column: styles without an icon colour still save.
+      if (res.error && /icon_color/.test(res.error.message)) {
+        if (labels.some((l) => l.iconColor)) throw new Error('Run supabase/migrations/013_icon_colour_and_background.sql to choose icon colours.')
+        res = await sb.from('labels').upsert(labels.map(toLabelRow).map(({ icon_color: _ic, ...r }) => r))
+      }
       if (res.error) throw new Error(/labels/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
     },
     deleteLabel: async (id) => {

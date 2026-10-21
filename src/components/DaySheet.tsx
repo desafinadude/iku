@@ -145,7 +145,7 @@ export function DaySheet({ day, days, onSave, onClose, onUploadCover }: Props) {
             .filter((t) => t.color)
             .slice(0, 12)
             .map((t) => (
-              <button key={t.name} type="button" className="suggest" style={normalizeTag(tag) === t.name ? { background: t.color!, borderColor: t.color!, color: onColor(t.color) } : { borderColor: t.color!, color: inkColor(t.color) }} aria-pressed={normalizeTag(tag) === t.name} onClick={() => setTag(t.name)}>
+              <button key={t.name} type="button" className="suggest" style={normalizeTag(tag) === t.name ? { background: t.color!, borderColor: t.color!, color: t.fg } : { borderColor: t.color!, color: inkColor(t.color) }} aria-pressed={normalizeTag(tag) === t.name} onClick={() => setTag(t.name)}>
                 {t.icon && <LabelIconView name={t.icon} size={14} />} {t.name}
               </button>
             ))}
