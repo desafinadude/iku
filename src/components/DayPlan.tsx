@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useSwipe } from '../useSwipe'
 import { inkColor, onColor } from '../colors'
-import { dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
+import { bands, dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -36,6 +36,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
   const today = itemsForDay(items, selectedDay, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
+  let num = 0
   // Swipe left or right to go to the next or previous day; the day strip keeps the chosen day in view.
   const swipe = useSwipe(
     () => index > 0 && onSelectDay(days[index - 1]),
@@ -89,8 +90,16 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           })}
         </div>
       </div>
+      {/* Numbered through the day, grouped under All day / Morning / Afternoon / Evening / Night. */}
       <ol className="timeline">
-        {today.map((item, i) => {
+        {bands(today, selectedDay)
+          .filter((g) => g.items.length)
+          .flatMap((g) => [
+            <li key={'band-' + (g.part ?? 'allday')} className={`tl-band ${g.part ? 'part-' + g.part : 'part-allday'}`}>
+              {g.part ? partLabel(g.part) : 'All day'}
+            </li>,
+            ...g.items.map((item) => {
+          const i = num++
           const c = itemStyle(item)
           const otherTags = item.tags.filter((t) => t !== c.name)
           const creator = memberFor(members, item.createdBy)
@@ -158,7 +167,8 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               </button>
             </li>
           )
-        })}
+        })
+          ])}
         {today.length === 0 && <p className="empty">Nothing planned yet.</p>}
       </ol>
       <button className="add-from-ideas" onClick={onShowIdeas}>

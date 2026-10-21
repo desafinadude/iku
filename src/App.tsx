@@ -30,7 +30,7 @@ import { Unlock } from './components/Unlock'
 import { isCoverRef } from './data/backend'
 import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { displayTitle, domainOf, isUrl, itemsForDay, partOf, partOfTime, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
+import { bandOf, displayTitle, domainOf, isUrl, itemsForDay, partOfTime, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
 import { EMPTY_FILTERS, type Attachment, type DayPart, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
@@ -44,6 +44,9 @@ const collisions: CollisionDetection = (args) => {
   const hits = pointerWithin(args).filter((h) => h.id !== self)
   const cards = hits.filter((h) => isCard(h.id))
   if (cards.length) return cards
+  // A band of a day beats the day column around it.
+  const parts = hits.filter((h) => String(h.id).startsWith('part:'))
+  if (parts.length) return parts
   return hits.length ? hits : rectIntersection(args).filter((h) => !isCard(h.id))
 }
 
@@ -239,8 +242,11 @@ function Planner() {
       if (zone.zone === 'day' && zone.part !== undefined) {
         // Day-parts view: the entry joins the target's part (keeping an exact time only if it fits there).
         const keepTime = !!item.time && zone.part !== null && partOfTime(item.time) === zone.part
-        const patch = zone.part === partOf(item) ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
-        arrange(id, itemsForDay(items, zone.day, 'time').filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
+        const samePart = zone.part === bandOf(item, zone.day)
+        const patch = samePart ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
+        arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
+        // Re-ordering within a band of a day column switches the days to your own order, as in plain columns.
+        if (samePart && item.day === zone.day && prefs.daysView === 'board' && prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
       } else if (zone.zone === 'day') {
         arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day)
         if (prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })

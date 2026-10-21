@@ -100,6 +100,20 @@ export function partOf(item: Item): DayPart | null {
   return item.time ? partOfTime(item.time) : item.part
 }
 
+/**
+ * Which band of a day an entry shows in: null for "All day" (stays and other multi-day entries, and entries with
+ * neither a time nor a part), else its part of the day.
+ */
+export function bandOf(item: Item, day: string): DayPart | null {
+  if ((item.endDay && item.endDay !== item.day) || item.day !== day) return null
+  return partOf(item)
+}
+
+/** The bands of a day in order, each with its entries (keeping the given order within a band). */
+export function bands(items: Item[], day: string) {
+  return [null, ...DAY_PARTS.map((p) => p.id)].map((part) => ({ part, items: items.filter((x) => bandOf(x, day) === part) }))
+}
+
 export const partLabel = (part: DayPart | null) => DAY_PARTS.find((p) => p.id === part)?.label ?? null
 
 /** Sort key in minutes: exact times as they are; an entry placed in a part goes after that part's timed ones. */

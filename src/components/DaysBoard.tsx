@@ -3,9 +3,9 @@ import { inkColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
-import { dayLabel, itemsForDay } from '../lib'
+import { bands, dayLabel, itemsForDay, partLabel } from '../lib'
 import type { CardShow, Prefs } from '../usePrefs'
-import type { Attachment, Item, Member } from '../types'
+import type { Attachment, DayPart, Item, Member } from '../types'
 import { CardImage } from './CardImage'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
@@ -113,15 +113,30 @@ function DayColumn(props: {
           <Icon name="edit" size={15} />
         </button>
       </div>
+      {/* The day in bands: All day, then morning to night. Each band is a drop target. */}
       <div className="day-col-items">
-        {props.items.map((item) => (
-          <ItemCard key={item.id} item={item} members={props.members} variant="plan" day={props.day} tagsOnRepeats={props.tagsOnRepeats} show={props.show} fileCount={props.attachments.filter((a) => a.itemId === item.id).length} onOpen={props.onOpen} />
+        {bands(props.items, props.day).map((b) => (
+          <ColumnBand key={b.part ?? 'allday'} day={props.day} part={b.part}>
+            {b.items.map((item) => (
+              <ItemCard key={item.id} item={item} members={props.members} variant="plan" day={props.day} part={b.part} tagsOnRepeats={props.tagsOnRepeats} show={props.show} fileCount={props.attachments.filter((a) => a.itemId === item.id).length} onOpen={props.onOpen} />
+            ))}
+          </ColumnBand>
         ))}
-        {props.items.length === 0 && <div className="drop-hint">Drop ideas here</div>}
         <button className="ghost-btn" onClick={props.onAdd}>
           <Icon name="plus" size={14} /> Add
         </button>
       </div>
+    </div>
+  )
+}
+
+/** One band of a day column (null: All day). Dropping an entry here puts it in that part of the day. */
+function ColumnBand({ day, part, children }: { day: string; part: DayPart | null; children: ReactNode[] }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `part:${day}:${part ?? 'none'}` })
+  return (
+    <div ref={setNodeRef} className={`col-band ${part ? 'part-' + part : 'part-allday'}${children.length ? '' : ' is-empty'}${isOver ? ' is-over' : ''}`}>
+      <span className="col-band-label">{part ? partLabel(part) : 'All day'}</span>
+      {children}
     </div>
   )
 }
