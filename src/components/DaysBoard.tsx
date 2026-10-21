@@ -2,7 +2,6 @@ import { useDroppable } from '@dnd-kit/core'
 import { inkColor } from '../colors'
 import type { ReactNode } from 'react'
 import { useLabels } from '../labels/LabelsContext'
-import { LabelIconView } from '../labels/LabelIconView'
 import { bands, dayLabel, itemsForDay, partLabel } from '../lib'
 import type { CardShow, Prefs } from '../usePrefs'
 import type { Attachment, DayPart, Item, Member } from '../types'
@@ -77,9 +76,8 @@ function DayColumn(props: {
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'day:' + props.day })
   const l = dayLabel(props.day)
-  const { dayStyle, tagStyle } = useLabels()
+  const { dayStyle } = useLabels()
   const ds = dayStyle(props.day)
-  const tag = ds.tag ? tagStyle(ds.tag) : null
   return (
     <div
       ref={setNodeRef}
@@ -96,7 +94,6 @@ function DayColumn(props: {
               {l.dow} <span className="muted">· Day {props.index + 1}</span>
             </b>
             <span className="day-title" style={ds.header ? { color: ds.headerFg! } : ds.color ? { color: inkColor(ds.color) } : undefined}>
-              {tag?.icon && <LabelIconView name={tag.icon} size={14} />}
               {ds.title ?? ds.tag ?? <span className="muted">{props.items.length ? `${props.items.length} stops` : 'Empty'}</span>}
             </span>
           </span>

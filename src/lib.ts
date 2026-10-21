@@ -74,7 +74,8 @@ export function matches(item: Item, f: Filters) {
     if (!hay.includes(q)) return false
   }
   if (f.statuses.length && !f.statuses.includes(statusOf(item))) return false
-  if (f.people.length && !(item.createdBy && f.people.includes(item.createdBy))) return false
+  // People filter: entries with any of the chosen people on them.
+  if (f.people.length && !(item.people ?? []).some((p) => f.people.includes(p))) return false
   if (f.tags.length) {
     const ok = f.matchAllTags ? f.tags.every((t) => item.tags.includes(t)) : f.tags.some((t) => item.tags.includes(t))
     if (!ok) return false

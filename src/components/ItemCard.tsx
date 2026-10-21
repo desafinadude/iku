@@ -8,7 +8,7 @@ import { displayTitle, domainOf, isPhotoCard, partLabel, spanLabel } from '../li
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import type { DayPart, Item, Member } from '../types'
-import { Avatar, memberFor } from './Avatar'
+import { PeopleBadges } from './PeopleBadges'
 import { Icon } from './Icon'
 import { TagChips } from './TagChips'
 
@@ -35,7 +35,6 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
-  const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
   // Cards are drop targets too, so cards can be arranged by dropping one before or after another.
   const zone: CardZone = variant === 'pin' ? { zone: 'ideas' } : { zone: 'day', day: day ?? item.day ?? '', part }
@@ -48,7 +47,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const ordered = c.name ? [c.name, ...item.tags.filter((t) => t !== c.name)] : item.tags
   // Repeat cards of multi-day entries keep just the colour tag unless "Show tags on repeats" is on.
   const shownTags = continuing && !tagsOnRepeats ? ordered.slice(0, c.name ? 1 : 0) : ordered
-  const showCreator = !!creator && !continuing
+  // Who added it shows in the entry's details; the card shows the people on it instead.
+  const people = continuing && !tagsOnRepeats ? [] : (item.people ?? [])
   const domain = domainOf(item.url)
   const [imgBroken, setImgBroken] = useState(false)
   const image = show.image && item.imageUrl && !imgBroken ? item.imageUrl : null
@@ -61,7 +61,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   const partText = variant === 'plan' && !item.time && !continuing && part === undefined ? partLabel(item.part) : null
   const fullMeta = show.details && (item.pinned || time || !!partText || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
   const note = show.details && !!item.note && !continuing
-  const footShown = show.tags && (shownTags.length > 0 || showCreator)
+  const footShown = show.tags && (shownTags.length > 0 || people.length > 0)
   const iconsShown = show.tagIcons && shownTags.some((t) => tagStyle(t).color || tagStyle(t).icon)
   // The title shows when it's ticked, or when the card would otherwise be empty.
   const titleShown = !photoOnly && (show.title || (!imageShown && !fullMeta && !note && !footShown && !iconsShown))
@@ -104,7 +104,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         </div>
       ) : (
         <>
-        {show.tagIcons && <TagIcons tags={shownTags} />}
+        {show.tagIcons && <TagIcons tags={shownTags} people={people} members={members} />}
         {imageShown && (
           <div className={`card-photo${variant === 'plan' ? ' card-photo-plan' : ''}${photoOnly ? ' is-whole' : ''}`}>
             <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
@@ -170,11 +170,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         {footShown && (
           <div className="card-foot">
             <TagChips tags={shownTags} small />
-            {showCreator && (
-              <span className="card-creator">
-                <Avatar member={creator!} size={20} />
-              </span>
-            )}
+            <PeopleBadges people={people} members={members} small />
           </div>
         )}
         </>

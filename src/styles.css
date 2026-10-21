@@ -783,3 +783,55 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .day-col .col-band.part-afternoon { background: rgba(240, 150, 90, .12); }
 .day-col .col-band.part-evening { background: rgba(130, 110, 200, .11); }
 .day-col .col-band.part-night { background: rgba(60, 80, 120, .12); }
+
+/* The simple colour picker: a labelled box that opens a short palette */
+.color-field { position: relative; }
+.color-field + .color-field { margin-top: 6px; }
+.color-field-btn { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px 0 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; color: var(--ink); }
+.color-field-btn[aria-expanded='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.color-field-chip { width: 30px; height: 30px; flex: none; border-radius: 6px; border: 1px solid rgba(23, 32, 29, .12); }
+.color-field-chip.is-empty { background: repeating-linear-gradient(45deg, #fff 0 4px, #e3e5e0 4px 8px); }
+.color-field-label { flex: 1; font-weight: 600; font-size: 15px; }
+.color-pop { position: absolute; z-index: 950; left: 0; top: calc(100% + 6px); width: min(320px, calc(100vw - 32px)); padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 32px rgba(23, 32, 29, .18); }
+.palette { display: flex; flex-direction: column; gap: 10px; }
+.palette-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.palette-swatch { aspect-ratio: 1; border-radius: 7px; border: 1px solid rgba(23, 32, 29, .12); display: grid; place-items: center; color: #fff; padding: 0; }
+.palette-swatch.is-on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.palette-swatch.is-on svg { filter: drop-shadow(0 0 1px rgba(0, 0, 0, .6)); }
+.palette-extra { display: flex; flex-wrap: wrap; gap: 6px; }
+.palette-custom { position: relative; gap: 6px; cursor: pointer; }
+.palette-custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.palette-rainbow { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899, #ef4444); }
+.palette-gradient { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.palette-stops { display: flex; gap: 6px; }
+.palette-stop { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px 0 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 13px; }
+.palette-stop.is-on { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); font-weight: 600; }
+.palette-stop-chip { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(23, 32, 29, .15); }
+.tag-picker .palette { max-width: 340px; }
+.day-preview-col { border-radius: 8px; overflow: hidden; padding-bottom: 28px; border: 1px solid var(--line); }
+.day-preview-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.day-preview-head .day-num { font-family: var(--display); font-size: 26px; font-weight: 700; }
+
+/* Day parts: roomier, with clearer labels */
+.day-col .col-band { padding: 10px 10px 14px; gap: 8px; }
+.day-col .col-band.is-empty { padding-top: 10px; padding-bottom: 10px; }
+.col-band-label { font-size: 11.5px; opacity: 1; color: var(--ink); letter-spacing: .07em; }
+.part-band { min-height: 170px; }
+.part-band.part-allday { min-height: 80px; }
+.part-side { padding: 14px 10px 14px 14px; gap: 4px; }
+.part-side b { font-size: 17px; color: var(--ink); }
+.part-side .small { color: var(--ink-2); opacity: 1; font-size: 13px; font-weight: 500; }
+.part-items { padding: 12px; gap: 10px; }
+.timeline .tl-band { font-size: 12px; color: var(--ink); padding: 4px 12px; margin-top: 10px; }
+
+/* People badges and the people filter */
+.person-badge { display: inline-flex; align-items: center; gap: 5px; min-height: 22px; padding: 2px 9px 2px 2px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.person-badge.is-small { min-height: 20px; font-size: 11.5px; }
+.tag-icon-face { overflow: hidden; }
+.tag-icon-face .avatar { border-radius: 0; }
+.people-filter { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.person-toggle { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 52px; padding: 4px; border: 0; border-radius: 10px; background: none; font-size: 11px; color: var(--ink-2); }
+.person-toggle .avatar { box-shadow: 0 0 0 2px var(--surface); }
+.person-toggle.is-on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }
+.person-toggle.is-on .avatar { box-shadow: 0 0 0 2px var(--accent); }
+.filter-person { padding-left: 3px; }

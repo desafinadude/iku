@@ -60,6 +60,8 @@ export interface Item {
   pinned: boolean
   /** A title card: shown as a big picture with its title, marking a new chapter (arriving somewhere). */
   chapter: boolean
+  /** Trip members on this entry (emails), shown as face badges. */
+  people: string[]
   bookingRef: string | null
   place: string | null
   /** Google place id when the place was picked from Google search. */

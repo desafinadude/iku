@@ -5,7 +5,7 @@ import { lucideNames, useLucide } from '../labels/lucide'
 import { LabelIconView } from '../labels/LabelIconView'
 import { useLabels, type TagStyle } from '../labels/LabelsContext'
 import { normalizeTag, uid } from '../lib'
-import { ColorSwatches } from './ColorSwatches'
+import { ColorField, ColorPalette } from './ColorField'
 import { LABEL_COLORS, type Item, type Label } from '../types'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -226,7 +226,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
               </div>
               {isOpen === 'color' && (
                 <div className="tag-picker">
-                  <ColorSwatches value={t.color} onChange={(color) => store(t, { color })} none={{ label: 'No colour' }} />
+                  <ColorPalette value={t.color} onChange={(color) => store(t, { color })} none="No colour" />
                 </div>
               )}
               {isOpen === 'icon' && (
@@ -311,8 +311,7 @@ function IconPicker({ value, color, fg, iconColor, onChange, onColorChange }: { 
         />
       </div>
       <div className="icon-colour">
-        <span className="field-label">Icon colour</span>
-        <ColorSwatches value={iconColor} onChange={onColorChange} none={{ label: 'Automatic (white or dark)' }} />
+        <ColorField label="Icon colour" value={iconColor} onChange={onColorChange} none="Automatic" emptyText="Automatic (white or dark)" />
       </div>
     </>
   )

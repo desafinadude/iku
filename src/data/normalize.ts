@@ -4,7 +4,7 @@ import { DEFAULT_TAG_STYLES, type Item, type Label } from '../types'
 /** Entries saved before types became tags carry a `type`; it becomes their first tag. */
 export function normalizeItem(raw: Item & { type?: string | null }): Item {
   const { type, ...item } = raw
-  return { ...item, tags: cleanTags([type, ...(raw.tags ?? [])]) }
+  return { ...item, people: raw.people ?? [], tags: cleanTags([type, ...(raw.tags ?? [])]) }
 }
 
 /** Synthetic styles (not stored yet) have ids starting with this. */
