@@ -126,7 +126,7 @@ Tap the pencil on a day column (next to the date on phones, or in the Parts head
 
 The filter bar has search, a **Tags** dropdown (coloured tags with checkboxes, a finder, and *only entries with all chosen tags*), the chosen tags as removable chips, and **More filters** for people and status.
 
-Colours come in four shades (pastel, light, bright, deep) for tags, people and days. Text and icons switch to dark on pale colours so they stay readable.
+The colour picker (tags, people and days) has 16 hues around the colour wheel in four shades each (pastel, light, bright, deep), the original muted colours, and a rainbow swatch that opens your device's own picker for any colour. Text and icons switch to dark on pale colours so they stay readable.
 
 Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry. All tags are in one list: tap a row's swatch to pick a colour or its icon to pick any [Material Symbol](https://fonts.google.com/icons), edit the name in place (renaming to an existing name merges the two), delete with the bin, and add new tags in the box at the bottom. Drag the ⋮⋮ handle (or focus it and use the arrow keys) to reorder; the order is used in the Tags filter and tag suggestions. Changes save straight away.
 
