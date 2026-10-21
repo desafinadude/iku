@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { activeFilterCount } from '../lib'
+import { activeFilterCount, displayName } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
-import type { Filters, Item } from '../types'
+import type { Filters, Item, Member } from '../types'
+import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { useMediaQuery } from '../useMediaQuery'
 
@@ -11,6 +12,7 @@ interface Props {
   items: Item[]
   onChange: (f: Filters) => void
   onMore: () => void
+  members: Member[]
 }
 
 export function toggle<T>(list: T[], v: T) {
@@ -18,7 +20,7 @@ export function toggle<T>(list: T[], v: T) {
 }
 
 /** Search, a Tags dropdown (coloured tags with checkboxes), the chosen tags as chips, and More filters. */
-export function FilterBar({ filters, items, onChange, onMore }: Props) {
+export function FilterBar({ filters, items, onChange, onMore, members }: Props) {
   const { tagStyle, tags } = useLabels()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -39,7 +41,7 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
     }
   }, [open])
   const count = (t: string) => items.filter((x) => x.tags.includes(t)).length
-  const others = activeFilterCount(filters) - filters.tags.length - (filters.search ? 1 : 0)
+  const others = activeFilterCount(filters) - filters.tags.length - filters.people.length - (filters.search ? 1 : 0)
   // Coloured tags first (in their manager order), then the rest by use; unused ones only when chosen.
   const list = tags.map((t) => t.name).filter((t) => (count(t) > 0 || filters.tags.includes(t)) && t.toLowerCase().includes(q.trim().toLowerCase()))
 
@@ -92,19 +94,32 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
       )}
       <div className="menu-wrap tag-filter" ref={ref}>
         <button className={`chip tag-filter-btn${filters.tags.length ? ' is-on' : ''}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-          Tags{filters.tags.length ? ` (${filters.tags.length})` : ''}
+          Tags{filters.tags.length + filters.people.length ? ` (${filters.tags.length + filters.people.length})` : ''}
           <Icon name="chevronDown" size={14} />
         </button>
         {open && (
-          <div className="menu tag-filter-menu" role="menu" aria-label="Filter by tag">
+          <div className="menu tag-filter-menu" role="menu" aria-label="Filter by people and tags">
             <div className="tag-filter-top">
               <input type="search" placeholder="Find a tag" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Find a tag" autoFocus />
-              {filters.tags.length > 0 && (
-                <button type="button" className="text-btn" onClick={() => onChange({ ...filters, tags: [] })}>
+              {filters.tags.length + filters.people.length > 0 && (
+                <button type="button" className="text-btn" onClick={() => onChange({ ...filters, tags: [], people: [] })}>
                   Clear
                 </button>
               )}
             </div>
+            {members.length > 0 && (
+              <div className="people-filter" role="group" aria-label="People">
+                {members.map((m) => {
+                  const on = filters.people.includes(m.email)
+                  return (
+                    <button key={m.email} type="button" className={`person-toggle${on ? ' is-on' : ''}`} aria-pressed={on} title={displayName(m)} onClick={() => onChange({ ...filters, people: toggle(filters.people, m.email) })}>
+                      <Avatar member={m} size={30} />
+                      <span>{displayName(m).split(' ')[0]}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             <div className="tag-filter-list">
               {list.map((t) => (
                 <label key={t} className="menu-item menu-check-item tag-filter-row">
@@ -123,6 +138,15 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
         )}
       </div>
       <div className="chip-scroll filter-chosen">
+        {filters.people.map((email) => (
+          <span key={email} className="filter-tag filter-person">
+            <Avatar member={memberFor(members, email)!} size={18} />
+            {displayName(memberFor(members, email)!).split(' ')[0]}
+            <button type="button" aria-label={`Stop filtering by ${displayName(memberFor(members, email)!)}`} onClick={() => onChange({ ...filters, people: filters.people.filter((p) => p !== email) })}>
+              <Icon name="close" size={12} strokeWidth={2.6} />
+            </button>
+          </span>
+        ))}
         {filters.tags.map((t) => (
           <span key={t}>{chip(t, true)}</span>
         ))}

@@ -125,7 +125,7 @@ Open your profile (the avatars, top right) and set a **Trip background**: a phot
 
 ## Day titles, tags and colours
 
-Tap the pencil on a day column (next to the date on phones, or in the Parts header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. The sheet also sets the column's **header colour**, and a **blend** colour for a travel day: the column fades from the day's colour at the top into the blend (one tap picks the next day's colour). Run `supabase/migrations/015_day_header_and_blend.sql` to save these. **Title cards:** to mark a new chapter (arriving in a city), use **Add a title card to this day** in the day's sheet, or tick *Title card* on any entry. It shows as a big picture (or colour block) with its title, and sits where you put it: drag it to the evening if you arrive in the evening. Without a time it leads its part of the day. Run `supabase/migrations/014_title_cards.sql`; it also turns any earlier day opening images into title cards. Run `supabase/migrations/009_trip_days.sql` to save day settings.
+Tap the pencil on a day column (next to the date on phones, or in the Parts header) to give a day a **title** (say "Tokyo → Kyoto") and **colours**: the **Column** and the **Header**. Each is a box that opens a short palette; tick **Gradient** for a travel day to fade from one colour at the top into another at the bottom. Use **Same for the following days, through** to set a run of days in one go. Month cells, the phone day strip and the map chips use the colour too. **Title cards:** to mark a new chapter (arriving in a city), use **Add a title card to this day**, or tick *Title card* on any entry; it shows as a big picture with its title wherever you place it in the day. Run migrations 009, 014 and 015 to save all of this.
 
 ## Tags
 
@@ -141,7 +141,7 @@ Entries just have tags (plain words, no `#`). Open **Manage tags** from the filt
 
 ## Trip members
 
-Each person signs in with their own Supabase user, listed in `trip_members`. On first sign-in they're asked for a name, and can add a photo and pick a colour. Photos are shrunk in the browser to a 160×160 JPEG (a few KB) and stored as text on their `trip_members` row, so there's no Storage bucket to set up. Every item records who added it and who last edited it. The database sets these, so they can't be faked, and you can filter by person.
+Each person signs in with their own Supabase user, listed in `trip_members`. Add people to an entry in the editor (**People**) to show their faces as badges on the card and to filter by them (the Tags dropdown and More filters); run `supabase/migrations/016_people_on_entries.sql` first. On first sign-in they're asked for a name, and can add a photo and pick a colour. Photos are shrunk in the browser to a 160×160 JPEG (a few KB) and stored as text on their `trip_members` row, so there's no Storage bucket to set up. Every item records who added it and who last edited it. The database sets these, so they can't be faked, and you can filter by person.
 
 ## Structure
 

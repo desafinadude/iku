@@ -4,6 +4,7 @@ import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ColumnsCont
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { useImageSrc } from './components/CardImage'
+import { colorCss } from './colors'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
 import { DaySelect, IdeaPicker } from './components/DayAssign'
@@ -91,10 +92,10 @@ function Planner() {
   const [online, setOnline] = useState(() => navigator.onLine)
   // The trip's page background: a colour, or a photo (lightly washed so the planner stays readable).
   const bg = trip?.background ?? null
-  const bgIsColour = !!bg && /^#[0-9a-f]{6}$/i.test(bg)
+  const bgIsColour = !!bg && /^#[0-9a-f]{6}(>#[0-9a-f]{6})?$/i.test(bg)
   const bgImage = useImageSrc(bg && !bgIsColour ? bg : null)
   const pageStyle = bgIsColour
-    ? { backgroundColor: bg! }
+    ? { background: colorCss(bg) }
     : bgImage
       ? { backgroundImage: `linear-gradient(rgba(244, 245, 241, .3), rgba(244, 245, 241, .3)), url("${bgImage.replace(/"/g, '%22')}")` }
       : undefined
@@ -195,6 +196,7 @@ function Planner() {
     booked: false,
     pinned: false,
     chapter: false,
+    people: [],
     part: null,
     bookingRef: null,
     place: null,
@@ -446,7 +448,7 @@ function Planner() {
           </div>
         )}
 
-        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
+        {(wide || tab === 'ideas' || tab === 'map') && <FilterBar filters={filters} items={items} members={members} onChange={setFilters} onMore={() => setSheet({ kind: 'filters' })} />}
 
         {error && (
           <div className="error-bar" role="alert">

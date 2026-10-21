@@ -1,4 +1,4 @@
-import { onColor } from '../colors'
+import { colorCss, firstColor, isLight, onColor } from '../colors'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { normalizeLabels } from '../data/normalize'
 import type { DayInfo, Item, Label } from '../types'
@@ -82,14 +82,16 @@ export function LabelsProvider({ tripId, labels, items, days = [], children }: {
         return t ? { name: t.name, color: t.color!, fg: t.fg, bg: t.bg!, icon: t.icon ?? 'location_on' } : neutral
       },
       dayStyle: (day) => {
+        // A pale colour is used as picked; a strong one is softened so cards stay readable on it.
+        const soft = (c: string) => (isLight(c) ? c : tint(c, 0.16))
         const info = days.find((d) => d.day === day) ?? null
         const color = info?.color ?? (info?.tag ? tagStyle(info.tag).color : null)
         return { info, title: info?.title ?? null, tag: info?.tag ?? null, color,
-          bg: color ? tint(color, 0.13) : null,
+          bg: color ? soft(color) : null,
           image: info?.image ?? null,
-          background: info?.blendColor ? `linear-gradient(to bottom, ${color ? tint(color, 0.13) : '#edeeea'} 0%, ${tint(info.blendColor, 0.13)} 100%)` : color ? tint(color, 0.13) : null,
-          header: info?.headerColor ?? null,
-          headerFg: info?.headerColor ? onColor(info.headerColor) : null
+          background: info?.blendColor ? `linear-gradient(to bottom, ${color ? soft(color) : '#edeeea'} 0%, ${soft(info.blendColor)} 100%)` : color ? soft(color) : null,
+          header: colorCss(info?.headerColor) ?? null,
+          headerFg: info?.headerColor ? onColor(firstColor(info.headerColor)) : null
         }
       },
       labels: styled

@@ -220,6 +220,7 @@ interface ItemRow {
   booked: boolean
   pinned?: boolean | null
   chapter?: boolean | null
+  people?: string[] | null
   booking_ref: string | null
   place: string | null
   place_id?: string | null
@@ -296,6 +297,7 @@ const fromRow = (r: ItemRow): Item => normalizeItem({
   booked: r.booked,
   pinned: !!r.pinned,
   chapter: !!r.chapter,
+  people: r.people ?? [],
   bookingRef: r.booking_ref,
   place: r.place,
   placeId: r.place_id || null,
@@ -308,7 +310,7 @@ const fromRow = (r: ItemRow): Item => normalizeItem({
   updatedAt: r.updated_at ?? null
 })
 
-const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean, hasPinned: boolean, hasPart: boolean, hasChapter: boolean): ItemRow => ({
+const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean, hasPinned: boolean, hasPart: boolean, hasChapter: boolean, hasPeople: boolean): ItemRow => ({
   id: i.id,
   trip_id: i.tripId,
   title: i.title,
@@ -333,6 +335,8 @@ const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean, hasPinned: bool
   ...(hasPinned ? { pinned: i.pinned } : {}),
   // chapter only exists after migration 014.
   ...(hasChapter ? { chapter: i.chapter } : {}),
+  // people only exists after migration 016.
+  ...(hasPeople ? { people: i.people } : {}),
   booking_ref: i.bookingRef,
   place: i.place,
   // Only sent when set, so saving works before migration 005; clearing sends ''.
@@ -354,6 +358,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
   let hasPinned = false
   let hasPart = false
   let hasChapter = false
+  let hasPeople = false
   let attachments: Attachment[] = []
   return {
     mode: 'supabase',
@@ -374,7 +379,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
       const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date, background: t.background ?? null }
-      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes, pinnedProbe, partProbe, chapterProbe] = await Promise.all([
+      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes, pinnedProbe, partProbe, chapterProbe, peopleProbe] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
         sb.from('attachments').select('*').eq('trip_id', trip.id), // missing before migration 004
@@ -384,13 +389,15 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
         sb.from('trip_days').select('*').eq('trip_id', trip.id), // missing before migration 009
         sb.from('items').select('pinned').limit(1), // missing before migration 011
         sb.from('items').select('part').limit(1), // missing before migration 012
-        sb.from('items').select('chapter').limit(1) // missing before migration 014
+        sb.from('items').select('chapter').limit(1), // missing before migration 014
+        sb.from('items').select('people').limit(1) // missing before migration 016
       ])
       const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => { const r = d as DayInfo & { header_color?: string | null; blend_color?: string | null }; return { day: r.day, title: r.title, tag: r.tag, color: r.color, image: r.image ?? null, headerColor: r.header_color ?? null, blendColor: r.blend_color ?? null } })
       hasEndTime = !endTimeProbe.error
       hasPinned = !pinnedProbe.error
       hasPart = !partProbe.error
       hasChapter = !chapterProbe.error
+      hasPeople = !peopleProbe.error
       const labels = labelRes.error ? [] : ((labelRes.data ?? []) as LabelRow[]).map(fromLabelRow)
       hasEndDay = !endDayProbe.error
       attachments = attachmentRes.error ? [] : ((attachmentRes.data ?? []) as AttachmentRow[]).map(fromAttachmentRow)
@@ -409,7 +416,8 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (item.pinned && !hasPinned) throw new Error('Run supabase/migrations/011_pinned.sql to pin entries to the top.')
       if (item.part && !hasPart) throw new Error('Run supabase/migrations/012_day_parts.sql to place entries in a part of the day.')
       if (item.chapter && !hasChapter) throw new Error('Run supabase/migrations/014_title_cards.sql to make title cards.')
-      const res = await sb.from('items').upsert(toRow(item, hasEndDay, hasEndTime, hasPinned, hasPart, hasChapter))
+      if (item.people.length && !hasPeople) throw new Error('Run supabase/migrations/016_people_on_entries.sql to add people to entries.')
+      const res = await sb.from('items').upsert(toRow(item, hasEndDay, hasEndTime, hasPinned, hasPart, hasChapter, hasPeople))
       if (res.error && /items_type_check/.test(res.error.message)) throw new Error('Run supabase/migrations/006_labels.sql to use your own types.')
       if (res.error && /place_id/.test(res.error.message)) throw new Error('Run supabase/migrations/005_google_places.sql to save Google places.')
       if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')

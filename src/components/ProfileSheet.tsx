@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { avatarFromFile, displayName, isUrl, prepareUpload } from '../lib'
 import { CardImage } from './CardImage'
 import { Icon } from './Icon'
-import { ColorSwatches } from './ColorSwatches'
+import { ColorField } from './ColorField'
 import type { Item, Member } from '../types'
 import type { Profile } from '../data/backend'
 import { Avatar } from './Avatar'
@@ -81,7 +81,7 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
       </div>
       <fieldset className="group">
         <legend>Colour</legend>
-        <ColorSwatches value={color} onChange={(c) => c && setColor(c)} />
+        <ColorField label="Your colour" value={color} onChange={(c) => c && setColor(c)} />
       </fieldset>
       <TripBackground value={background} onChange={onBackground} onUploadCover={onUploadCover} />
       {installMode && (
@@ -124,7 +124,7 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
   )
 }
 
-const isColour = (v: string | null) => !!v && /^#[0-9a-f]{6}$/i.test(v)
+const isColour = (v: string | null) => !!v && /^#[0-9a-f]{6}(>#[0-9a-f]{6})?$/i.test(v)
 
 /** The page background everyone on the trip sees: a colour, or a photo (uploaded or by link). Saves straight away. */
 function TripBackground({ value, onChange, onUploadCover }: { value: string | null; onChange: (v: string | null) => void; onUploadCover: (file: File) => Promise<string> }) {
@@ -193,8 +193,7 @@ function TripBackground({ value, onChange, onUploadCover }: { value: string | nu
         }}
       />
       {error && <p className="error">{error}</p>}
-      <span className="muted small">Or a colour:</span>
-      <ColorSwatches value={isColour(value) ? value : null} onChange={onChange} none={{ label: 'No background' }} />
+      <ColorField label="Colour" value={isColour(value) ? value : null} onChange={onChange} none="No background" gradient />
     </fieldset>
   )
 }

@@ -9,7 +9,7 @@ import type { Attachment, Item, Member } from '../types'
 import type { Prefs } from '../usePrefs'
 import { TagChips } from './TagChips'
 import { TagIcons } from './TagIcons'
-import { Avatar, memberFor } from './Avatar'
+import { PeopleBadges } from './PeopleBadges'
 import { Icon } from './Icon'
 
 interface Props {
@@ -109,7 +109,6 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           const i = num++
           const c = itemStyle(item)
           const otherTags = item.tags.filter((t) => t !== c.name)
-          const creator = memberFor(members, item.createdBy)
           const span = spanLabel(item, selectedDay)
           const continuing = item.day !== selectedDay
           const files = attachments.filter((a) => a.itemId === item.id).length
@@ -122,7 +121,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
             <li key={item.id}>
               <span className="tl-time">{continuing ? '' : (item.time ?? partLabel(item.part) ?? '—')}</span>
               <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}${show.tagIcons ? ' has-icons' : ''}`} onClick={() => onOpen(item)}>
-                {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
+                {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} people={continuing && !prefs.tagsOnRepeats ? [] : item.people} members={members} />}
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}
                 <span className="tl-num" style={{ background: c.color, color: c.fg }}>
                   {i + 1}
@@ -158,9 +157,10 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                     )}
                   </span>
                   )}
-                  {show.tags && (!continuing || prefs.tagsOnRepeats) && otherTags.length > 0 && (
+                  {show.tags && (!continuing || prefs.tagsOnRepeats) && (otherTags.length > 0 || (item.people ?? []).length > 0) && (
                     <span className="tag-row">
                       <TagChips tags={otherTags} small />
+                      <PeopleBadges people={item.people} members={members} small />
                     </span>
                   )}
                   {item.booked && !compact && (
@@ -170,7 +170,6 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
                     </span>
                   )}
                 </span>
-                {creator && <Avatar member={creator} size={22} />}
               </button>
             </li>
           )

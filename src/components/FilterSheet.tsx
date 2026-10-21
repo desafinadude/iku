@@ -57,16 +57,16 @@ export function FilterSheet({ filters, items, allTags, members, onManage, prefs,
           })}
         </div>
       </fieldset>
-      {members.length > 1 && (
+      {members.length > 0 && (
         <fieldset className="group">
-          <legend>Added by</legend>
+          <legend>People on the entry</legend>
           <div className="chip-wrap">
             {members.map((m) => {
               const on = filters.people.includes(m.email)
               return (
                 <button key={m.email} className={`chip chip-person${on ? ' is-on-dark' : ''}`} aria-pressed={on} onClick={() => onChange({ ...filters, people: toggle(filters.people, m.email) })}>
                   <Avatar member={m} size={24} />
-                  {displayName(m)} <span className="chip-count">{items.filter((x) => x.createdBy === m.email).length}</span>
+                  {displayName(m)} <span className="chip-count">{items.filter((x) => (x.people ?? []).includes(m.email)).length}</span>
                 </button>
               )
             })}

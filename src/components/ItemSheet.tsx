@@ -317,6 +317,30 @@ export function ItemSheet(props: Props) {
         <span className="muted small">The first coloured tag sets the card’s colour and map pin.</span>
       </div>
 
+      {members.length > 0 && (
+        <div className="field">
+          <span className="field-label">People</span>
+          <div className="chip-wrap">
+            {members.map((m) => {
+              const on = (draft.people ?? []).includes(m.email)
+              return (
+                <button
+                  key={m.email}
+                  type="button"
+                  className={`chip chip-person${on ? ' is-on-dark' : ''}`}
+                  aria-pressed={on}
+                  onClick={() => set({ people: on ? draft.people.filter((p) => p !== m.email) : [...(draft.people ?? []), m.email] })}
+                >
+                  <Avatar member={m} size={22} />
+                  {displayName(m)}
+                </button>
+              )
+            })}
+          </div>
+          <span className="muted small">Shown as face badges on the card; filter by people from the filters.</span>
+        </div>
+      )}
+
       <fieldset className="group">
         <legend>When</legend>
         <div className="seg" role="group" aria-label="When">
