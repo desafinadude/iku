@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { inkColor, onColor } from '../colors'
 import type { ReactNode } from 'react'
+import { useSwipe } from '../useSwipe'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import { addDays, dayLabel, displayTitle, fromMinutes, itemsForDay, spanLabel, toMinutes } from '../lib'
@@ -75,12 +76,16 @@ export function HourView({ day, days, items, prefs, viewSwitch, maxToggle, onSel
   const hours = Array.from({ length: last - first }, (_, i) => first + i)
   const l = dayLabel(day)
   const idx = days.indexOf(day)
+  const swipe = useSwipe(
+    () => idx > 0 && onSelectDay(addDays(day, -1)),
+    () => idx < days.length - 1 && onSelectDay(addDays(day, 1))
+  )
   const now = new Date()
   const isToday = now.toISOString().slice(0, 10) === day
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
   return (
-    <section aria-label="Hour by hour" className="pane pane-hours">
+    <section aria-label="Hour by hour" className="pane pane-hours" {...swipe}>
       <div className="pane-head hours-head">
         <h2>
           {l.dow} {l.num} {l.month}

@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useSwipe } from '../useSwipe'
 import { inkColor, onColor } from '../colors'
 import { dayLabel, displayTitle, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
@@ -35,8 +36,17 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
   const today = itemsForDay(items, selectedDay, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
+  // Swipe left or right to go to the next or previous day; the day strip keeps the chosen day in view.
+  const swipe = useSwipe(
+    () => index > 0 && onSelectDay(days[index - 1]),
+    () => index < days.length - 1 && onSelectDay(days[index + 1])
+  )
+  const strip = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    strip.current?.querySelector('.day-pill.is-on')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+  }, [selectedDay])
   return (
-    <section aria-label="Day plan" className="pane pane-dayplan">
+    <section aria-label="Day plan" className="pane pane-dayplan" {...swipe}>
       <div className="dayplan-head">
         <span className="muted small">
           {tripName} · Day {index + 1} of {days.length}
@@ -62,7 +72,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
             {ds.title ?? ds.tag}
           </span>
         )}
-        <div className="day-strip">
+        <div className="day-strip" ref={strip}>
           {days.map((d) => {
             const dl = dayLabel(d)
             const on = d === selectedDay
