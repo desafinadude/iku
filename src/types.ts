@@ -130,6 +130,8 @@ export interface DayInfo {
   headerColor?: string | null
   /** Text colour on the header band (null: white or dark automatically). */
   headerText?: string | null
+  /** Strength of the automatic column colour, 0–100 (% of the header colour; null: the default). */
+  columnStrength?: number | null
   /** A second colour the day's background blends into, top to bottom (a day you move between places). */
   blendColor?: string | null
 }
