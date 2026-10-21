@@ -46,6 +46,13 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
   const store = (t: TagStyle, patch: { color?: string | null; icon?: string | null; iconColor?: string | null }) =>
     onSave([{ id: labelId(t), tripId, kind: 'tag', name: t.name, color: patch.color !== undefined ? patch.color : t.color, icon: patch.icon !== undefined ? patch.icon : t.icon, iconColor: patch.iconColor !== undefined ? patch.iconColor : (t.label?.iconColor ?? null), sort: t.label?.sort ?? nextSort() }])
 
+  // The device's colour picker fires as you drag: save once it settles.
+  const soonTimer = useRef<number | undefined>(undefined)
+  const storeSoon = (t: TagStyle, color: string | null) => {
+    window.clearTimeout(soonTimer.current)
+    soonTimer.current = window.setTimeout(() => store(t, { color }), 300)
+  }
+
   const rename = async (t: TagStyle, raw: string) => {
     const name = normalizeTag(raw)
     if (!name || name === t.name) return
@@ -226,7 +233,7 @@ export function LabelsManager({ tripId, items, onSave, onRename, onDeleteTag, on
               </div>
               {isOpen === 'color' && (
                 <div className="tag-picker">
-                  <ColorPalette value={t.color} onChange={(color) => store(t, { color })} none="No colour" />
+                  <ColorPalette value={t.color} onChange={(color, custom) => (custom ? storeSoon(t, color) : store(t, { color }))} none="No colour" />
                 </div>
               )}
               {isOpen === 'icon' && (

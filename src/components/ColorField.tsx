@@ -4,7 +4,8 @@ import { Icon } from './Icon'
 
 interface PaletteProps {
   value: string | null
-  onChange: (value: string | null) => void
+  /** `custom` is true while a colour comes from the device's own picker (it fires as you drag). */
+  onChange: (value: string | null, custom?: boolean) => void
   /** Label for the "no colour" choice, if there is one. */
   none?: string
   /** Offer a two-colour, top-to-bottom gradient. */
@@ -21,11 +22,11 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
   const [stop, setStop] = useState(0)
   const current = (stops[isGradient ? stop : 0] ?? '').toUpperCase()
 
-  const pick = (c: string) => {
-    if (!isGradient) return onChange(c)
+  const pick = (c: string, custom = false) => {
+    if (!isGradient) return onChange(c, custom)
     const next = [...stops]
     next[stop] = c
-    onChange(next.join('>'))
+    onChange(next.join('>'), custom)
   }
 
   return (
@@ -56,11 +57,15 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
           )}
         </div>
       )}
-      <div className="palette-grid">
-        {PALETTE.flat().map((c) => (
-          <button key={c} type="button" className={`palette-swatch${current === c ? ' is-on' : ''}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={current === c} onClick={() => pick(c)}>
-            {current === c && <Icon name="check" size={14} strokeWidth={3} />}
-          </button>
+      <div className="palette-rows">
+        {PALETTE.map((row) => (
+          <div key={row.name} className="palette-grid" role="group" aria-label={row.name}>
+            {row.colors.map((c) => (
+              <button key={c} type="button" className={`palette-swatch${current === c.toUpperCase() ? ' is-on' : ''}`} style={{ background: c }} aria-label={`${row.name} ${c}`} title={c} aria-pressed={current === c.toUpperCase()} onClick={() => pick(c)}>
+                {current === c.toUpperCase() && <Icon name="check" size={12} strokeWidth={3} />}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
       <div className="palette-extra">
@@ -72,7 +77,7 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
         <label className="chip chip-small palette-custom">
           <span className="palette-rainbow" aria-hidden="true" />
           Any colour
-          <input type="color" value={current || '#3b82f6'} onChange={(e) => pick(e.target.value.toUpperCase())} />
+          <input type="color" defaultValue={(current || "#3B82F6").toLowerCase()} onChange={(e) => pick(e.target.value.toUpperCase(), true)} />
         </label>
       </div>
     </div>
@@ -83,9 +88,17 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
 export function ColorField({ label, value, onChange, none, gradient, emptyText = 'None' }: PaletteProps & { label: string; emptyText?: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  // The device's picker fires as you drag; pass on the colour once it settles.
+  const timer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
   useEffect(() => {
     if (!open) return
-    const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)
+    // While the device's colour picker is open (its input has focus), clicks in it aren't "outside".
+    const onDown = (e: PointerEvent) => {
+      if (ref.current?.contains(e.target as Node)) return
+      if (ref.current?.contains(document.activeElement) && (document.activeElement as HTMLInputElement).type === 'color') return
+      setOpen(false)
+    }
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && (e.stopPropagation(), setOpen(false))
     document.addEventListener('pointerdown', onDown)
     document.addEventListener('keydown', onKey, true)
@@ -108,10 +121,12 @@ export function ColorField({ label, value, onChange, none, gradient, emptyText =
             value={value}
             gradient={gradient}
             none={none}
-            onChange={(v) => {
-              onChange(v)
-              // A single colour is one tap; a gradient stays open to set both stops.
-              if (!v || colorStops(v).length < 2) setOpen(false)
+            onChange={(v, custom) => {
+              window.clearTimeout(timer.current)
+              if (custom) timer.current = window.setTimeout(() => onChange(v), 250)
+              else onChange(v)
+              // A single swatch is one tap; a gradient, or the device's picker (which fires as you drag), stays open.
+              if (!custom && (!v || colorStops(v).length < 2)) setOpen(false)
             }}
           />
         </div>
