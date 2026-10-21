@@ -4,6 +4,7 @@ import type { Attachment, Item, Member } from '../types'
 import type { CardShow } from '../usePrefs'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
+import { Masonry } from './Masonry'
 
 interface Props {
   ideas: Item[]
@@ -114,12 +115,16 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
           }}
         />
       </form>
-      <div className={`masonry${full ? (selectedId ? ' masonry-4' : ' masonry-full') : ''}`} style={{ '--zoom': zoom } as React.CSSProperties}>
-        {ideas.map((item) => (
-          <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
-        ))}
-        {ideas.length === 0 && <p className="empty">Nothing here. Paste a link above to start collecting.</p>}
-      </div>
+      {ideas.length ? (
+        // Tile width: ~150px in the side pane, ~190px beside an open idea, ~230px on the full board, times the zoom.
+        <Masonry minWidth={(full ? (selectedId ? 190 : 230) : 150) * zoom} gap={full ? (selectedId ? 12 : 14) : 10}>
+          {ideas.map((item) => (
+            <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
+          ))}
+        </Masonry>
+      ) : (
+        <p className="empty">Nothing here. Paste a link above to start collecting.</p>
+      )}
     </section>
   )
 }

@@ -5,6 +5,7 @@ import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
+import { DaySelect, IdeaPicker } from './components/DayAssign'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
@@ -54,7 +55,7 @@ function pointerY(e: { activatorEvent: Event | null; delta: { y: number } }) {
 }
 
 type Tab = 'ideas' | 'days' | 'map' | 'docs'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | null
+type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | { kind: 'pick'; day: string } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -459,6 +460,7 @@ function Planner() {
                       <button className="primary-btn" onClick={() => edit(activeEntry)}>
                         Edit
                       </button>
+                      <DaySelect item={activeEntry} days={days} onMove={(day) => moveTo(activeEntry.id, day)} />
                       <PinButton item={activeEntry} onToggle={() => save({ ...activeEntry, pinned: !activeEntry.pinned })} />
                       <span className="spacer" />
                       <button className="icon-btn" aria-label="Close" onClick={() => setActiveId(null)}>
@@ -535,7 +537,7 @@ function Planner() {
                   unplannedCount={unplannedCount}
                   onSelectDay={setSelectedDay}
                   onOpen={open}
-                  onShowIdeas={() => setTab('ideas')}
+                  onShowIdeas={() => setSheet({ kind: 'pick', day: selectedDay })}
                   onEditDay={editDay}
                   controls={daysControls}
                 />
@@ -654,6 +656,7 @@ function Planner() {
                 onClose={() => setSheet(null)}
                 footer={
                   <>
+                    <DaySelect item={entry} days={days} onMove={(day) => moveTo(entry.id, day)} />
                     <PinButton item={entry} onToggle={() => save({ ...entry, pinned: !entry.pinned })} />
                     <button className="primary-btn wide" onClick={() => edit(entry)}>
                       Edit
@@ -673,6 +676,7 @@ function Planner() {
               </Sheet>
             )
           })()}
+        {sheet?.kind === 'pick' && <IdeaPicker day={sheet.day} ideas={orderIdeas(items.filter((x) => !x.day), prefs.ideasOrder)} onAdd={(id) => moveTo(id, sheet.day)} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onUploadCover={(file) => backend.uploadCover(trip.id, file)} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
@@ -701,7 +705,7 @@ function Planner() {
 function PinButton({ item, onToggle }: { item: Item; onToggle: () => void }) {
   return (
     <button className={`secondary-btn pin-btn${item.pinned ? ' is-on' : ''}`} aria-pressed={item.pinned} onClick={onToggle} title={item.pinned ? 'Unpin' : `Keep at the top of ${item.day ? 'its day' : 'the ideas'}`}>
-      <Icon name="pushpin" size={16} /> {item.pinned ? 'Pinned' : 'Pin to top'}
+      <Icon name="pushpin" size={16} /> {item.pinned ? 'Pinned' : 'Pin'}
     </button>
   )
 }
