@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { colorCss, colorStops, PALETTE } from '../colors'
+import { addRecentColor, useRecentColors } from '../recentColors'
 import { Icon } from './Icon'
 
 interface PaletteProps {
@@ -10,19 +11,25 @@ interface PaletteProps {
   none?: string
   /** Offer a two-colour, top-to-bottom gradient. */
   gradient?: boolean
+  /** Quick White and Black choices at the top (for text and icon colours). */
+  quick?: boolean
 }
 
 /**
- * A short palette: 8 hues in three shades, neutrals, no colour, and any colour via the device's picker.
- * With `gradient`, a tick turns it into two stops (top and bottom); tap a stop, then a colour.
+ * The palette: recent colours, then 16 hues in four shades, muted colours and neutrals, plus no colour and any
+ * colour via the device's picker. With `gradient`, a tick turns it into two stops (top and bottom); tap a stop,
+ * then a colour.
  */
-export function ColorPalette({ value, onChange, none, gradient = false }: PaletteProps) {
+export function ColorPalette({ value, onChange, none, gradient = false, quick = false }: PaletteProps) {
+  const recent = useRecentColors()
   const stops = colorStops(value)
   const isGradient = stops.length > 1
   const [stop, setStop] = useState(0)
   const current = (stops[isGradient ? stop : 0] ?? '').toUpperCase()
 
   const pick = (c: string, custom = false) => {
+    // Swatches go straight into the recent colours; the device picker's colour once it's chosen (on blur).
+    if (!custom) addRecentColor(c)
     if (!isGradient) return onChange(c, custom)
     const next = [...stops]
     next[stop] = c
@@ -57,6 +64,31 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
           )}
         </div>
       )}
+      {quick && (
+        <div className="palette-quick">
+          {[
+            ['#FFFFFF', 'White'],
+            ['#17201D', 'Black']
+          ].map(([c, label]) => (
+            <button key={c} type="button" className={`chip chip-small palette-quick-btn${current === c ? ' is-on' : ''}`} aria-pressed={current === c} onClick={() => pick(c)}>
+              <span className="palette-stop-chip" style={{ background: c }} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {recent.length > 0 && (
+        <div className="palette-recent">
+          <span className="palette-row-label">Recent</span>
+          <div className="palette-grid" role="group" aria-label="Recent colours">
+            {recent.map((c) => (
+              <button key={c} type="button" className={`palette-swatch${current === c ? ' is-on' : ''}`} style={{ background: c }} aria-label={`Recent ${c}`} title={c} aria-pressed={current === c} onClick={() => pick(c)}>
+                {current === c && <Icon name="check" size={12} strokeWidth={3} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="palette-rows">
         {PALETTE.map((row) => (
           <div key={row.name} className="palette-grid" role="group" aria-label={row.name}>
@@ -77,7 +109,7 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
         <label className="chip chip-small palette-custom">
           <span className="palette-rainbow" aria-hidden="true" />
           Any colour
-          <input type="color" defaultValue={(current || "#3B82F6").toLowerCase()} onChange={(e) => pick(e.target.value.toUpperCase(), true)} />
+          <input type="color" defaultValue={(current || "#3B82F6").toLowerCase()} onChange={(e) => pick(e.target.value.toUpperCase(), true)} onBlur={(e) => addRecentColor(e.target.value)} />
         </label>
       </div>
     </div>
@@ -85,7 +117,7 @@ export function ColorPalette({ value, onChange, none, gradient = false }: Palett
 }
 
 /** A colour setting: a labelled box showing the colour; tap it for the palette. */
-export function ColorField({ label, value, onChange, none, gradient, emptyText = 'None' }: PaletteProps & { label: string; emptyText?: string }) {
+export function ColorField({ label, value, onChange, none, gradient, quick, emptyText = 'None' }: PaletteProps & { label: string; emptyText?: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   // The device's picker fires as you drag; pass on the colour once it settles.
@@ -120,6 +152,7 @@ export function ColorField({ label, value, onChange, none, gradient, emptyText =
           <ColorPalette
             value={value}
             gradient={gradient}
+            quick={quick}
             none={none}
             onChange={(v, custom) => {
               window.clearTimeout(timer.current)

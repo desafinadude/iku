@@ -838,3 +838,9 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .person-toggle.is-on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }
 .person-toggle.is-on .avatar { box-shadow: 0 0 0 2px var(--accent); }
 .filter-person { padding-left: 3px; }
+.palette-quick { display: flex; gap: 6px; }
+.palette-quick-btn { gap: 6px; font-weight: 600; }
+.palette-recent { display: flex; flex-direction: column; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.palette-row-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+.palette-gradient .check { min-height: 0; margin: 0; }
+.palette-gradient { min-height: 0; }
