@@ -55,7 +55,6 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
     [items, selectedDay, scopeAll]
   )
   const ideas = useMemo(() => (showIdeas ? items.filter((x) => !x.day).filter(located) : []), [items, showIdeas])
-  const l = dayLabel(selectedDay)
   const pins: MapPin[] = [
     ...stops.map((x, i) => ({
       id: x.id,
@@ -81,20 +80,15 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
 
   return (
     <section aria-label="Map" style={width && !overlay && !full ? { flexBasis: width } : undefined} className={`pane pane-map${overlay ? ' is-expanded' : ''}${full ? ' is-full' : ''}`}>
-      <div className="pane-head map-head">
-        <h2>Map</h2>
-        {!expanded && (
-          <span className="muted">
-            {l.dow} {l.num} {l.month}
-          </span>
-        )}
-        <span className="spacer" />
-        {!full && (
+      {/* No heading: just the full-screen button (the phone's Map tab is already full screen). */}
+      {!full && (
+        <div className="pane-head map-head">
+          <span className="spacer" />
           <button className="icon-btn map-expand" aria-label={overlay ? 'Close full-screen map' : 'Full-screen map'} onClick={() => setExpanded((v) => !v)}>
             <Icon name={overlay ? 'close' : 'expand'} size={18} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {expanded && (
         <div className="map-days" role="group" aria-label="Show on map">
           <button className={`day-chip${allDays ? ' is-on' : ''}`} aria-pressed={allDays} onClick={() => setAllDays(true)}>

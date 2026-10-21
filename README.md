@@ -1,6 +1,6 @@
 # iku
 
-A trip planner that combines a Pinterest-style ideas board, Trello-style day columns, a calendar and a map. Paste links and ideas, tag them, then drag them onto days. It installs as a PWA: phones get one pane at a time in portrait, and tablets/desktops in landscape get Ideas, Days and Map side by side.
+A trip planner that combines a Pinterest-style ideas board, Trello-style day columns and a map. Paste links and ideas, tag them, then drag them onto days. It installs as a PWA: phones get one pane at a time in portrait, and tablets/desktops in landscape get Ideas, Days and Map side by side.
 
 ## Run it
 
@@ -98,12 +98,7 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 
 ## Day views
 
-The Days area has three views, switched at the top (Columns / Parts / Month on wide screens, List / Parts / Month on phones):
-
-- **Columns / List:** a card per entry, with photos.
-- **Columns / List** are split into the same parts of the day: All day, Morning, Afternoon, Evening and Night. Drop onto a band to place an entry there. Times show as a dark tag with a clock.
-- **Parts:** the selected day in loose blocks: *All day* (stays, and entries with no particular time), then *Morning* (until 1pm), *Afternoon* (1–4pm), *Evening* (4–7pm) and *Night* (after 7pm), as one planner page coloured by part of the day. Entries with a time sit in their block and show it. Drag an idea or entry into a block to place it there without committing to an hour (an exact time that doesn't fit that block is cleared), or tap a block's + to add something there. In the editor, an entry with no time has a *Time of day* choice. Elsewhere such entries show their part (e.g. "Morning") instead of a time and sort within the day by it. Run `supabase/migrations/012_day_parts.sql` to save parts.
-- **Month:** a calendar of the trip. Stays run as bars, entries show their icon or photo, and you can drop ideas onto a date. Tap a date to open its hours.
+The Days area has one view: a column per day, each split into the parts of the day: *All day* (stays, and entries with no particular time), then *Morning* (until 1pm), *Afternoon* (1–4pm), *Evening* (4–7pm) and *Night* (after 7pm). Drop onto a band to place an entry there (an exact time that doesn't fit that band is cleared); times show as a dark tag with a clock. In the editor, an entry with no time has a *Time of day* choice. Run `supabase/migrations/012_day_parts.sql` to save parts. Wide screens show the columns side by side; phones show the same column one day at a time, with a day strip above it (tap a day, or swipe).
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
 
@@ -113,11 +108,11 @@ The Days area has three views, switched at the top (Columns / Parts / Month on w
 - **Sorting:** the **⋯** menu on the Days and Ideas headers sorts the cards. Days can go by time (entries with no time last), Custom (your dragged order) or title. Ideas can go newest or oldest first, Custom, title, or grouped by tag. Dragging a card switches that list to Custom. The choice is kept per device.
 - **What cards show:** the card button next to **⋯** has checkboxes for any mix of picture, title, details (time, notes, link, booking), tags along the bottom, and tag icons along the top (a coloured square with each tag's icon). There are presets too: Everything, Titles, Pictures, Icons + titles. Days and Ideas each have their own. At least one part always stays ticked; a card with nothing else to show falls back to its title.
 - **Columns:** the − 2 col + control on the Ideas header sets how many columns of ideas to show, from 1 to 5 (the side pane or phone, and the full Ideas board, each remember their own).
-- **Ideas and map on or off:** in Plan view on tablets and desktop, the ideas and map buttons on the Columns, Parts and Month headers hide or show those panes.
+- **Ideas and map on or off:** in Plan view on tablets and desktop, the ideas and map buttons on the Days header hide or show those panes.
 - **Putting ideas on days without dragging:** open any idea and use **Add to a day** (it shows the day once set; choose *Back to ideas* to unplan it). On a phone, **Add from Ideas** under a day opens a list: tap ideas to add them to that day.
 - **Pinning:** tap **Pin to top** on an entry (or tick *Pin to the top* when editing) to keep it above everything else in its day, or at the top of the ideas, whatever the sort. Handy for hotels with no time. Run `supabase/migrations/011_pinned.sql` to save pins.
 - **Pane widths:** on tablets and desktop, drag the thin handles between the ideas, days and map (or beside an open idea on the Ideas board) to resize them. Double-click a handle to reset it. The ideas tile into as many columns as fit, down to one. Widths are kept per device.
-- **Whole screen:** on tablets and desktop, the expand arrow on the Columns, Parts and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
+- **Whole screen:** on tablets and desktop, the expand arrow on the Days header hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
 
 ## Trip name and dates
 
@@ -131,7 +126,7 @@ Below it, **Panel colours** set the Ideas, Days and Map panels apart. Each has a
 
 ## Day titles, tags and colours
 
-Tap the pencil on a day column (next to the date on phones, or in the Parts header) to give a day a **title** (say "Tokyo → Kyoto") and **colours**: the **Column** and the **Header**. Each is a box that opens the palette (with your recently used colours on top); tick **Gradient** for a travel day to fade from one colour at the top into another. Set the **Header** first: the **Column** is a very pale version of it unless you pick a column colour, so a header gradient gives a matching column gradient. A **Column strength** slider (0–40%, default 6%) sets how pale it is (needs migration 018). **Header text** has quick White and Black (needs migration 017). Use **Same for the following days, through** to set a run of days in one go. Month cells, the phone day strip and the map chips use the colour too. **Title cards:** to mark a new chapter (arriving in a city), use **Add a title card to this day**, or tick *Title card* on any entry; it shows as a big picture with its title wherever you place it in the day. Run migrations 009, 014 and 015 to save all of this.
+Tap the pencil on a day column (in its header) to give a day a **title** (say "Tokyo → Kyoto") and **colours**: the **Column** and the **Header**. Each is a box that opens the palette (with your recently used colours on top); tick **Gradient** for a travel day to fade from one colour at the top into another. Set the **Header** first: the **Column** is a very pale version of it unless you pick a column colour, so a header gradient gives a matching column gradient. A **Column strength** slider (0–40%, default 6%) sets how pale it is (needs migration 018). **Header text** has quick White and Black (needs migration 017). Use **Same for the following days, through** to set a run of days in one go. The phone day strip and the map chips use the colour too. **Title cards:** to mark a new chapter (arriving in a city), use **Add a title card to this day**, or tick *Title card* on any entry; it shows as a big picture with its title wherever you place it in the day. Run migrations 009, 014 and 015 to save all of this.
 
 ## Tags
 
