@@ -4,10 +4,10 @@ import { useContext, useState } from 'react'
 import { DropHintContext, type CardZone } from '../dnd'
 import { SHOW_ALL, type CardShow } from '../usePrefs'
 import { TagIcons } from './TagIcons'
-import { displayTitle, domainOf, isPhotoCard, spanLabel } from '../lib'
+import { displayTitle, domainOf, isPhotoCard, partLabel, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
-import type { Item, Member } from '../types'
+import type { DayPart, Item, Member } from '../types'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { TagChips } from './TagChips'
@@ -27,16 +27,18 @@ interface Props {
   selected?: boolean
   /** Which parts of the card to show. */
   show?: CardShow
+  /** Day-parts view: the part this card sits in (null: All day), so drops onto it land there too. */
+  part?: DayPart | null
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, show = SHOW_ALL }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, show = SHOW_ALL, part }: Props) {
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
   const creator = memberFor(members, item.createdBy)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: continuing ? `${item.id}@${day}` : item.id, disabled: !draggable || continuing })
   // Cards are drop targets too, so cards can be arranged by dropping one before or after another.
-  const zone: CardZone = variant === 'pin' ? { zone: 'ideas' } : { zone: 'day', day: day ?? item.day ?? '' }
+  const zone: CardZone = variant === 'pin' ? { zone: 'ideas' } : { zone: 'day', day: day ?? item.day ?? '', part }
   const drop = useDroppable({ id: 'card:' + item.id, data: zone, disabled: !draggable || continuing })
   const hint = useContext(DropHintContext)
   const dropClass = drop.isOver && hint?.id === item.id ? (hint.after ? ' drop-after' : ' drop-before') : ''
@@ -55,13 +57,15 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   // Nothing but the picture (a photo with no title, or title and details turned off): show it whole, alone.
   const photoOnly = imageShown && (isPhotoCard(item) || (!show.title && !show.details))
   const time = variant === 'plan' && !!item.time && !continuing
-  const fullMeta = show.details && (item.pinned || time || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
+  // Outside the day-parts view, an entry placed in a part (no exact time) shows the part instead of a time.
+  const partText = variant === 'plan' && !item.time && !continuing && part === undefined ? partLabel(item.part) : null
+  const fullMeta = show.details && (item.pinned || time || !!partText || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
   const note = show.details && !!item.note && !continuing
   const footShown = show.tags && (shownTags.length > 0 || showCreator)
   const iconsShown = show.tagIcons && shownTags.some((t) => tagStyle(t).color || tagStyle(t).icon)
   // The title shows when it's ticked, or when the card would otherwise be empty.
   const titleShown = !photoOnly && (show.title || (!imageShown && !fullMeta && !note && !footShown && !iconsShown))
-  const shortMeta = !show.details && titleShown && (item.pinned || time || !!span)
+  const shortMeta = !show.details && titleShown && (item.pinned || time || !!partText || !!span)
   const compact = !show.details
 
   return (
@@ -106,6 +110,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
                 </span>
               )}
               {time && <span className="card-time">{item.time}</span>}
+              {partText && <span className="card-time card-part">{partText}</span>}
               {span && <span className="span-label">{span}</span>}
               {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}
               {fullMeta && fileCount > 0 && (

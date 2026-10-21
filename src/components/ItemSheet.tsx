@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { onColor } from '../colors'
 import { isCoverRef, type LinkPreview } from '../data/backend'
-import { addDays, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { addDays, DAY_PARTS, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
@@ -390,7 +390,7 @@ export function ItemSheet(props: Props) {
                 const time = e.target.value || null
                 // Keep the duration when the start time moves.
                 const mins = draft.time && draft.endTime ? toMinutes(draft.endTime) - toMinutes(draft.time) : null
-                set({ time, endTime: time && mins && mins > 0 ? fromMinutes(toMinutes(time) + mins) : time ? draft.endTime : null })
+                set({ time, part: time ? null : draft.part, endTime: time && mins && mins > 0 ? fromMinutes(toMinutes(time) + mins) : time ? draft.endTime : null })
               }}
             />
           </div>
@@ -409,6 +409,18 @@ export function ItemSheet(props: Props) {
           <label className="check">
             <input type="checkbox" checked={draft.booked} onChange={(e) => set({ booked: e.target.checked })} /> Booked
           </label>
+        </div>
+      )}
+      {draft.day && !draft.time && (
+        <div className="field">
+          <span className="field-label" id="f-part-label">Time of day</span>
+          <div className="seg seg-small part-seg" role="group" aria-labelledby="f-part-label">
+            {[{ id: null, label: 'Any' }, ...DAY_PARTS].map((p) => (
+              <button key={p.id ?? 'any'} type="button" className={draft.part === p.id ? 'is-on' : ''} aria-pressed={draft.part === p.id} onClick={() => set({ part: p.id })}>
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <label className="check">

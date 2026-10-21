@@ -98,10 +98,10 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 
 ## Day views
 
-The Days area has three views, switched at the top (Columns / Hours / Month on wide screens, List / Hours / Month on phones):
+The Days area has three views, switched at the top (Columns / Parts / Month on wide screens, List / Parts / Month on phones):
 
 - **Columns / List:** a card per entry, with photos.
-- **Hours:** the selected day hour by hour. Stays and other multi-day or untimed entries sit in an "All day" strip above the hours. Entries with an end time (**From / Until** in the entry) fill their slot, and overlapping entries sit side by side. Drag an idea or entry onto an hour to schedule it (including untimed ones from the All day strip, which then get that time; drag one back onto the All day strip to take its time off and keep it on the day), or tap an empty hour to add something there. Run `supabase/migrations/007_end_time.sql` to save end times.
+- **Parts:** the selected day in loose blocks: *All day* (stays, and entries with no particular time), then *Morning* (until noon), *Afternoon* (12–5pm), *Evening* (5–9pm) and *Night* (after 9pm). Entries with a time sit in their block and show it. Drag an idea or entry into a block to place it there without committing to an hour (an exact time that doesn't fit that block is cleared), or tap a block's + to add something there. In the editor, an entry with no time has a *Time of day* choice. Elsewhere such entries show their part (e.g. "Morning") instead of a time and sort within the day by it. Run `supabase/migrations/012_day_parts.sql` to save parts.
 - **Month:** a calendar of the trip. Stays run as bars, entries show their icon or photo, and you can drop ideas onto a date. Tap a date to open its hours.
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.

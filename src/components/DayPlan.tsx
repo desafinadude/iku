@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useSwipe } from '../useSwipe'
 import { inkColor, onColor } from '../colors'
-import { dayLabel, displayTitle, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
+import { dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -104,7 +104,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           const pictureOnly = photo && (isPhotoCard(item) || (!show.title && !show.details))
           return (
             <li key={item.id}>
-              <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
+              <span className="tl-time">{continuing ? '' : (item.time ?? partLabel(item.part) ?? '—')}</span>
               <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}${show.tagIcons ? ' has-icons' : ''}`} onClick={() => onOpen(item)}>
                 {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}

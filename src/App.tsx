@@ -9,7 +9,7 @@ import { DaySelect, IdeaPicker } from './components/DayAssign'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
-import { HourView } from './components/HourView'
+import { DayParts } from './components/DayParts'
 import { InstallPrompt } from './components/InstallPrompt'
 import { ItemView } from './components/ItemView'
 import { Lightbox } from './components/Lightbox'
@@ -30,8 +30,8 @@ import { Unlock } from './components/Unlock'
 import { isCoverRef } from './data/backend'
 import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { displayTitle, domainOf, isUrl, itemsForDay, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
-import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
+import { displayTitle, domainOf, isUrl, itemsForDay, partOf, partOfTime, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
+import { EMPTY_FILTERS, type Attachment, type DayPart, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
 
@@ -82,7 +82,7 @@ function Planner() {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, unschedule, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
   const [online, setOnline] = useState(() => navigator.onLine)
   useEffect(() => {
@@ -181,6 +181,7 @@ function Planner() {
     endTime: null,
     booked: false,
     pinned: false,
+    part: null,
     bookingRef: null,
     place: null,
     placeId: null,
@@ -235,7 +236,12 @@ function Planner() {
       const after = pointerY(e) > e.over!.rect.top + e.over!.rect.height / 2
       const item = items.find((x) => x.id === id)
       if (!item) return
-      if (zone.zone === 'day') {
+      if (zone.zone === 'day' && zone.part !== undefined) {
+        // Day-parts view: the entry joins the target's part (keeping an exact time only if it fits there).
+        const keepTime = !!item.time && zone.part !== null && partOfTime(item.time) === zone.part
+        const patch = zone.part === partOf(item) ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
+        arrange(id, itemsForDay(items, zone.day, 'time').filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
+      } else if (zone.zone === 'day') {
         arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day)
         if (prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
       } else {
@@ -243,11 +249,9 @@ function Planner() {
         arrange(id, list, targetId, after, list.some((x) => x.id === id) ? item.day : null)
         if (prefs.ideasOrder !== 'custom') setPrefs({ ideasOrder: 'custom' })
       }
-    } else if (String(target).startsWith('allday:')) {
-      unschedule(id, String(target).slice(7))
-    } else if (String(target).startsWith('slot:')) {
-      const [, day, hour] = String(target).split(':')
-      moveToSlot(id, day, `${hour}:00`)
+    } else if (String(target).startsWith('part:')) {
+      const [, day, part] = String(target).split(':')
+      placeIn(id, day, part === 'none' ? null : (part as DayPart))
     } else if (target === 'ideas') moveTo(id, null)
     else if (String(target).startsWith('day:')) moveTo(id, String(target).slice(4))
   }
@@ -271,7 +275,7 @@ function Planner() {
       {(
         [
           ['board', wide ? 'Columns' : 'List'],
-          ['hours', 'Hours'],
+          ['hours', 'Parts'],
           ['month', 'Month']
         ] as const
       ).map(([v, label]) => (
@@ -313,9 +317,21 @@ function Planner() {
     </>
   ) : undefined
   const editDay = (day: string) => setSheet({ kind: 'day', day })
-  const addAt = (day: string, time: string) => setSheet({ kind: 'item', item: blank({ day, time }), isNew: true })
   const hourView = (
-    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} maxToggle={maxToggle} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} onEditDay={editDay} />
+    <DayParts
+      day={selectedDay}
+      days={days}
+      items={visible}
+      members={members}
+      attachments={attachments}
+      prefs={prefs}
+      viewSwitch={wide ? viewSwitch : undefined}
+      maxToggle={maxToggle}
+      onSelectDay={setSelectedDay}
+      onOpen={open}
+      onAdd={(day, part) => setSheet({ kind: 'item', item: blank({ day, part }), isNew: true })}
+      onEditDay={editDay}
+    />
   )
   const monthView = (
     <MonthView
