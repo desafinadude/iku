@@ -712,3 +712,4 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .part-empty { font-size: 13px; color: var(--muted); padding: 6px 2px; }
 .card-part { text-transform: none; color: var(--accent-dark); }
 .parts-scroll > * { flex-shrink: 0; }
+.zoom-control button { -webkit-tap-highlight-color: transparent; }

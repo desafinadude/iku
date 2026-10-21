@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { dayLabel, daysBetween, displayTitle, domainOf, isStay, shortDate } from '../lib'
+import { dayLabel, daysBetween, displayTitle, domainOf, isStay, shortDate, partLabel } from '../lib'
 import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
 import type { Attachment, Item, Member } from '../types'
 import { AttachmentList } from './AttachmentList'
@@ -19,9 +19,9 @@ interface Props {
   onViewImage: () => void
 }
 
-/** "Tue 13 Apr · 10:30–12:30", "Mon 12 → Wed 14 Apr · 2 nights", or "Unplanned idea". */
+/** "Tue 13 Apr · 10:30–12:30", "Tue 13 Apr · Morning", "Mon 12 → Wed 14 Apr · 2 nights"; null for an idea with no day. */
 export function whenText(item: Item) {
-  if (!item.day) return 'Unplanned idea'
+  if (!item.day) return null
   const a = dayLabel(item.day)
   const start = `${a.dow} ${a.num} ${a.month}`
   if (item.endDay && item.endDay !== item.day) {
@@ -30,7 +30,7 @@ export function whenText(item: Item) {
     const span = isStay(item) ? `${n} ${n === 1 ? 'night' : 'nights'}` : `${n + 1} days`
     return `${a.dow} ${a.num} → ${b.dow} ${b.num} ${b.month} · ${span}${item.time ? ` · from ${item.time}` : ''}`
   }
-  return `${start}${item.time ? ` · ${item.time}${item.endTime ? `–${item.endTime}` : ''}` : ''}`
+  return `${start}${item.time ? ` · ${item.time}${item.endTime ? `–${item.endTime}` : ''}` : item.part ? ` · ${partLabel(item.part)}` : ''}`
 }
 
 /** Turns URLs in a note into links. */
@@ -76,13 +76,16 @@ export function ItemView({ item, members, attachments, offlineIds, onOpenFile, o
       </div>
 
       <dl className="view-facts">
-        <div>
-          <dt>
-            <Icon name="days" size={16} />
-            <span className="sr-only">When</span>
-          </dt>
-          <dd>{whenText(item)}</dd>
-        </div>
+        {/* Only planned entries get a "when"; ideas aren't labelled as unplanned. */}
+        {item.day && (
+          <div>
+            <dt>
+              <Icon name="days" size={16} />
+              <span className="sr-only">When</span>
+            </dt>
+            <dd>{whenText(item)}</dd>
+          </div>
+        )}
         {item.booked && (
           <div>
             <dt>

@@ -21,13 +21,13 @@ interface Props {
   /** Extra controls in the header (e.g. "Include planned"). */
   headExtra?: ReactNode
   show?: CardShow
-  /** Tile size: 1 is normal; bigger means wider (and so fewer) columns. */
-  zoom?: number
+  /** How many columns of tiles. */
+  columns?: number
   /** Wide screens: the pane's width in px (from its resize handle). */
   width?: number
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, zoom = 1 }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, columns = 2 }: Props) {
   const [fileOver, setFileOver] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
@@ -116,8 +116,7 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
         />
       </form>
       {ideas.length ? (
-        // Tile width: ~150px in the side pane, ~190px beside an open idea, ~230px on the full board, times the zoom.
-        <Masonry minWidth={(full ? (selectedId ? 190 : 230) : 150) * zoom} gap={full ? (selectedId ? 12 : 14) : 10}>
+        <Masonry columns={columns} gap={full ? (selectedId ? 12 : 14) : 10}>
           {ideas.map((item) => (
             <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
           ))}
