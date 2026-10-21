@@ -127,6 +127,8 @@ Tap the trip's name at the top to rename it or change its first and last day (th
 
 Open your profile (the avatars, top right) and set a **Trip background**: a photo (upload or paste a link) or a colour. Everyone on the trip sees it behind the planner. Run `supabase/migrations/013_icon_colour_and_background.sql` to save it.
 
+Below it, **Panel colours** set the Ideas, Days and Map panels apart. Each has a soft colour of its own to begin with; pick any colour or a gradient, or **Default** to go back. The panel's heading switches to white text on dark colours. They're shared with everyone on the trip; run `supabase/migrations/019_panel_colours.sql` to save them.
+
 ## Day titles, tags and colours
 
 Tap the pencil on a day column (next to the date on phones, or in the Parts header) to give a day a **title** (say "Tokyo → Kyoto") and **colours**: the **Column** and the **Header**. Each is a box that opens the palette (with your recently used colours on top); tick **Gradient** for a travel day to fade from one colour at the top into another. Set the **Header** first: the **Column** is a very pale version of it unless you pick a column colour, so a header gradient gives a matching column gradient. A **Column strength** slider (0–40%, default 6%) sets how pale it is (needs migration 018). **Header text** has quick White and Black (needs migration 017). Use **Same for the following days, through** to set a run of days in one go. Month cells, the phone day strip and the map chips use the colour too. **Title cards:** to mark a new chapter (arriving in a city), use **Add a title card to this day**, or tick *Title card* on any entry; it shows as a big picture with its title wherever you place it in the day. Run migrations 009, 014 and 015 to save all of this.

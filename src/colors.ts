@@ -74,3 +74,6 @@ export function inkColor(hex: string | null | undefined) {
   for (let i = 0; i < 8 && contrast(c, '#F4F5F1') < 3.2; i++) c = shade(c, -0.18)
   return c
 }
+
+/** Soft, different colours for the Ideas, Days and Map panels until the trip picks its own. */
+export const PANEL_DEFAULTS = { ideas: '#F8EEDC', days: '#E8EFE6', map: '#E3ECF4' } as const

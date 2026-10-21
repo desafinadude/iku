@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, daysBetween, partOfTime } from '../lib'
-import type { Attachment, DayInfo, DayPart, Item, Label, Member, Trip } from '../types'
+import type { Attachment, DayInfo, DayPart, Item, Label, Member, PanelColors, Trip } from '../types'
 import { isCoverRef, type Backend, type Profile } from './backend'
 import { getFile, loadSnapshot, removeFile, saveFile, saveSnapshot, savedFileIds } from './offline'
 
@@ -324,8 +324,24 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [backend, trip]
   )
 
+  /** The Ideas, Days and Map panel colours (shared). */
+  const savePanels = useCallback(
+    async (panels: PanelColors) => {
+      if (!trip) return
+      const before = trip
+      setTrip({ ...trip, panels })
+      try {
+        await backend.savePanels(trip.id, panels)
+      } catch (e) {
+        setTrip(before)
+        setError((e as Error).message)
+      }
+    },
+    [backend, trip]
+  )
+
   return {
-    dayInfos, saveDays, saveBackground, saveTrip,
+    dayInfos, saveDays, saveBackground, savePanels, saveTrip,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl

@@ -4,7 +4,7 @@ import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ColumnsCont
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { useImageSrc } from './components/CardImage'
-import { colorCss } from './colors'
+import { colorCss, firstColor, onColor, PANEL_DEFAULTS } from './colors'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
 import { TripSheet } from './components/TripSheet'
@@ -85,7 +85,7 @@ export default function App() {
 
 function Planner() {
   const {
-    dayInfos, saveDays, saveBackground, saveTrip,
+    dayInfos, saveDays, saveBackground, savePanels, saveTrip,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
@@ -100,6 +100,16 @@ function Planner() {
     : bgImage
       ? { backgroundImage: `linear-gradient(rgba(244, 245, 241, .3), rgba(244, 245, 241, .3)), url("${bgImage.replace(/"/g, '%22')}")` }
       : undefined
+  // Each panel's colour (and the text colour that reads on it), as CSS variables for the panes.
+  const panelVars = Object.fromEntries(
+    (Object.keys(PANEL_DEFAULTS) as (keyof typeof PANEL_DEFAULTS)[]).flatMap((key) => {
+      const c = trip?.panels?.[key] ?? PANEL_DEFAULTS[key]
+      return [
+        [`--panel-${key}`, colorCss(c)],
+        [`--panel-${key}-fg`, onColor(firstColor(c))]
+      ]
+    })
+  )
   useEffect(() => {
     const on = () => setOnline(navigator.onLine)
     window.addEventListener('online', on)
@@ -390,7 +400,7 @@ function Planner() {
 
   return (
     <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
-      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}${pageStyle ? ' has-bg' : ''}${bgImage && !bgIsColour ? ' has-bg-image' : ''}`} style={pageStyle}>
+      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}${pageStyle ? ' has-bg' : ''}${bgImage && !bgIsColour ? ' has-bg-image' : ''}`} style={{ ...panelVars, ...pageStyle }}>
         <header className="top-bar">
           <div className="brand">
             <span className="brand-mark">
@@ -669,6 +679,8 @@ function Planner() {
           <ProfileSheet
             background={trip.background ?? null}
             onBackground={saveBackground}
+            panels={trip.panels ?? {}}
+            onPanels={savePanels}
             onUploadCover={(file) => backend.uploadCover(trip.id, file)}
             me={meMember}
             members={members}

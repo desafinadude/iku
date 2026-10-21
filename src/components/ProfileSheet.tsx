@@ -3,7 +3,8 @@ import { avatarFromFile, displayName, isUrl, prepareUpload } from '../lib'
 import { CardImage } from './CardImage'
 import { Icon } from './Icon'
 import { ColorField } from './ColorField'
-import type { Item, Member } from '../types'
+import type { Item, Member, PanelColors, PanelName } from '../types'
+import { PANEL_DEFAULTS } from '../colors'
 import type { Profile } from '../data/backend'
 import { Avatar } from './Avatar'
 import { Sheet } from './Sheet'
@@ -21,9 +22,11 @@ interface Props {
   background: string | null
   onBackground: (background: string | null) => void
   onUploadCover: (file: File) => Promise<string>
+  panels: PanelColors
+  onPanels: (panels: PanelColors) => void
 }
 
-export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onShowPerson, background, onBackground, onUploadCover }: Props) {
+export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onShowPerson, background, onBackground, onUploadCover, panels, onPanels }: Props) {
   const [name, setName] = useState(me.name ?? '')
   const [avatar, setAvatar] = useState(me.avatar)
   const [color, setColor] = useState(me.color)
@@ -84,6 +87,26 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
         <ColorField label="Your colour" value={color} onChange={(c) => c && setColor(c)} />
       </fieldset>
       <TripBackground value={background} onChange={onBackground} onUploadCover={onUploadCover} />
+      <fieldset className="group">
+        <legend>Panel colours</legend>
+        <span className="muted small">Everyone on the trip sees these too.</span>
+        {(
+          [
+            ['ideas', 'Ideas'],
+            ['days', 'Days'],
+            ['map', 'Map']
+          ] as [PanelName, string][]
+        ).map(([key, label]) => (
+          <ColorField
+            key={key}
+            label={label}
+            value={panels[key] ?? PANEL_DEFAULTS[key]}
+            onChange={(v) => onPanels({ ...panels, [key]: v })}
+            none="Default"
+            gradient
+          />
+        ))}
+      </fieldset>
       {installMode && (
         <div className="group">
           <h3 className="group-title">This device</h3>

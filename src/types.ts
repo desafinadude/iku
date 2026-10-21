@@ -31,7 +31,12 @@ export interface Trip {
   endDate: string
   /** Page background for everyone on the trip: a colour (#RRGGBB), or an uploaded image reference or image URL. */
   background?: string | null
+  /** Colours for the Ideas, Days and Map panels (shared); a missing one uses the default. */
+  panels?: PanelColors | null
 }
+
+export type PanelName = 'ideas' | 'days' | 'map'
+export type PanelColors = Partial<Record<PanelName, string | null>>
 
 /** Parts of a day: entries without an exact time can still be placed in one. */
 export type DayPart = 'morning' | 'afternoon' | 'evening' | 'night'

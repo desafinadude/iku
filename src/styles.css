@@ -100,6 +100,16 @@ h1, h2 { margin: 0; }
 .pane-map { flex: 0 0 min(380px, 28vw); }
 .pane-map.is-full { flex: 1 1 auto; min-width: 0; gap: 10px; }
 .is-narrow .workspace { padding: 12px 12px 96px; }
+/* Each panel has its own colour (shared by the trip; soft defaults). The text in its header follows it. */
+.workspace > .pane-ideas, .workspace > .pane-days, .workspace > .pane-month, .workspace > .pane-dayplan, .workspace > .pane-parts, .workspace > .pane-hours, .workspace > .pane-map:not(.is-expanded) { padding: 12px; border-radius: 16px; }
+.workspace > .pane-ideas { background: var(--panel-ideas); }
+.workspace > .pane-ideas > .pane-head { color: var(--panel-ideas-fg); }
+.workspace > .pane-ideas.is-over { background: var(--drop); }
+.workspace > :is(.pane-days, .pane-month, .pane-dayplan, .pane-parts, .pane-hours) { background: var(--panel-days); }
+.workspace > :is(.pane-days, .pane-month, .pane-dayplan, .pane-parts, .pane-hours) > .pane-head { color: var(--panel-days-fg); }
+.workspace > .pane-map:not(.is-expanded) { background: var(--panel-map); }
+.workspace > .pane-map:not(.is-expanded) > .pane-head { color: var(--panel-map-fg); }
+.workspace > .pane > .pane-head .muted { color: inherit; opacity: .75; }
 .is-narrow .pane { flex: 1; }
 
 .capture { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: var(--surface); border: 1.5px dashed var(--accent); border-radius: var(--radius); color: var(--accent); }
@@ -747,7 +757,6 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 
 /* Trip background behind the planner */
 .app.has-bg-image { background-size: cover; background-position: center; background-attachment: fixed; }
-.app.has-bg .workspace > .pane > .pane-head h2, .app.has-bg .workspace > .pane > .pane-head > .muted, .app.has-bg .pane-dayplan .dayplan-head > .muted { align-self: center; padding: 2px 10px; border-radius: 8px; background: rgba(255, 255, 255, .82); box-shadow: var(--shadow); }
 .app.has-bg .day-col:not(.has-color) { background: rgba(237, 238, 234, .9); }
 .bg-preview img { max-height: 160px; object-fit: cover; }
 
