@@ -62,13 +62,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           <span className="spacer" />
           {controls}
         </div>
-        {ds.image && (
-          <div className="day-cover day-cover-phone">
-            <CardImage imageUrl={ds.image} />
-            {(ds.title || ds.tag) && <span className="day-cover-title">{ds.title ?? ds.tag}</span>}
-          </div>
-        )}
-        {!ds.image && (ds.title || ds.tag) && (
+        {(ds.title || ds.tag) && (
           <span className="day-banner" style={ds.color ? { background: ds.color, color: onColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
@@ -99,6 +93,19 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               {g.part ? partLabel(g.part) : 'All day'}
             </li>,
             ...g.items.map((item) => {
+          if (item.chapter && item.day === selectedDay)
+            return (
+              <li key={item.id} className="tl-chapter">
+                <button type="button" className={`chapter-face${item.imageUrl ? ' has-image' : ''}`} style={item.imageUrl ? undefined : { background: itemStyle(item).color, color: itemStyle(item).fg }} onClick={() => onOpen(item)}>
+                  {item.imageUrl && <CardImage imageUrl={item.imageUrl} />}
+                  <span className="chapter-text">
+                    {(item.time || item.part) && <span className="card-time">{item.time ?? partLabel(item.part)}</span>}
+                    <b>{displayTitle(item)}</b>
+                    {item.note && <span className="chapter-note">{item.note}</span>}
+                  </span>
+                </button>
+              </li>
+            )
           const i = num++
           const c = itemStyle(item)
           const otherTags = item.tags.filter((t) => t !== c.name)

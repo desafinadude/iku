@@ -423,6 +423,9 @@ export function ItemSheet(props: Props) {
         </div>
       )}
       <label className="check">
+        <input type="checkbox" checked={draft.chapter} onChange={(e) => set({ chapter: e.target.checked })} /> Title card: show it as a big picture with its title, to mark a new chapter (e.g. arriving in a city)
+      </label>
+      <label className="check">
         <input type="checkbox" checked={draft.pinned} onChange={(e) => set({ pinned: e.target.checked })} /> Pin to the top{draft.day ? ' of its day' : ' of the ideas'}
       </label>
       {draft.booked && (

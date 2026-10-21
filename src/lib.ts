@@ -120,6 +120,8 @@ export const partLabel = (part: DayPart | null) => DAY_PARTS.find((p) => p.id ==
 function timeKey(item: Item) {
   if (item.time) return toMinutes(item.time)
   const p = DAY_PARTS.find((d) => d.id === item.part)
+  // A title card without a time opens its part of the day (or the day, in "All day").
+  if (item.chapter) return p ? p.from * 60 - 0.5 : -1
   return p ? p.to * 60 - 0.5 : Infinity
 }
 

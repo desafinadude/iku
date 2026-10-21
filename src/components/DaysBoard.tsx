@@ -6,7 +6,6 @@ import { LabelIconView } from '../labels/LabelIconView'
 import { bands, dayLabel, itemsForDay, partLabel } from '../lib'
 import type { CardShow, Prefs } from '../usePrefs'
 import type { Attachment, DayPart, Item, Member } from '../types'
-import { CardImage } from './CardImage'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
 
@@ -87,13 +86,6 @@ function DayColumn(props: {
       className={`day-col${props.selected ? ' is-selected' : ''}${isOver ? ' is-over' : ''}${ds.color ? ' has-color' : ''}`}
       style={ds.color ? { background: ds.bg!, borderTopColor: ds.color } : undefined}
     >
-      {ds.image && (
-        // The day's opening image: the start of a new chapter (a new city, say).
-        <button className="day-cover" onClick={props.onSelect} aria-label={`${l.dow} ${l.num}${ds.title ? ': ' + ds.title : ''}`}>
-          <CardImage imageUrl={ds.image} />
-          {(ds.title || ds.tag) && <span className="day-cover-title">{ds.title ?? ds.tag}</span>}
-        </button>
-      )}
       <div className="day-col-top">
         <button className="day-col-head" onClick={props.onSelect} aria-pressed={props.selected}>
           <span className="day-num" style={ds.color ? { color: inkColor(ds.color) } : undefined}>

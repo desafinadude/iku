@@ -58,6 +58,8 @@ export interface Item {
   booked: boolean
   /** Shown at the top of its day (or the ideas), above entries with times. */
   pinned: boolean
+  /** A title card: shown as a big picture with its title, marking a new chapter (arriving somewhere). */
+  chapter: boolean
   bookingRef: string | null
   place: string | null
   /** Google place id when the place was picked from Google search. */

@@ -194,6 +194,7 @@ function Planner() {
     endTime: null,
     booked: false,
     pinned: false,
+    chapter: false,
     part: null,
     bookingRef: null,
     place: null,
@@ -712,7 +713,7 @@ function Planner() {
             )
           })()}
         {sheet?.kind === 'pick' && <IdeaPicker day={sheet.day} ideas={orderIdeas(items.filter((x) => !x.day), prefs.ideasOrder)} onAdd={(id) => moveTo(id, sheet.day)} onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onUploadCover={(file) => backend.uploadCover(trip.id, file)} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onAddTitleCard={(day, title) => setSheet({ kind: 'item', item: blank({ day, title, chapter: true }), isNew: true })} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
           <Sheet title="Docs" onClose={() => setSheet(null)}>

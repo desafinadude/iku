@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { LabelIconView } from '../labels/LabelIconView'
 import { useLabels } from '../labels/LabelsContext'
-import { dayLabel, isUrl, normalizeTag, prepareUpload } from '../lib'
-import { CardImage } from './CardImage'
+import { dayLabel, normalizeTag } from '../lib'
 import { Icon } from './Icon'
 import { inkColor, onColor } from '../colors'
 import type { DayInfo } from '../types'
@@ -15,34 +14,18 @@ interface Props {
   onSave: (list: DayInfo[]) => void
   onClose: () => void
   /** Uploads an image; resolves to the reference to store. */
-  onUploadCover: (file: File) => Promise<string>
+  /** Adds a title card on this day (a big picture with a title, marking a new chapter). */
+  onAddTitleCard: (day: string, title: string) => void
 }
 
 /** Title, tag and colour for a day, optionally applied to the following days too (a stay in one city). */
-export function DaySheet({ day, days, onSave, onClose, onUploadCover }: Props) {
+export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) {
   const { dayStyle, tags, tagStyle } = useLabels()
   const current = dayStyle(day).info
   const [title, setTitle] = useState(current?.title ?? '')
   const [tag, setTag] = useState(current?.tag ?? '')
   const [color, setColor] = useState<string | null>(current?.color ?? null)
   const [through, setThrough] = useState(day)
-  const [image, setImage] = useState<string | null>(current?.image ?? null)
-  const [imageBusy, setImageBusy] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
-  const [linkOpen, setLinkOpen] = useState(false)
-  const imageInput = useRef<HTMLInputElement>(null)
-  const uploadImage = async (file: File | undefined) => {
-    if (!file?.type.startsWith('image/')) return
-    setImageBusy(true)
-    setImageError(null)
-    try {
-      setImage(await onUploadCover(await prepareUpload(file)))
-    } catch (e) {
-      setImageError((e as Error).message)
-    } finally {
-      setImageBusy(false)
-    }
-  }
   const l = dayLabel(day)
   const tagColor = tag ? tagStyle(normalizeTag(tag)).color : null
   const shown = color ?? tagColor
@@ -51,9 +34,7 @@ export function DaySheet({ day, days, onSave, onClose, onUploadCover }: Props) {
   const save = (clear = false) => {
     const range = days.filter((d) => d >= day && d <= through)
     const t = normalizeTag(tag)
-    // The opening image belongs to this day only; the following days keep their own.
-    const imageFor = (d: string) => (d === day ? (clear ? null : image) : (dayStyle(d).info?.image ?? null))
-    onSave(range.map((d) => (clear ? { day: d, title: null, tag: null, color: null, image: imageFor(d) } : { day: d, title: title.trim() || null, tag: t || null, color, image: imageFor(d) })))
+    onSave(range.map((d) => (clear ? { day: d, title: null, tag: null, color: null, image: null } : { day: d, title: title.trim() || null, tag: t || null, color, image: null })))
     onClose()
   }
 
@@ -68,7 +49,7 @@ export function DaySheet({ day, days, onSave, onClose, onUploadCover }: Props) {
               Clear
             </button>
           )}
-          <button className="primary-btn wide" disabled={imageBusy} onClick={() => save()}>
+          <button className="primary-btn wide" onClick={() => save()}>
             Save{through !== day ? ` for ${days.filter((d) => d >= day && d <= through).length} days` : ''}
           </button>
         </>
@@ -83,48 +64,17 @@ export function DaySheet({ day, days, onSave, onClose, onUploadCover }: Props) {
       </div>
 
       <div className="field">
-        <label htmlFor="day-image-file">Opening image</label>
-        {image ? (
-          <div className="sheet-image day-image-pick">
-            <CardImage imageUrl={image} loading="eager" />
-            <div className="sheet-image-actions">
-              <button type="button" className="chip" onClick={() => imageInput.current?.click()} disabled={imageBusy}>
-                <Icon name="image" size={15} /> Replace
-              </button>
-              <button type="button" className="chip" aria-label="Remove image" onClick={() => setImage(null)}>
-                <Icon name="close" size={15} /> Remove
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="image-empty">
-            <button type="button" className="secondary-btn" onClick={() => imageInput.current?.click()} disabled={imageBusy}>
-              <Icon name="image" size={16} /> {imageBusy ? 'Uploading…' : 'Add image'}
-            </button>
-            <button type="button" className="secondary-btn" onClick={() => setLinkOpen((v) => !v)}>
-              <Icon name="link" size={16} /> Image link
-            </button>
-          </div>
-        )}
-        {linkOpen && !image && (
-          <input
-            className="image-link-input"
-            type="url"
-            placeholder="https://…/photo.jpg"
-            autoFocus
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), e.currentTarget.blur())}
-            onBlur={(e) => {
-              const v = e.target.value.trim()
-              if (isUrl(v)) {
-                setImage(v)
-                setLinkOpen(false)
-              }
-            }}
-          />
-        )}
-        <input ref={imageInput} id="day-image-file" type="file" accept="image/*" hidden onChange={(e) => uploadImage(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
-        {imageError && <p className="error">{imageError}</p>}
-        <span className="muted small">Shown at the top of this day, like the opening of a chapter. It stays on this day only.</span>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => {
+            // Opens the new card in the editor (replacing this sheet) to add its picture.
+            onAddTitleCard(day, title.trim() || normalizeTag(tag))
+          }}
+        >
+          <Icon name="image" size={16} /> Add a title card to this day
+        </button>
+        <span className="muted small">A big picture with a title, like “Nagano”, placed where the new chapter starts (drag it to the evening, say).</span>
       </div>
 
       <div className="field">
