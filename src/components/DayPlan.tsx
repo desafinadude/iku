@@ -67,9 +67,10 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
             const dl = dayLabel(d)
             const on = d === selectedDay
             const has = items.some((x) => onDay(x, d))
-            const pc = dayStyle(d).color
+            const pd = dayStyle(d)
+            // Each day's pill is tinted with the day's colour (the selected day stays dark).
             return (
-              <button key={d} className={`day-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onSelectDay(d)} style={pc ? { boxShadow: `inset 0 -4px 0 ${pc}` } : undefined} title={dayStyle(d).title ?? undefined}>
+              <button key={d} className={`day-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onSelectDay(d)} style={pd.bg && !on ? { background: pd.bg, borderColor: pd.bg } : undefined} title={pd.title ?? undefined}>
                 <span className="small">{dl.dow}</span>
                 <b>{dl.num}</b>
                 <span className={`pill-dot${has ? ' has' : ''}`} aria-hidden="true" />
