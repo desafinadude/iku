@@ -318,7 +318,7 @@ function IconPicker({ value, color, fg, iconColor, onChange, onColorChange }: { 
         />
       </div>
       <div className="icon-colour">
-        <ColorField label="Icon colour" value={iconColor} onChange={onColorChange} none="Automatic" emptyText="Automatic (white or dark)" />
+        <ColorField label="Icon colour" value={iconColor} onChange={onColorChange} none="Automatic" emptyText="Automatic (white or dark)" quick />
       </div>
     </>
   )

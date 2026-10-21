@@ -177,7 +177,7 @@ function localBackend(): Backend {
     saveDays: async (_tripId, days) => {
       const data = read()
       const byDay = new Map(data.days.map((d) => [d.day, d]))
-      days.forEach((d) => (d.title || d.tag || d.color || d.image || d.headerColor || d.blendColor ? byDay.set(d.day, d) : byDay.delete(d.day)))
+      days.forEach((d) => (d.title || d.tag || d.color || d.image || d.headerColor || d.blendColor || d.headerText ? byDay.set(d.day, d) : byDay.delete(d.day)))
       write({ ...data, days: [...byDay.values()] })
     },
     uploadCover: async (tripId, file) => {
@@ -392,7 +392,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
         sb.from('items').select('chapter').limit(1), // missing before migration 014
         sb.from('items').select('people').limit(1) // missing before migration 016
       ])
-      const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => { const r = d as DayInfo & { header_color?: string | null; blend_color?: string | null }; return { day: r.day, title: r.title, tag: r.tag, color: r.color, image: r.image ?? null, headerColor: r.header_color ?? null, blendColor: r.blend_color ?? null } })
+      const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => { const r = d as DayInfo & { header_color?: string | null; blend_color?: string | null; header_text?: string | null }; return { day: r.day, title: r.title, tag: r.tag, color: r.color, image: r.image ?? null, headerColor: r.header_color ?? null, blendColor: r.blend_color ?? null, headerText: r.header_text ?? null } })
       hasEndTime = !endTimeProbe.error
       hasPinned = !pinnedProbe.error
       hasPart = !partProbe.error
@@ -487,21 +487,25 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (res.error) throw new Error(/background/.test(res.error.message) ? 'Run supabase/migrations/013_icon_colour_and_background.sql to set a trip background.' : res.error.message)
     },
     saveDays: async (tripId, days) => {
-      const has = (d: DayInfo) => !!(d.title || d.tag || d.color || d.image || d.headerColor || d.blendColor)
+      const has = (d: DayInfo) => !!(d.title || d.tag || d.color || d.image || d.headerColor || d.blendColor || d.headerText)
       const keep = days.filter(has)
       const clear = days.filter((d) => !has(d)).map((d) => d.day)
       const migrate = 'Run supabase/migrations/009_trip_days.sql to save day titles and colours.'
       if (keep.length) {
-        const rows = keep.map((d) => ({ trip_id: tripId, day: d.day, title: d.title, tag: d.tag, color: d.color, image: d.image ?? null, header_color: d.headerColor ?? null, blend_color: d.blendColor ?? null }))
+        const rows = keep.map((d) => ({ trip_id: tripId, day: d.day, title: d.title, tag: d.tag, color: d.color, image: d.image ?? null, header_color: d.headerColor ?? null, blend_color: d.blendColor ?? null, header_text: d.headerText ?? null }))
         let res = await sb.from('trip_days').upsert(rows)
         // Older databases lack the newer columns: days that don't use them still save.
+        if (res.error && /header_text/.test(res.error.message)) {
+          if (keep.some((d) => d.headerText)) throw new Error('Run supabase/migrations/017_day_header_text.sql to save header text colours.')
+          res = await sb.from('trip_days').upsert(rows.map(({ header_text: _t, ...r }) => r))
+        }
         if (res.error && /header_color|blend_color/.test(res.error.message)) {
           if (keep.some((d) => d.headerColor || d.blendColor)) throw new Error('Run supabase/migrations/015_day_header_and_blend.sql to save header and blend colours.')
-          res = await sb.from('trip_days').upsert(rows.map(({ header_color: _h, blend_color: _b, ...r }) => r))
+          res = await sb.from('trip_days').upsert(rows.map(({ header_color: _h, blend_color: _b, header_text: _t, ...r }) => r))
         }
         if (res.error && /image/.test(res.error.message)) {
           if (keep.some((d) => d.image)) throw new Error('Run supabase/migrations/010_day_images.sql to save opening images for days.')
-          res = await sb.from('trip_days').upsert(rows.map(({ image: _image, header_color: _h, blend_color: _b, ...r }) => r))
+          res = await sb.from('trip_days').upsert(rows.map(({ image: _image, header_color: _h, blend_color: _b, header_text: _t, ...r }) => r))
         }
         if (res.error) throw new Error(/trip_days/.test(res.error.message) ? migrate : res.error.message)
       }

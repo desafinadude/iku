@@ -1,4 +1,4 @@
-import { colorCss, firstColor, isLight, onColor } from '../colors'
+import { colorCss, colorStops, isLight, onColor } from '../colors'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { normalizeLabels } from '../data/normalize'
 import type { DayInfo, Item, Label } from '../types'
@@ -85,13 +85,30 @@ export function LabelsProvider({ tripId, labels, items, days = [], children }: {
         // A pale colour is used as picked; a strong one is softened so cards stay readable on it.
         const soft = (c: string) => (isLight(c) ? c : tint(c, 0.16))
         const info = days.find((d) => d.day === day) ?? null
-        const color = info?.color ?? (info?.tag ? tagStyle(info.tag).color : null)
-        return { info, title: info?.title ?? null, tag: info?.tag ?? null, color,
-          bg: color ? soft(color) : null,
+        const headerStops = colorStops(info?.headerColor)
+        // Without its own column colour, a day takes a very pale version of its header colour (gradient too).
+        const veryLight = (c: string) => tint(c, 0.12)
+        const fromHeader = !info?.color && headerStops.length > 0
+        const color = info?.color ?? headerStops[0] ?? (info?.tag ? tagStyle(info.tag).color : null)
+        const background = fromHeader
+          ? headerStops[1]
+            ? `linear-gradient(to bottom, ${veryLight(headerStops[0])} 0%, ${veryLight(headerStops[1])} 100%)`
+            : veryLight(headerStops[0])
+          : info?.blendColor
+            ? `linear-gradient(to bottom, ${color ? soft(color) : '#edeeea'} 0%, ${soft(info.blendColor)} 100%)`
+            : color
+              ? soft(color)
+              : null
+        return {
+          info,
+          title: info?.title ?? null,
+          tag: info?.tag ?? null,
+          color,
+          bg: fromHeader ? veryLight(headerStops[0]) : color ? soft(color) : null,
           image: info?.image ?? null,
-          background: info?.blendColor ? `linear-gradient(to bottom, ${color ? soft(color) : '#edeeea'} 0%, ${soft(info.blendColor)} 100%)` : color ? soft(color) : null,
+          background,
           header: colorCss(info?.headerColor) ?? null,
-          headerFg: info?.headerColor ? onColor(firstColor(info.headerColor)) : null
+          headerFg: info?.headerText ?? (headerStops[0] ? onColor(headerStops[0]) : null)
         }
       },
       labels: styled

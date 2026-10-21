@@ -84,16 +84,16 @@ function DayColumn(props: {
       className={`day-col${props.selected ? ' is-selected' : ''}${isOver ? ' is-over' : ''}${ds.color ? ' has-color' : ''}`}
       style={ds.background || ds.color ? { background: ds.background ?? undefined, borderTopColor: ds.color ?? undefined } : undefined}
     >
-      <div className="day-col-top" style={ds.header ? { background: ds.header, color: ds.headerFg! } : undefined}>
+      <div className="day-col-top" style={ds.header || ds.headerFg ? { background: ds.header ?? undefined, color: ds.headerFg ?? undefined } : undefined}>
         <button className="day-col-head" onClick={props.onSelect} aria-pressed={props.selected}>
-          <span className="day-num" style={ds.header ? { color: ds.headerFg! } : ds.color ? { color: inkColor(ds.color) } : undefined}>
+          <span className="day-num" style={ds.headerFg ? { color: ds.headerFg } : ds.color ? { color: inkColor(ds.color) } : undefined}>
             {l.num}
           </span>
           <span className="day-col-label">
             <b>
               {l.dow} <span className="muted">· Day {props.index + 1}</span>
             </b>
-            <span className="day-title" style={ds.header ? { color: ds.headerFg! } : ds.color ? { color: inkColor(ds.color) } : undefined}>
+            <span className="day-title" style={ds.headerFg ? { color: ds.headerFg } : ds.color ? { color: inkColor(ds.color) } : undefined}>
               {ds.title ?? ds.tag ?? <span className="muted">{props.items.length ? `${props.items.length} stops` : 'Empty'}</span>}
             </span>
           </span>

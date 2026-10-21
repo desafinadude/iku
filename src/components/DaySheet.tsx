@@ -3,6 +3,7 @@ import { useLabels } from '../labels/LabelsContext'
 import { dayLabel } from '../lib'
 import { Icon } from './Icon'
 import { colorCss, colorStops, firstColor, onColor } from '../colors'
+import { tint } from '../labels/LabelsContext'
 import type { DayInfo } from '../types'
 import { ColorField } from './ColorField'
 import { Sheet } from './Sheet'
@@ -25,6 +26,9 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
   const startColor = current?.color ?? (current?.tag ? tagStyle(current.tag).color : null)
   const [column, setColumn] = useState<string | null>(startColor ? (current?.blendColor ? `${startColor}>${current.blendColor}` : startColor) : null)
   const [header, setHeader] = useState<string | null>(current?.headerColor ?? null)
+  const [headerText, setHeaderText] = useState<string | null>(current?.headerText ?? null)
+  // With no column colour of its own, the column is a very pale version of the header colour.
+  const autoColumn = colorStops(header).map((c) => tint(c, 0.12)).join('>') || null
   const [through, setThrough] = useState(day)
   const l = dayLabel(day)
   const later = days.filter((d) => d > day)
@@ -35,8 +39,8 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
     onSave(
       range.map((d) =>
         clear
-          ? { day: d, title: null, tag: null, color: null, image: null, headerColor: null, blendColor: null }
-          : { day: d, title: title.trim() || null, tag: null, color: colA ?? null, image: null, headerColor: header, blendColor: colB ?? null }
+          ? { day: d, title: null, tag: null, color: null, image: null, headerColor: null, headerText: null, blendColor: null }
+          : { day: d, title: title.trim() || null, tag: null, color: colA ?? null, image: null, headerColor: header, headerText, blendColor: colB ?? null }
       )
     )
     onClose()
@@ -60,8 +64,8 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
       }
     >
       {/* A preview of the column: header band over the day's background. */}
-      <div className="day-preview-col" style={{ background: colorCss(column) ?? '#edeeea' }}>
-        <div className="day-preview-head" style={{ background: colorCss(header) ?? '#dfe1dc', color: header ? onColor(firstColor(header)) : 'var(--ink)' }}>
+      <div className="day-preview-col" style={{ background: colorCss(column ?? autoColumn) ?? '#edeeea' }}>
+        <div className="day-preview-head" style={{ background: colorCss(header) ?? '#dfe1dc', color: headerText ?? (header ? onColor(firstColor(header)) : 'var(--ink)') }}>
           <span className="day-num">{l.num}</span>
           <span>
             <b>{title.trim() || 'Untitled day'}</b>
@@ -77,9 +81,10 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
 
       <div className="field">
         <span className="field-label">Colours</span>
-        <ColorField label="Column" value={column} onChange={setColumn} none="No colour" gradient />
         <ColorField label="Header" value={header} onChange={setHeader} none="Default grey" emptyText="Default" gradient />
-        <span className="muted small">Tick Gradient for a travel day, e.g. Tokyo’s colour at the top fading into Kyoto’s.</span>
+        <ColorField label="Header text" value={headerText} onChange={setHeaderText} none="Automatic" emptyText="Automatic" quick />
+        <ColorField label="Column" value={column} onChange={setColumn} none="Automatic (pale header colour)" emptyText={header ? 'Pale header colour' : 'None'} gradient />
+        <span className="muted small">The column is a very pale version of the header unless you pick its own colour. Tick Gradient on the header for a travel day, e.g. Tokyo’s colour at the top fading into Kyoto’s.</span>
       </div>
 
       <div className="field">
