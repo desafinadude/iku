@@ -29,6 +29,9 @@ export interface Trip {
   endDate: string
 }
 
+/** Parts of a day: entries without an exact time can still be placed in one. */
+export type DayPart = 'morning' | 'afternoon' | 'evening' | 'night'
+
 export interface Item {
   id: string
   tripId: string
@@ -44,8 +47,10 @@ export interface Item {
   endDay: string | null
   /** HH:MM */
   time: string | null
-  /** HH:MM, optional; how long the entry runs in the hour-by-hour view. */
+  /** HH:MM, optional; how long the entry runs. */
   endTime: string | null
+  /** Rough time of day when there's no exact time. */
+  part: DayPart | null
   booked: boolean
   /** Shown at the top of its day (or the ideas), above entries with times. */
   pinned: boolean

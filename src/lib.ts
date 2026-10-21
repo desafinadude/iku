@@ -1,4 +1,4 @@
-import type { Filters, Item, Member, Trip } from './types'
+import type { DayPart, Filters, Item, Member, Trip } from './types'
 import { MEMBER_COLORS, statusOf } from './types'
 import type { DayOrder, IdeasOrder } from './usePrefs'
 
@@ -82,8 +82,35 @@ export function matches(item: Item, f: Filters) {
   return true
 }
 
+export const DAY_PARTS: { id: DayPart; label: string; hint: string; from: number; to: number }[] = [
+  { id: 'morning', label: 'Morning', hint: 'until noon', from: 0, to: 12 },
+  { id: 'afternoon', label: 'Afternoon', hint: '12 – 5pm', from: 12, to: 17 },
+  { id: 'evening', label: 'Evening', hint: '5 – 9pm', from: 17, to: 21 },
+  { id: 'night', label: 'Night', hint: 'after 9pm', from: 21, to: 24 }
+]
+
+/** The part of the day an exact time falls in. */
+export function partOfTime(time: string): DayPart {
+  const h = Number(time.slice(0, 2))
+  return (DAY_PARTS.find((p) => h >= p.from && h < p.to) ?? DAY_PARTS[3]).id
+}
+
+/** An entry's part of the day: from its time if it has one, else the part it was placed in. */
+export function partOf(item: Item): DayPart | null {
+  return item.time ? partOfTime(item.time) : item.part
+}
+
+export const partLabel = (part: DayPart | null) => DAY_PARTS.find((p) => p.id === part)?.label ?? null
+
+/** Sort key in minutes: exact times as they are; an entry placed in a part goes after that part's timed ones. */
+function timeKey(item: Item) {
+  if (item.time) return toMinutes(item.time)
+  const p = DAY_PARTS.find((d) => d.id === item.part)
+  return p ? p.to * 60 - 0.5 : Infinity
+}
+
 export function byTime(a: Item, b: Item) {
-  return (a.time ?? '99:99').localeCompare(b.time ?? '99:99') || a.sort - b.sort
+  return timeKey(a) - timeKey(b) || a.sort - b.sort
 }
 
 export function activeFilterCount(f: Filters) {

@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useSwipe } from '../useSwipe'
 import { inkColor, onColor } from '../colors'
-import { dayLabel, displayTitle, isPhotoCard, itemsForDay, onDay, spanLabel } from '../lib'
+import { dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -35,8 +36,17 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
   const today = itemsForDay(items, selectedDay, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
+  // Swipe left or right to go to the next or previous day; the day strip keeps the chosen day in view.
+  const swipe = useSwipe(
+    () => index > 0 && onSelectDay(days[index - 1]),
+    () => index < days.length - 1 && onSelectDay(days[index + 1])
+  )
+  const strip = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    strip.current?.querySelector('.day-pill.is-on')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+  }, [selectedDay])
   return (
-    <section aria-label="Day plan" className="pane pane-dayplan">
+    <section aria-label="Day plan" className="pane pane-dayplan" {...swipe}>
       <div className="dayplan-head">
         <span className="muted small">
           {tripName} · Day {index + 1} of {days.length}
@@ -62,14 +72,15 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
             {ds.title ?? ds.tag}
           </span>
         )}
-        <div className="day-strip">
+        <div className="day-strip" ref={strip}>
           {days.map((d) => {
             const dl = dayLabel(d)
             const on = d === selectedDay
             const has = items.some((x) => onDay(x, d))
-            const pc = dayStyle(d).color
+            const pd = dayStyle(d)
+            // Each day's pill is tinted with the day's colour (the selected day stays dark).
             return (
-              <button key={d} className={`day-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onSelectDay(d)} style={pc ? { boxShadow: `inset 0 -4px 0 ${pc}` } : undefined} title={dayStyle(d).title ?? undefined}>
+              <button key={d} className={`day-pill${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onSelectDay(d)} style={pd.bg && !on ? { background: pd.bg, borderColor: pd.bg } : undefined} title={pd.title ?? undefined}>
                 <span className="small">{dl.dow}</span>
                 <b>{dl.num}</b>
                 <span className={`pill-dot${has ? ' has' : ''}`} aria-hidden="true" />
@@ -93,7 +104,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           const pictureOnly = photo && (isPhotoCard(item) || (!show.title && !show.details))
           return (
             <li key={item.id}>
-              <span className="tl-time">{continuing ? '' : (item.time ?? '—')}</span>
+              <span className="tl-time">{continuing ? '' : (item.time ?? partLabel(item.part) ?? '—')}</span>
               <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}${show.tagIcons ? ' has-icons' : ''}`} onClick={() => onOpen(item)}>
                 {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}

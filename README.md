@@ -98,10 +98,10 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 
 ## Day views
 
-The Days area has three views, switched at the top (Columns / Hours / Month on wide screens, List / Hours / Month on phones):
+The Days area has three views, switched at the top (Columns / Parts / Month on wide screens, List / Parts / Month on phones):
 
 - **Columns / List:** a card per entry, with photos.
-- **Hours:** the selected day hour by hour. Stays and other multi-day or untimed entries sit in an "All day" strip above the hours. Entries with an end time (**From / Until** in the entry) fill their slot, and overlapping entries sit side by side. Drag an idea or entry onto an hour to schedule it (including untimed ones from the All day strip, which then get that time; drag one back onto the All day strip to take its time off and keep it on the day), or tap an empty hour to add something there. Run `supabase/migrations/007_end_time.sql` to save end times.
+- **Parts:** the selected day in loose blocks: *All day* (stays, and entries with no particular time), then *Morning* (until noon), *Afternoon* (12–5pm), *Evening* (5–9pm) and *Night* (after 9pm). Entries with a time sit in their block and show it. Drag an idea or entry into a block to place it there without committing to an hour (an exact time that doesn't fit that block is cleared), or tap a block's + to add something there. In the editor, an entry with no time has a *Time of day* choice. Elsewhere such entries show their part (e.g. "Morning") instead of a time and sort within the day by it. Run `supabase/migrations/012_day_parts.sql` to save parts.
 - **Month:** a calendar of the trip. Stays run as bars, entries show their icon or photo, and you can drop ideas onto a date. Tap a date to open its hours.
 
 **Display options** (in the filter sheet, per device): *Hide repeats on later days* shows a multi-day entry such as a hotel only on its first day; *Show tags on repeats* keeps all tags visible on every day it covers.
@@ -111,15 +111,16 @@ The Days area has three views, switched at the top (Columns / Hours / Month on w
 - **Arranging:** drag a card onto another card to drop it just before or after it (a line shows where). It works within a day, within the ideas, and from the ideas straight into a spot in a day. The order is saved for everyone.
 - **Sorting:** the **⋯** menu on the Days and Ideas headers sorts the cards. Days can go by time (entries with no time last), Custom (your dragged order) or title. Ideas can go newest or oldest first, Custom, title, or grouped by tag. Dragging a card switches that list to Custom. The choice is kept per device.
 - **What cards show:** the card button next to **⋯** has checkboxes for any mix of picture, title, details (time, notes, link, booking), tags along the bottom, and tag icons along the top (a coloured square with each tag's icon). There are presets too: Everything, Titles, Pictures, Icons + titles. Days and Ideas each have their own. At least one part always stays ticked; a card with nothing else to show falls back to its title.
-- **Tile size:** the − 100% + control on the Ideas header makes the idea tiles smaller or bigger (80–175%); tap the percentage to reset.
-- **Ideas and map on or off:** in Plan view on tablets and desktop, the ideas and map buttons on the Days, Hours and Month headers hide or show those panes.
+- **Columns:** the − 2 col + control on the Ideas header sets how many columns of ideas to show, from 1 to 5 (the side pane or phone, and the full Ideas board, each remember their own).
+- **Ideas and map on or off:** in Plan view on tablets and desktop, the ideas and map buttons on the Columns, Parts and Month headers hide or show those panes.
+- **Putting ideas on days without dragging:** open any idea and use **Add to a day** (it shows the day once set; choose *Back to ideas* to unplan it). On a phone, **Add from Ideas** under a day opens a list: tap ideas to add them to that day.
 - **Pinning:** tap **Pin to top** on an entry (or tick *Pin to the top* when editing) to keep it above everything else in its day, or at the top of the ideas, whatever the sort. Handy for hotels with no time. Run `supabase/migrations/011_pinned.sql` to save pins.
 - **Pane widths:** on tablets and desktop, drag the thin handles between the ideas, days and map (or beside an open idea on the Ideas board) to resize them. Double-click a handle to reset it. The ideas tile into as many columns as fit, down to one. Widths are kept per device.
-- **Whole screen:** on tablets and desktop, the expand arrow on the Days, Hours and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
+- **Whole screen:** on tablets and desktop, the expand arrow on the Columns, Parts and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
 
 ## Day titles, tags and colours
 
-Tap the pencil on a day column (next to the date on phones, or in the Hours header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. **Opening image:** add a picture (upload or link) to show at the top of the day, like the opening of a chapter. It stays on that day only, even when you set a run of days. Run `supabase/migrations/010_day_images.sql` to save it. Run `supabase/migrations/009_trip_days.sql` to save day settings.
+Tap the pencil on a day column (next to the date on phones, or in the Parts header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. **Opening image:** add a picture (upload or link) to show at the top of the day, like the opening of a chapter. It stays on that day only, even when you set a run of days. Run `supabase/migrations/010_day_images.sql` to save it. Run `supabase/migrations/009_trip_days.sql` to save day settings.
 
 ## Tags
 

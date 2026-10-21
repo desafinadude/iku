@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { addDays, daysBetween, fromMinutes, toMinutes } from '../lib'
-import type { Attachment, DayInfo, Item, Label, Member, Trip } from '../types'
+import { addDays, daysBetween, partOfTime } from '../lib'
+import type { Attachment, DayInfo, DayPart, Item, Label, Member, Trip } from '../types'
 import { isCoverRef, type Backend, type Profile } from './backend'
 import { getFile, loadSnapshot, removeFile, saveFile, saveSnapshot, savedFileIds } from './offline'
 
@@ -125,7 +125,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
    * in its stored order; otherwise the whole list is renumbered in the order shown.
    */
   const arrange = useCallback(
-    (id: string, list: Item[], targetId: string, after: boolean, day: string | null) => {
+    (id: string, list: Item[], targetId: string, after: boolean, day: string | null, patch: Partial<Item> = {}) => {
       const item = itemsRef.current.find((x) => x.id === id)
       if (!item || id === targetId) return
       const rest = list.filter((x) => x.id !== id)
@@ -133,7 +133,7 @@ export function useTrip(backend: Backend, enabled: boolean) {
       if (at < 0) return
       if (after) at++
       const endDay = day && item.day && item.endDay ? addDays(day, daysBetween(item.day, item.endDay)) : null
-      const moved = { ...item, day, endDay }
+      const moved = { ...item, day, endDay, ...patch }
       const inOrder = rest.every((x, i) => i === 0 || rest[i - 1].sort < x.sort)
       if (inOrder) {
         const prev = rest[at - 1]
@@ -150,25 +150,19 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [save]
   )
 
-  /** Drops an entry onto a day's "All day" strip: keeps it on that day but clears its times. */
-  const unschedule = useCallback(
-    (id: string, day: string) => {
-      const item = itemsRef.current.find((x) => x.id === id)
-      if (!item || (item.day === day && !item.time)) return
-      const endDay = item.day && item.endDay ? addDays(day, daysBetween(item.day, item.endDay)) : null
-      save({ ...item, day, endDay, time: null, endTime: null })
-    },
-    [save]
-  )
-
-  /** Drops an entry onto an hour: sets its day and start time, keeping its length. */
-  const moveToSlot = useCallback(
-    (id: string, day: string, time: string) => {
+  /**
+   * Drops an entry into a part of a day (or "All day" with null). An exact time that falls in that part is kept;
+   * otherwise the time is cleared and the entry just sits in that part.
+   */
+  const placeIn = useCallback(
+    (id: string, day: string, part: DayPart | null) => {
       const item = itemsRef.current.find((x) => x.id === id)
       if (!item) return
-      const mins = item.time && item.endTime ? toMinutes(item.endTime) - toMinutes(item.time) : null
+      const keepTime = !!item.time && part !== null && partOfTime(item.time) === part
       const endDay = item.day && item.endDay ? addDays(day, daysBetween(item.day, item.endDay)) : null
-      save({ ...item, day, endDay, time, endTime: mins && mins > 0 ? fromMinutes(toMinutes(time) + mins) : null })
+      const next = { ...item, day, endDay, part: keepTime ? null : part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
+      if (next.day === item.day && next.part === item.part && next.time === item.time) return
+      save(next)
     },
     [save]
   )
@@ -300,6 +294,6 @@ export function useTrip(backend: Backend, enabled: boolean) {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, unschedule, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   }
 }

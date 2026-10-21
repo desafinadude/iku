@@ -4,6 +4,7 @@ import type { Attachment, Item, Member } from '../types'
 import type { CardShow } from '../usePrefs'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
+import { Masonry } from './Masonry'
 
 interface Props {
   ideas: Item[]
@@ -20,13 +21,13 @@ interface Props {
   /** Extra controls in the header (e.g. "Include planned"). */
   headExtra?: ReactNode
   show?: CardShow
-  /** Tile size: 1 is normal; bigger means wider (and so fewer) columns. */
-  zoom?: number
+  /** How many columns of tiles. */
+  columns?: number
   /** Wide screens: the pane's width in px (from its resize handle). */
   width?: number
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, zoom = 1 }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, columns = 2 }: Props) {
   const [fileOver, setFileOver] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
@@ -114,12 +115,15 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
           }}
         />
       </form>
-      <div className={`masonry${full ? (selectedId ? ' masonry-4' : ' masonry-full') : ''}`} style={{ '--zoom': zoom } as React.CSSProperties}>
-        {ideas.map((item) => (
-          <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
-        ))}
-        {ideas.length === 0 && <p className="empty">Nothing here. Paste a link above to start collecting.</p>}
-      </div>
+      {ideas.length ? (
+        <Masonry columns={columns} gap={full ? (selectedId ? 12 : 14) : 10}>
+          {ideas.map((item) => (
+            <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
+          ))}
+        </Masonry>
+      ) : (
+        <p className="empty">Nothing here. Paste a link above to start collecting.</p>
+      )}
     </section>
   )
 }

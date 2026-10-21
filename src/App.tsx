@@ -1,14 +1,15 @@
 import { DndContext, DragOverlay, MouseSensor, pointerWithin, rectIntersection, TouchSensor, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
-import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ZoomControl } from './components/CardControls'
+import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ColumnsControl } from './components/CardControls'
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
+import { DaySelect, IdeaPicker } from './components/DayAssign'
 import { DaysBoard } from './components/DaysBoard'
 import { DocsPane } from './components/DocsPane'
 import { FileViewer } from './components/FileViewer'
-import { HourView } from './components/HourView'
+import { DayParts } from './components/DayParts'
 import { InstallPrompt } from './components/InstallPrompt'
 import { ItemView } from './components/ItemView'
 import { Lightbox } from './components/Lightbox'
@@ -29,8 +30,8 @@ import { Unlock } from './components/Unlock'
 import { isCoverRef } from './data/backend'
 import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { displayTitle, domainOf, isUrl, itemsForDay, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
-import { EMPTY_FILTERS, type Attachment, type Filters, type Item } from './types'
+import { displayTitle, domainOf, isUrl, itemsForDay, partOf, partOfTime, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
+import { EMPTY_FILTERS, type Attachment, type DayPart, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
 
@@ -54,7 +55,7 @@ function pointerY(e: { activatorEvent: Event | null; delta: { y: number } }) {
 }
 
 type Tab = 'ideas' | 'days' | 'map' | 'docs'
-type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | null
+type SheetState = { kind: 'item'; item: Item; isNew: boolean; /** View sheet to return to after editing. */ back?: string } | { kind: 'view'; id: string } | { kind: 'filters' } | { kind: 'profile'; welcome: boolean } | { kind: 'docs' } | { kind: 'day'; day: string } | { kind: 'pick'; day: string } | null
 
 export default function App() {
   const [unlocked, setUnlocked] = useState<boolean | null>(null)
@@ -81,7 +82,7 @@ function Planner() {
     dayInfos, saveDays,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
-    save, remove, moveTo, moveToSlot, unschedule, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
+    save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
   const [online, setOnline] = useState(() => navigator.onLine)
   useEffect(() => {
@@ -180,6 +181,7 @@ function Planner() {
     endTime: null,
     booked: false,
     pinned: false,
+    part: null,
     bookingRef: null,
     place: null,
     placeId: null,
@@ -234,7 +236,12 @@ function Planner() {
       const after = pointerY(e) > e.over!.rect.top + e.over!.rect.height / 2
       const item = items.find((x) => x.id === id)
       if (!item) return
-      if (zone.zone === 'day') {
+      if (zone.zone === 'day' && zone.part !== undefined) {
+        // Day-parts view: the entry joins the target's part (keeping an exact time only if it fits there).
+        const keepTime = !!item.time && zone.part !== null && partOfTime(item.time) === zone.part
+        const patch = zone.part === partOf(item) ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
+        arrange(id, itemsForDay(items, zone.day, 'time').filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
+      } else if (zone.zone === 'day') {
         arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day)
         if (prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
       } else {
@@ -242,11 +249,9 @@ function Planner() {
         arrange(id, list, targetId, after, list.some((x) => x.id === id) ? item.day : null)
         if (prefs.ideasOrder !== 'custom') setPrefs({ ideasOrder: 'custom' })
       }
-    } else if (String(target).startsWith('allday:')) {
-      unschedule(id, String(target).slice(7))
-    } else if (String(target).startsWith('slot:')) {
-      const [, day, hour] = String(target).split(':')
-      moveToSlot(id, day, `${hour}:00`)
+    } else if (String(target).startsWith('part:')) {
+      const [, day, part] = String(target).split(':')
+      placeIn(id, day, part === 'none' ? null : (part as DayPart))
     } else if (target === 'ideas') moveTo(id, null)
     else if (String(target).startsWith('day:')) moveTo(id, String(target).slice(4))
   }
@@ -270,7 +275,7 @@ function Planner() {
       {(
         [
           ['board', wide ? 'Columns' : 'List'],
-          ['hours', 'Hours'],
+          ['hours', 'Parts'],
           ['month', 'Month']
         ] as const
       ).map(([v, label]) => (
@@ -288,7 +293,7 @@ function Planner() {
   )
   const ideasControls = (
     <>
-      <ZoomControl zoom={prefs.ideasZoom} onChange={(z) => setPrefs({ ideasZoom: z })} />
+      {ideasBoard ? <ColumnsControl cols={prefs.boardCols} onChange={(n) => setPrefs({ boardCols: n })} /> : <ColumnsControl cols={prefs.ideasCols} onChange={(n) => setPrefs({ ideasCols: n })} />}
       <CardShowMenu label="Ideas" show={prefs.ideasShow} onChange={(v) => setPrefs({ ideasShow: v })} />
       <SortMenu label="Ideas" order={prefs.ideasOrder} orders={IDEA_ORDERS} onOrder={(v) => setPrefs({ ideasOrder: v })} hint={DRAG_HINT} />
     </>
@@ -312,9 +317,21 @@ function Planner() {
     </>
   ) : undefined
   const editDay = (day: string) => setSheet({ kind: 'day', day })
-  const addAt = (day: string, time: string) => setSheet({ kind: 'item', item: blank({ day, time }), isNew: true })
   const hourView = (
-    <HourView day={selectedDay} days={days} items={visible} prefs={prefs} viewSwitch={wide ? viewSwitch : undefined} maxToggle={maxToggle} onSelectDay={setSelectedDay} onOpen={open} onAddAt={addAt} onEditDay={editDay} />
+    <DayParts
+      day={selectedDay}
+      days={days}
+      items={visible}
+      members={members}
+      attachments={attachments}
+      prefs={prefs}
+      viewSwitch={wide ? viewSwitch : undefined}
+      maxToggle={maxToggle}
+      onSelectDay={setSelectedDay}
+      onOpen={open}
+      onAdd={(day, part) => setSheet({ kind: 'item', item: blank({ day, part }), isNew: true })}
+      onEditDay={editDay}
+    />
   )
   const monthView = (
     <MonthView
@@ -348,7 +365,7 @@ function Planner() {
       }}
     />
   )
-  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} zoom={prefs.ideasZoom} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
+  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} columns={prefs.ideasCols} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -450,7 +467,7 @@ function Planner() {
                     </>
                   }
                   show={prefs.ideasShow}
-                  zoom={prefs.ideasZoom}
+                  columns={prefs.boardCols}
                 />
                 {activeEntry && resizer('detail', 'Resize the open idea', 'right', 320, 0.7)}
                 {activeEntry && (
@@ -459,6 +476,7 @@ function Planner() {
                       <button className="primary-btn" onClick={() => edit(activeEntry)}>
                         Edit
                       </button>
+                      <DaySelect item={activeEntry} days={days} onMove={(day) => moveTo(activeEntry.id, day)} />
                       <PinButton item={activeEntry} onToggle={() => save({ ...activeEntry, pinned: !activeEntry.pinned })} />
                       <span className="spacer" />
                       <button className="icon-btn" aria-label="Close" onClick={() => setActiveId(null)}>
@@ -535,7 +553,7 @@ function Planner() {
                   unplannedCount={unplannedCount}
                   onSelectDay={setSelectedDay}
                   onOpen={open}
-                  onShowIdeas={() => setTab('ideas')}
+                  onShowIdeas={() => setSheet({ kind: 'pick', day: selectedDay })}
                   onEditDay={editDay}
                   controls={daysControls}
                 />
@@ -654,6 +672,7 @@ function Planner() {
                 onClose={() => setSheet(null)}
                 footer={
                   <>
+                    <DaySelect item={entry} days={days} onMove={(day) => moveTo(entry.id, day)} />
                     <PinButton item={entry} onToggle={() => save({ ...entry, pinned: !entry.pinned })} />
                     <button className="primary-btn wide" onClick={() => edit(entry)}>
                       Edit
@@ -673,6 +692,7 @@ function Planner() {
               </Sheet>
             )
           })()}
+        {sheet?.kind === 'pick' && <IdeaPicker day={sheet.day} ideas={orderIdeas(items.filter((x) => !x.day), prefs.ideasOrder)} onAdd={(id) => moveTo(id, sheet.day)} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onUploadCover={(file) => backend.uploadCover(trip.id, file)} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
@@ -701,7 +721,7 @@ function Planner() {
 function PinButton({ item, onToggle }: { item: Item; onToggle: () => void }) {
   return (
     <button className={`secondary-btn pin-btn${item.pinned ? ' is-on' : ''}`} aria-pressed={item.pinned} onClick={onToggle} title={item.pinned ? 'Unpin' : `Keep at the top of ${item.day ? 'its day' : 'the ideas'}`}>
-      <Icon name="pushpin" size={16} /> {item.pinned ? 'Pinned' : 'Pin to top'}
+      <Icon name="pushpin" size={16} /> {item.pinned ? 'Pinned' : 'Pin'}
     </button>
   )
 }

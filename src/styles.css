@@ -83,6 +83,7 @@ h1, h2 { margin: 0; }
 /* Phones: search on its own row, then Tags, the chosen tags and More filters; the tag menu spans the bar. */
 .is-narrow .filter-bar { position: relative; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
 .is-narrow .search { flex: 1 1 100%; }
+.is-narrow .search .search-close { display: grid; place-items: center; width: 32px; height: 32px; margin-right: -8px; border: 0; background: none; color: var(--muted); }
 .is-narrow .tag-filter { position: static; }
 .is-narrow .tag-filter-menu { left: 12px; right: 12px; width: auto; top: calc(100% - 4px); }
 .is-narrow .filter-chosen { flex: 1; }
@@ -104,13 +105,16 @@ h1, h2 { margin: 0; }
 .capture { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: var(--surface); border: 1.5px dashed var(--accent); border-radius: var(--radius); color: var(--accent); }
 .capture input { border: 0; outline: 0; flex: 1; min-width: 0; background: transparent; font-size: 15px; color: var(--ink); }
 /* As many ~150px columns as fit the pane (one when narrow); never a sideways scroll. */
-.masonry { flex: 1; overflow-y: auto; overflow-x: hidden; columns: calc(150px * var(--zoom, 1)); column-gap: 10px; padding: 3px 3px 8px; margin: -3px -3px 0; }
+.masonry { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 3px 3px 8px; margin: -3px -3px 0; }
+.masonry-cols { display: flex; align-items: flex-start; }
+.masonry-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.masonry-col > .card { flex: none; }
 
 /* ---------- Cards ---------- */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 2px rgba(23,32,29,.04); cursor: grab; touch-action: manipulation; text-align: left; }
 .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .card.is-dragging { opacity: .35; }
-.card-pin { break-inside: avoid; margin-bottom: 10px; display: block; }
+.card-pin { display: block; }
 .card-media { height: 84px; display: flex; align-items: flex-end; padding: 8px; }
 .card-domain { font-size: 11px; font-weight: 600; background: rgba(255,255,255,.85); padding: 3px 7px; border-radius: 6px; }
 .card-body { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
@@ -483,10 +487,6 @@ h1, h2 { margin: 0; }
 .main-switch { margin: 0 0 0 8px; }
 .main-switch button { min-height: 36px; }
 .pane-ideas-full { flex: 1 1 0; max-width: none; min-width: 0; }
-.masonry-full { columns: calc(230px * var(--zoom, 1)); column-gap: 14px; }
-.masonry-4 { columns: calc(190px * var(--zoom, 1)); column-gap: 12px; }
-.pane-ideas-full .card-pin { margin-bottom: 14px; }
-.pane-ideas-full .masonry-4 .card-pin { margin-bottom: 12px; }
 .card.is-selected { outline: 3px solid var(--accent); outline-offset: 2px; }
 .pane-detail { flex: 0 0 50%; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .detail-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
@@ -666,3 +666,50 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .zoom-control button:not(:disabled):hover { background: var(--soft); }
 .zoom-control .zoom-value { min-width: 44px; font-size: 12px; font-weight: 600; color: var(--muted); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .pane-ideas .pane-head h2 { white-space: nowrap; }
+
+/* Put an entry on a day: a button over the device's own list of days */
+.day-select { position: relative; flex: none; white-space: nowrap; cursor: pointer; }
+.day-select.is-set { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); font-weight: 600; }
+.day-select select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.day-select:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.detail-bar .day-select, .detail-bar .pin-btn { min-height: 40px; }
+.sheet-foot .primary-btn.wide { min-width: 96px; }
+
+/* Phone: pick ideas to add to a day */
+.picker-search { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 16px; }
+.idea-pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.idea-pick { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); text-align: left; }
+.idea-pick:active { background: var(--drop); }
+.idea-pick-thumb { width: 52px; height: 52px; flex: none; border-radius: 4px; object-fit: cover; display: grid; place-items: center; background: var(--soft); }
+.idea-pick-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.idea-pick-text b { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.idea-pick-add { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; }
+
+/* Phone filter row: search and More filters as icons */
+.filter-icon-btn { position: relative; width: 40px; height: 40px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
+.filter-icon-btn.is-on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+.filter-dot { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.is-narrow .search input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+/* Day by parts: All day, then Morning / Afternoon / Evening / Night */
+.field > .field-label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.part-seg { flex-wrap: wrap; }
+.pane-parts { flex: 1; }
+.parts-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 12px; padding: 2px 2px 12px; }
+.parts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+.part-block { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: #edeeea; border: 1px solid transparent; box-shadow: var(--shadow); min-height: 96px; transition: background .15s; }
+.part-block.is-over { background: var(--drop); border-color: var(--drop-line); border-style: dashed; }
+.part-allday { background: #e6e8e3; min-height: 0; }
+.part-morning { background: #f6efd9; }
+.part-afternoon { background: #f6e6d6; }
+.part-evening { background: #e6e3f1; }
+.part-night { background: #dde2ea; }
+.part-head { display: flex; align-items: baseline; gap: 8px; }
+.part-head b { font-family: var(--display); font-size: 16px; }
+.icon-btn.part-add { width: 30px; height: 30px; align-self: center; background: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: none; }
+.part-items { display: flex; flex-direction: column; gap: 8px; }
+.part-items > * { flex-shrink: 0; }
+.part-empty { font-size: 13px; color: var(--muted); padding: 6px 2px; }
+.card-part { text-transform: none; color: var(--accent-dark); }
+.parts-scroll > * { flex-shrink: 0; }
+.zoom-control button { -webkit-tap-highlight-color: transparent; }
