@@ -83,11 +83,12 @@ export function DayParts({ day, days, items, members, attachments, prefs, viewSw
         {maxToggle}
       </div>
 
+      {/* One planner page for the day, top to bottom, banded by part of the day. */}
       <div className="parts-scroll">
-        <PartBlock day={day} part={null} label="All day" hint="stays, or no particular time" onAdd={() => onAdd(day, null)}>
-          {allDay.map((x) => card(x, null))}
-        </PartBlock>
-        <div className="parts-grid">
+        <div className="planner">
+          <PartBlock day={day} part={null} label="All day" hint="stays, no set time" onAdd={() => onAdd(day, null)}>
+            {allDay.map((x) => card(x, null))}
+          </PartBlock>
           {DAY_PARTS.map((p) => (
             <PartBlock key={p.id} day={day} part={p.id} label={p.label} hint={p.hint} onAdd={() => onAdd(day, p.id)}>
               {dayItems.filter((x) => !isAllDay(x, day) && partOf(x) === p.id).map((x) => card(x, p.id))}
@@ -103,19 +104,15 @@ export function DayParts({ day, days, items, members, attachments, prefs, viewSw
 function PartBlock({ day, part, label, hint, onAdd, children }: { day: string; part: DayPart | null; label: string; hint: string; onAdd: () => void; children: ReactNode[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: `part:${day}:${part ?? 'none'}` })
   return (
-    <div ref={setNodeRef} className={`part-block${part ? ' part-' + part : ' part-allday'}${isOver ? ' is-over' : ''}`}>
-      <div className="part-head">
+    <div ref={setNodeRef} className={`part-band${part ? ' part-' + part : ' part-allday'}${isOver ? ' is-over' : ''}`}>
+      <div className="part-side">
         <b>{label}</b>
-        <span className="muted small">{hint}</span>
-        <span className="spacer" />
+        <span className="small">{hint}</span>
         <button type="button" className="icon-btn part-add" aria-label={`Add to ${label.toLowerCase()}`} onClick={onAdd}>
           <Icon name="plus" size={15} />
         </button>
       </div>
-      <div className="part-items">
-        {children}
-        {children.length === 0 && <span className="part-empty">Drop something here</span>}
-      </div>
+      <div className="part-items">{children}</div>
     </div>
   )
 }

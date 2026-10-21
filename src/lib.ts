@@ -83,10 +83,10 @@ export function matches(item: Item, f: Filters) {
 }
 
 export const DAY_PARTS: { id: DayPart; label: string; hint: string; from: number; to: number }[] = [
-  { id: 'morning', label: 'Morning', hint: 'until noon', from: 0, to: 12 },
-  { id: 'afternoon', label: 'Afternoon', hint: '12 – 5pm', from: 12, to: 17 },
-  { id: 'evening', label: 'Evening', hint: '5 – 9pm', from: 17, to: 21 },
-  { id: 'night', label: 'Night', hint: 'after 9pm', from: 21, to: 24 }
+  { id: 'morning', label: 'Morning', hint: 'until 1pm', from: 0, to: 13 },
+  { id: 'afternoon', label: 'Afternoon', hint: '1 – 4pm', from: 13, to: 16 },
+  { id: 'evening', label: 'Evening', hint: '4 – 7pm', from: 16, to: 19 },
+  { id: 'night', label: 'Night', hint: 'after 7pm', from: 19, to: 24 }
 ]
 
 /** The part of the day an exact time falls in. */
