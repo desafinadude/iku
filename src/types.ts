@@ -124,4 +124,8 @@ export interface DayInfo {
   color: string | null
   /** Opening image for the day: an uploaded cover reference or a URL. */
   image?: string | null
+  /** Background of the column's header band (default grey). */
+  headerColor?: string | null
+  /** A second colour the day's background blends into, top to bottom (a day you move between places). */
+  blendColor?: string | null
 }

@@ -44,6 +44,11 @@ export interface DayStyle {
   bg: string | null
   /** Opening image at the top of the day. */
   image: string | null
+  /** The column's background: the tint, or a top-to-bottom blend into a second colour. */
+  background: string | null
+  /** Header band colour and its text colour (null: default grey). */
+  header: string | null
+  headerFg: string | null
 }
 
 const NEUTRAL = '#4A5550'
@@ -79,7 +84,13 @@ export function LabelsProvider({ tripId, labels, items, days = [], children }: {
       dayStyle: (day) => {
         const info = days.find((d) => d.day === day) ?? null
         const color = info?.color ?? (info?.tag ? tagStyle(info.tag).color : null)
-        return { info, title: info?.title ?? null, tag: info?.tag ?? null, color, bg: color ? tint(color, 0.13) : null, image: info?.image ?? null }
+        return { info, title: info?.title ?? null, tag: info?.tag ?? null, color,
+          bg: color ? tint(color, 0.13) : null,
+          image: info?.image ?? null,
+          background: info?.blendColor ? `linear-gradient(to bottom, ${color ? tint(color, 0.13) : '#edeeea'} 0%, ${tint(info.blendColor, 0.13)} 100%)` : color ? tint(color, 0.13) : null,
+          header: info?.headerColor ?? null,
+          headerFg: info?.headerColor ? onColor(info.headerColor) : null
+        }
       },
       labels: styled
     }

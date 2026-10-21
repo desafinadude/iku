@@ -25,6 +25,10 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
   const [title, setTitle] = useState(current?.title ?? '')
   const [tag, setTag] = useState(current?.tag ?? '')
   const [color, setColor] = useState<string | null>(current?.color ?? null)
+  const [headerColor, setHeaderColor] = useState<string | null>(current?.headerColor ?? null)
+  const [blendColor, setBlendColor] = useState<string | null>(current?.blendColor ?? null)
+  const nextDay = days[days.indexOf(day) + 1]
+  const nextColor = nextDay ? dayStyle(nextDay).color : null
   const [through, setThrough] = useState(day)
   const l = dayLabel(day)
   const tagColor = tag ? tagStyle(normalizeTag(tag)).color : null
@@ -34,7 +38,15 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
   const save = (clear = false) => {
     const range = days.filter((d) => d >= day && d <= through)
     const t = normalizeTag(tag)
-    onSave(range.map((d) => (clear ? { day: d, title: null, tag: null, color: null, image: null } : { day: d, title: title.trim() || null, tag: t || null, color, image: null })))
+    // The header colour goes on every day in the range; the blend only on this (transition) day.
+    const blendFor = (d: string) => (d === day ? (clear ? null : blendColor) : (dayStyle(d).info?.blendColor ?? null))
+    onSave(
+      range.map((d) =>
+        clear
+          ? { day: d, title: null, tag: null, color: null, image: null, headerColor: null, blendColor: blendFor(d) }
+          : { day: d, title: title.trim() || null, tag: t || null, color, image: null, headerColor, blendColor: blendFor(d) }
+      )
+    )
     onClose()
   }
 
@@ -55,7 +67,7 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
         </>
       }
     >
-      <div className="day-preview" style={{ background: shown ?? 'var(--soft)', color: shown ? onColor(shown) : 'var(--ink)' }}>
+      <div className="day-preview" style={{ background: blendColor ? `linear-gradient(to right, ${shown ?? '#edeeea'}, ${blendColor})` : (shown ?? 'var(--soft)'), color: shown ? onColor(shown) : 'var(--ink)' }}>
         <span className="day-num">{l.num}</span>
         <span>
           <b>{title.trim() || tag || 'Untitled day'}</b>
@@ -106,6 +118,22 @@ export function DaySheet({ day, days, onSave, onClose, onAddTitleCard }: Props) 
         <legend>Colour</legend>
         <ColorSwatches value={color} onChange={setColor} none={{ label: tagColor ? 'Use the tag’s colour' : 'No colour', color: tagColor }} />
         <span className="muted small">{tagColor && !color ? `Using ${normalizeTag(tag)}’s colour.` : 'Pick a colour, or leave the first one to use the day tag’s colour.'}</span>
+      </fieldset>
+
+      <fieldset className="group">
+        <legend>Header colour</legend>
+        <ColorSwatches value={headerColor} onChange={setHeaderColor} none={{ label: 'Default grey' }} />
+      </fieldset>
+
+      <fieldset className="group">
+        <legend>Blend into (a travel day)</legend>
+        {nextColor && (
+          <button type="button" className={`chip chip-small${blendColor === nextColor ? ' is-on' : ''}`} onClick={() => setBlendColor(nextColor)}>
+            <span className="dot" style={{ background: nextColor }} /> Next day’s colour
+          </button>
+        )}
+        <ColorSwatches value={blendColor} onChange={setBlendColor} none={{ label: 'No blend' }} />
+        <span className="muted small">The column fades from this day’s colour at the top into this colour at the bottom, for a day you move between places.</span>
       </fieldset>
 
       {later.length > 0 && (

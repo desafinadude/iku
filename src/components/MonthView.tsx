@@ -78,7 +78,7 @@ function MonthCell({ day, inTrip, selected, items, prefs, onOpenDay, onOpen }: {
       ref={setNodeRef}
       role="gridcell"
       className={`month-cell${inTrip ? '' : ' is-outside'}${selected ? ' is-selected' : ''}${isOver ? ' is-over' : ''}`}
-      style={inTrip && ds.color ? { background: ds.bg!, boxShadow: `inset 0 4px 0 ${ds.color}` } : undefined}
+      style={inTrip && (ds.color || ds.background) ? { background: ds.background ?? undefined, boxShadow: ds.color ? `inset 0 4px 0 ${ds.color}` : undefined } : undefined}
     >
       <div className="month-cell-head">
         <button className="month-date" disabled={!inTrip} onClick={() => onOpenDay(day)} aria-label={`${l.dow} ${l.num} ${l.month}: open hour by hour`}>

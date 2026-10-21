@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_LABEL_ID } from '../data/normalize'
-import { lucideName, SUGGESTED_ICONS } from '../labels/icons'
+import { iconLetters, lucideName, SUGGESTED_ICONS } from '../labels/icons'
 import { lucideNames, useLucide } from '../labels/lucide'
 import { LabelIconView } from '../labels/LabelIconView'
 import { useLabels, type TagStyle } from '../labels/LabelsContext'
@@ -297,6 +297,18 @@ function IconPicker({ value, color, fg, iconColor, onChange, onColorChange }: { 
           )
         })}
         {query && names.length === 0 && <p className="muted small">No icons match “{q}”.</p>}
+      </div>
+      <div className="icon-letters">
+        <label htmlFor="icon-letters-input" className="field-label">
+          Or use letters
+        </label>
+        <input
+          id="icon-letters-input"
+          maxLength={2}
+          placeholder="e.g. K or JR"
+          value={iconLetters(value) ?? ''}
+          onChange={(e) => onChange(e.target.value.trim() ? 'text:' + e.target.value.trim().slice(0, 2) : null)}
+        />
       </div>
       <div className="icon-colour">
         <span className="field-label">Icon colour</span>
