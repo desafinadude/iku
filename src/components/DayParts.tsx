@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
 import { onColor } from '../colors'
 import { useLabels } from '../labels/LabelsContext'
-import { addDays, DAY_PARTS, dayLabel, itemsForDay, partOf } from '../lib'
+import { addDays, bandOf, DAY_PARTS, dayLabel, itemsForDay } from '../lib'
 import type { Attachment, DayPart, Item, Member } from '../types'
 import type { Prefs } from '../usePrefs'
 import { useSwipe } from '../useSwipe'
@@ -25,8 +25,6 @@ interface Props {
   onEditDay: (day: string) => void
 }
 
-/** Stays and other multi-day entries, and entries with neither a time nor a part, go in "All day". */
-const isAllDay = (x: Item, day: string) => !!(x.endDay && x.endDay !== x.day) || (!x.time && !x.part) || x.day !== day
 
 /**
  * One day in loose blocks: All day, then Morning, Afternoon, Evening and Night. Timed entries sit in their block
@@ -36,7 +34,7 @@ export function DayParts({ day, days, items, members, attachments, prefs, viewSw
   const { dayStyle } = useLabels()
   const ds = dayStyle(day)
   const dayItems = itemsForDay(items, day, 'time').filter((x) => !prefs.hideRepeats || x.day === day)
-  const allDay = dayItems.filter((x) => isAllDay(x, day))
+  const allDay = dayItems.filter((x) => bandOf(x, day) === null)
   const l = dayLabel(day)
   const idx = days.indexOf(day)
   const swipe = useSwipe(
@@ -91,7 +89,7 @@ export function DayParts({ day, days, items, members, attachments, prefs, viewSw
           </PartBlock>
           {DAY_PARTS.map((p) => (
             <PartBlock key={p.id} day={day} part={p.id} label={p.label} hint={p.hint} onAdd={() => onAdd(day, p.id)}>
-              {dayItems.filter((x) => !isAllDay(x, day) && partOf(x) === p.id).map((x) => card(x, p.id))}
+              {dayItems.filter((x) => bandOf(x, day) === p.id).map((x) => card(x, p.id))}
             </PartBlock>
           ))}
         </div>

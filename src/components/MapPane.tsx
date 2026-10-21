@@ -1,5 +1,4 @@
 import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { onColor } from '../colors'
 import { dayLabel, displayTitle, itemsForDay } from '../lib'
 import { markGoogleBroken, useGoogleOk } from '../maps/config'
 import type { MapPin } from '../maps/types'
@@ -37,7 +36,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
   // Pins take their colour and icon from the entry's first coloured tag.
   const pinStyle = (x: Item) => {
     const s = itemStyle(x)
-    return { color: s.color, icon: s.icon }
+    return { color: s.color, fg: s.fg, icon: s.icon }
   }
 
 
@@ -144,7 +143,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
                 .filter((t) => t.color && pins.some((p) => itemStyle(items.find((x) => x.id === p.id)!).name === t.name))
                 .map((s) => (
                   <li key={s.name}>
-                    <span className="legend-pin" style={{ background: s.color!, color: onColor(s.color) }}>
+                    <span className="legend-pin" style={{ background: s.color!, color: s.fg }}>
                       <LabelIconView name={s.icon} size={12} />
                     </span>
                     {s.name}

@@ -29,6 +29,7 @@ function item(kind: string, title: string, o: Partial<Item> = {}): Item {
     part: null,
     booked: false,
     pinned: false,
+    chapter: false,
     bookingRef: null,
     place: null,
     placeId: null,

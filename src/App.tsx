@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ColumnsControl } from './components/CardControls'
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
+import { useImageSrc } from './components/CardImage'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
 import { DaySelect, IdeaPicker } from './components/DayAssign'
@@ -30,7 +31,7 @@ import { Unlock } from './components/Unlock'
 import { isCoverRef } from './data/backend'
 import { backend } from './data/instance'
 import { useTrip } from './data/useTrip'
-import { displayTitle, domainOf, isUrl, itemsForDay, partOf, partOfTime, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
+import { bandOf, displayTitle, domainOf, isUrl, itemsForDay, partOfTime, matches, onDay, orderIdeas, prepareUpload, tripDays, tripRange, uid } from './lib'
 import { EMPTY_FILTERS, type Attachment, type DayPart, type Filters, type Item } from './types'
 import { useMediaQuery } from './useMediaQuery'
 
@@ -44,6 +45,9 @@ const collisions: CollisionDetection = (args) => {
   const hits = pointerWithin(args).filter((h) => h.id !== self)
   const cards = hits.filter((h) => isCard(h.id))
   if (cards.length) return cards
+  // A band of a day beats the day column around it.
+  const parts = hits.filter((h) => String(h.id).startsWith('part:'))
+  if (parts.length) return parts
   return hits.length ? hits : rectIntersection(args).filter((h) => !isCard(h.id))
 }
 
@@ -79,12 +83,21 @@ export default function App() {
 
 function Planner() {
   const {
-    dayInfos, saveDays,
+    dayInfos, saveDays, saveBackground,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
   const [online, setOnline] = useState(() => navigator.onLine)
+  // The trip's page background: a colour, or a photo (lightly washed so the planner stays readable).
+  const bg = trip?.background ?? null
+  const bgIsColour = !!bg && /^#[0-9a-f]{6}$/i.test(bg)
+  const bgImage = useImageSrc(bg && !bgIsColour ? bg : null)
+  const pageStyle = bgIsColour
+    ? { backgroundColor: bg! }
+    : bgImage
+      ? { backgroundImage: `linear-gradient(rgba(244, 245, 241, .3), rgba(244, 245, 241, .3)), url("${bgImage.replace(/"/g, '%22')}")` }
+      : undefined
   useEffect(() => {
     const on = () => setOnline(navigator.onLine)
     window.addEventListener('online', on)
@@ -181,6 +194,7 @@ function Planner() {
     endTime: null,
     booked: false,
     pinned: false,
+    chapter: false,
     part: null,
     bookingRef: null,
     place: null,
@@ -239,8 +253,11 @@ function Planner() {
       if (zone.zone === 'day' && zone.part !== undefined) {
         // Day-parts view: the entry joins the target's part (keeping an exact time only if it fits there).
         const keepTime = !!item.time && zone.part !== null && partOfTime(item.time) === zone.part
-        const patch = zone.part === partOf(item) ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
-        arrange(id, itemsForDay(items, zone.day, 'time').filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
+        const samePart = zone.part === bandOf(item, zone.day)
+        const patch = samePart ? {} : { part: keepTime ? null : zone.part, time: keepTime ? item.time : null, endTime: keepTime ? item.endTime : null }
+        arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day, patch)
+        // Re-ordering within a band of a day column switches the days to your own order, as in plain columns.
+        if (samePart && item.day === zone.day && prefs.daysView === 'board' && prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
       } else if (zone.zone === 'day') {
         arrange(id, itemsForDay(items, zone.day, prefs.dayOrder).filter((x) => x.day === zone.day), targetId, after, zone.day)
         if (prefs.dayOrder !== 'custom') setPrefs({ dayOrder: 'custom' })
@@ -370,7 +387,7 @@ function Planner() {
 
   return (
     <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
-      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
+      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}${pageStyle ? ' has-bg' : ''}${bgImage && !bgIsColour ? ' has-bg-image' : ''}`} style={pageStyle}>
         <header className="top-bar">
           <div className="brand">
             <span className="brand-mark">
@@ -647,6 +664,9 @@ function Planner() {
             onChange={setFilters} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'profile' && meMember && (
           <ProfileSheet
+            background={trip.background ?? null}
+            onBackground={saveBackground}
+            onUploadCover={(file) => backend.uploadCover(trip.id, file)}
             me={meMember}
             members={members}
             items={items}
@@ -693,7 +713,7 @@ function Planner() {
             )
           })()}
         {sheet?.kind === 'pick' && <IdeaPicker day={sheet.day} ideas={orderIdeas(items.filter((x) => !x.day), prefs.ideasOrder)} onAdd={(id) => moveTo(id, sheet.day)} onClose={() => setSheet(null)} />}
-        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onUploadCover={(file) => backend.uploadCover(trip.id, file)} onClose={() => setSheet(null)} />}
+        {sheet?.kind === 'day' && <DaySheet day={sheet.day} days={days} onSave={saveDays} onAddTitleCard={(day, title) => setSheet({ kind: 'item', item: blank({ day, title, chapter: true }), isNew: true })} onClose={() => setSheet(null)} />}
         {lightbox && <Lightbox imageUrl={lightbox} onClose={() => setLightbox(null)} />}
         {sheet?.kind === 'docs' && (
           <Sheet title="Docs" onClose={() => setSheet(null)}>

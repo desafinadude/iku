@@ -74,7 +74,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         setNodeRef(node)
         drop.setNodeRef(node)
       }}
-      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}${compact ? ' is-compact' : ''}${dropClass}`}
+      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}${compact ? ' is-compact' : ''}${item.chapter && !continuing ? ' is-chapter' : ''}${dropClass}`}
       {...listeners}
       {...attributes}
       // Repeat cards can't be dragged, but they still open: don't announce them as disabled.
@@ -87,67 +87,97 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         if (e.key === 'Enter') onOpen(item)
       }}
     >
-      {show.tagIcons && <TagIcons tags={shownTags} />}
-      {imageShown && (
-        <div className={`card-photo${variant === 'plan' ? ' card-photo-plan' : ''}${photoOnly ? ' is-whole' : ''}`}>
-          <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
+      {item.chapter && !continuing ? (
+        // A title card: the picture (or the colour) with the title over it, marking a new chapter.
+        <div className={`chapter-face${item.imageUrl && !imgBroken ? ' has-image' : ''}`} style={item.imageUrl && !imgBroken ? undefined : { background: c.color, color: c.fg }}>
+          {item.imageUrl && !imgBroken && <CardImage imageUrl={item.imageUrl} onBroken={() => setImgBroken(true)} />}
+          <div className="chapter-text">
+            {(time || partText) && (
+              <span className="card-time">
+                <Icon name={time ? 'clock' : 'sunrise'} size={12} strokeWidth={2.4} />
+                {time ? item.time : partText}
+              </span>
+            )}
+            <b>{displayTitle(item)}</b>
+            {item.note && <span className="chapter-note">{item.note}</span>}
+          </div>
         </div>
-      )}
-      {variant === 'pin' && !image && domain && show.image && show.details && (
-        <div className="card-media" style={{ background: c.bg }}>
-          <span className="card-domain" style={{ color: inkColor(c.color) }}>
-            {domain}
-          </span>
-        </div>
-      )}
-      {(titleShown || fullMeta || shortMeta || note) && (
-        <div className="card-body">
-          {(fullMeta || shortMeta) && (
-            <div className="card-meta">
-              {item.pinned && (
-                <span className="pin-badge" title="Pinned to the top" aria-label="Pinned">
-                  <Icon name="pushpin" size={12} strokeWidth={2.4} />
-                </span>
-              )}
-              {time && <span className="card-time">{item.time}</span>}
-              {partText && <span className="card-time card-part">{partText}</span>}
-              {span && <span className="span-label">{span}</span>}
-              {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}
-              {fullMeta && fileCount > 0 && (
-                <span className="file-badge" aria-label={`${fileCount} attachments`}>
-                  <Icon name="paperclip" size={13} />
-                  {fileCount}
-                </span>
-              )}
-              {fullMeta && item.booked && (
-                <span className="booked">
-                  <Icon name="check" size={13} strokeWidth={2.4} />
-                  Booked
-                </span>
-              )}
-            </div>
-          )}
-          {titleShown && <div className="card-title">{displayTitle(item)}</div>}
-          {note && <div className="card-note">{item.note}</div>}
-        </div>
-      )}
-      {photoOnly && show.details && fileCount > 0 && (
-        <div className="card-meta card-meta-photo">
-          <span className="file-badge" aria-label={`${fileCount} attachments`}>
-            <Icon name="paperclip" size={13} />
-            {fileCount}
-          </span>
-        </div>
-      )}
-      {footShown && (
-        <div className="card-foot">
-          <TagChips tags={shownTags} small />
-          {showCreator && (
-            <span className="card-creator">
-              <Avatar member={creator!} size={20} />
+      ) : (
+        <>
+        {show.tagIcons && <TagIcons tags={shownTags} />}
+        {imageShown && (
+          <div className={`card-photo${variant === 'plan' ? ' card-photo-plan' : ''}${photoOnly ? ' is-whole' : ''}`}>
+            <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
+          </div>
+        )}
+        {variant === 'pin' && !image && domain && show.image && show.details && (
+          <div className="card-media" style={{ background: c.bg }}>
+            <span className="card-domain" style={{ color: inkColor(c.color) }}>
+              {domain}
             </span>
-          )}
-        </div>
+          </div>
+        )}
+        {(titleShown || fullMeta || shortMeta || note) && (
+          <div className="card-body">
+            {(fullMeta || shortMeta) && (
+              <div className="card-meta">
+                {item.pinned && (
+                  <span className="pin-badge" title="Pinned to the top" aria-label="Pinned">
+                    <Icon name="pushpin" size={12} strokeWidth={2.4} />
+                  </span>
+                )}
+                {time && (
+                  <span className="card-time">
+                    <Icon name="clock" size={12} strokeWidth={2.4} />
+                    {item.time}
+                    {item.endTime ? `–${item.endTime}` : ''}
+                  </span>
+                )}
+                {partText && (
+                  <span className="card-time card-part">
+                    <Icon name="sunrise" size={12} strokeWidth={2.2} />
+                    {partText}
+                  </span>
+                )}
+                {span && <span className="span-label">{span}</span>}
+                {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}
+                {fullMeta && fileCount > 0 && (
+                  <span className="file-badge" aria-label={`${fileCount} attachments`}>
+                    <Icon name="paperclip" size={13} />
+                    {fileCount}
+                  </span>
+                )}
+                {fullMeta && item.booked && (
+                  <span className="booked">
+                    <Icon name="check" size={13} strokeWidth={2.4} />
+                    Booked
+                  </span>
+                )}
+              </div>
+            )}
+            {titleShown && <div className="card-title">{displayTitle(item)}</div>}
+            {note && <div className="card-note">{item.note}</div>}
+          </div>
+        )}
+        {photoOnly && show.details && fileCount > 0 && (
+          <div className="card-meta card-meta-photo">
+            <span className="file-badge" aria-label={`${fileCount} attachments`}>
+              <Icon name="paperclip" size={13} />
+              {fileCount}
+            </span>
+          </div>
+        )}
+        {footShown && (
+          <div className="card-foot">
+            <TagChips tags={shownTags} small />
+            {showCreator && (
+              <span className="card-creator">
+                <Avatar member={creator!} size={20} />
+              </span>
+            )}
+          </div>
+        )}
+        </>
       )}
     </article>
   )

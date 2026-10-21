@@ -100,12 +100,28 @@ export function partOf(item: Item): DayPart | null {
   return item.time ? partOfTime(item.time) : item.part
 }
 
+/**
+ * Which band of a day an entry shows in: null for "All day" (stays and other multi-day entries, and entries with
+ * neither a time nor a part), else its part of the day.
+ */
+export function bandOf(item: Item, day: string): DayPart | null {
+  if ((item.endDay && item.endDay !== item.day) || item.day !== day) return null
+  return partOf(item)
+}
+
+/** The bands of a day in order, each with its entries (keeping the given order within a band). */
+export function bands(items: Item[], day: string) {
+  return [null, ...DAY_PARTS.map((p) => p.id)].map((part) => ({ part, items: items.filter((x) => bandOf(x, day) === part) }))
+}
+
 export const partLabel = (part: DayPart | null) => DAY_PARTS.find((p) => p.id === part)?.label ?? null
 
 /** Sort key in minutes: exact times as they are; an entry placed in a part goes after that part's timed ones. */
 function timeKey(item: Item) {
   if (item.time) return toMinutes(item.time)
   const p = DAY_PARTS.find((d) => d.id === item.part)
+  // A title card without a time opens its part of the day (or the day, in "All day").
+  if (item.chapter) return p ? p.from * 60 - 0.5 : -1
   return p ? p.to * 60 - 0.5 : Infinity
 }
 

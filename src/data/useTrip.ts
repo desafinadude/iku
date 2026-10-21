@@ -290,8 +290,24 @@ export function useTrip(backend: Backend, enabled: boolean) {
     [backend, dayInfos, trip]
   )
 
+  /** The trip's page background (shared): a colour, an image, or null for none. */
+  const saveBackground = useCallback(
+    async (background: string | null) => {
+      if (!trip) return
+      const before = trip
+      setTrip({ ...trip, background })
+      try {
+        await backend.saveBackground(trip.id, background)
+      } catch (e) {
+        setTrip(before)
+        setError((e as Error).message)
+      }
+    },
+    [backend, trip]
+  )
+
   return {
-    dayInfos, saveDays,
+    dayInfos, saveDays, saveBackground,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl

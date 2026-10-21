@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { activeFilterCount } from '../lib'
-import { onColor } from '../colors'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Filters, Item } from '../types'
@@ -47,7 +46,7 @@ export function FilterBar({ filters, items, onChange, onMore }: Props) {
   const chip = (tag: string, removable: boolean) => {
     const st = tagStyle(tag)
     return (
-      <span className={`filter-tag${st.color ? ' is-solid' : ''}`} style={st.color ? { background: st.color, color: onColor(st.color) } : undefined}>
+      <span className={`filter-tag${st.color ? ' is-solid' : ''}`} style={st.color ? { background: st.color, color: st.fg } : undefined}>
         {st.icon && <LabelIconView name={st.icon} size={14} />}
         {tag}
         {removable && (

@@ -57,6 +57,8 @@ export interface Backend {
   deleteTag(tripId: string, tag: string): Promise<void>
   /** Saves day titles/tags/colours (a day with nothing set is cleared). */
   saveDays(tripId: string, days: DayInfo[]): Promise<void>
+  /** Sets (or clears, with null) the trip's page background. */
+  saveBackground(tripId: string, background: string | null): Promise<void>
   /** Stores a card image you chose; returns the reference to save as the entry's imageUrl. */
   uploadCover(tripId: string, file: File): Promise<string>
   /** A displayable URL for an uploaded card image reference. */
@@ -168,6 +170,10 @@ function localBackend(): Backend {
       const labels = exists ? data.labels.filter((l) => l.name !== from) : data.labels.map((l) => (l.name === from ? { ...l, name: to } : l))
       write({ ...data, items, labels })
     },
+    saveBackground: async (_tripId, background) => {
+      const data = read()
+      write({ ...data, trip: { ...data.trip, background } })
+    },
     saveDays: async (_tripId, days) => {
       const data = read()
       const byDay = new Map(data.days.map((d) => [d.day, d]))
@@ -213,6 +219,7 @@ interface ItemRow {
   part?: string | null
   booked: boolean
   pinned?: boolean | null
+  chapter?: boolean | null
   booking_ref: string | null
   place: string | null
   place_id?: string | null
@@ -256,11 +263,12 @@ interface LabelRow {
   name: string
   color: string | null
   icon: string | null
+  icon_color?: string | null
   sort: number
 }
 
-const fromLabelRow = (r: LabelRow): Label => ({ id: r.id, tripId: r.trip_id, kind: r.kind, name: r.name, color: r.color, icon: r.icon, sort: r.sort })
-const toLabelRow = (l: Label): LabelRow => ({ id: l.id, trip_id: l.tripId, kind: l.kind, name: l.name, color: l.color, icon: l.icon, sort: l.sort })
+const fromLabelRow = (r: LabelRow): Label => ({ id: r.id, tripId: r.trip_id, kind: r.kind, name: r.name, color: r.color, icon: r.icon, iconColor: r.icon_color ?? null, sort: r.sort })
+const toLabelRow = (l: Label): LabelRow => ({ id: l.id, trip_id: l.tripId, kind: l.kind, name: l.name, color: l.color, icon: l.icon, icon_color: l.iconColor ?? null, sort: l.sort })
 
 const LABELS_MIGRATION = 'Run supabase/migrations/006_labels.sql to manage types and tags.'
 
@@ -287,6 +295,7 @@ const fromRow = (r: ItemRow): Item => normalizeItem({
   part: (r.part as Item['part']) || null,
   booked: r.booked,
   pinned: !!r.pinned,
+  chapter: !!r.chapter,
   bookingRef: r.booking_ref,
   place: r.place,
   placeId: r.place_id || null,
@@ -299,7 +308,7 @@ const fromRow = (r: ItemRow): Item => normalizeItem({
   updatedAt: r.updated_at ?? null
 })
 
-const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean, hasPinned: boolean, hasPart: boolean): ItemRow => ({
+const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean, hasPinned: boolean, hasPart: boolean, hasChapter: boolean): ItemRow => ({
   id: i.id,
   trip_id: i.tripId,
   title: i.title,
@@ -322,6 +331,8 @@ const toRow = (i: Item, hasEndDay: boolean, hasEndTime: boolean, hasPinned: bool
   booked: i.booked,
   // pinned only exists after migration 011.
   ...(hasPinned ? { pinned: i.pinned } : {}),
+  // chapter only exists after migration 014.
+  ...(hasChapter ? { chapter: i.chapter } : {}),
   booking_ref: i.bookingRef,
   place: i.place,
   // Only sent when set, so saving works before migration 005; clearing sends ''.
@@ -342,6 +353,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
   let hasEndTime = false
   let hasPinned = false
   let hasPart = false
+  let hasChapter = false
   let attachments: Attachment[] = []
   return {
     mode: 'supabase',
@@ -361,8 +373,8 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       const trips = must(await sb.from('trips').select('*').order('start_date').limit(1)) ?? []
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
-      const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
-      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes, pinnedProbe, partProbe] = await Promise.all([
+      const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date, background: t.background ?? null }
+      const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes, pinnedProbe, partProbe, chapterProbe] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
         sb.from('attachments').select('*').eq('trip_id', trip.id), // missing before migration 004
@@ -371,12 +383,14 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
         sb.from('items').select('end_time').limit(1),
         sb.from('trip_days').select('*').eq('trip_id', trip.id), // missing before migration 009
         sb.from('items').select('pinned').limit(1), // missing before migration 011
-        sb.from('items').select('part').limit(1) // missing before migration 012
+        sb.from('items').select('part').limit(1), // missing before migration 012
+        sb.from('items').select('chapter').limit(1) // missing before migration 014
       ])
       const days: DayInfo[] = dayRes.error ? [] : ((dayRes.data ?? []) as DayInfo[]).map((d) => ({ day: d.day, title: d.title, tag: d.tag, color: d.color, image: d.image ?? null }))
       hasEndTime = !endTimeProbe.error
       hasPinned = !pinnedProbe.error
       hasPart = !partProbe.error
+      hasChapter = !chapterProbe.error
       const labels = labelRes.error ? [] : ((labelRes.data ?? []) as LabelRow[]).map(fromLabelRow)
       hasEndDay = !endDayProbe.error
       attachments = attachmentRes.error ? [] : ((attachmentRes.data ?? []) as AttachmentRow[]).map(fromAttachmentRow)
@@ -394,7 +408,8 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       if (item.endTime && !hasEndTime) throw new Error('Run supabase/migrations/007_end_time.sql to save end times.')
       if (item.pinned && !hasPinned) throw new Error('Run supabase/migrations/011_pinned.sql to pin entries to the top.')
       if (item.part && !hasPart) throw new Error('Run supabase/migrations/012_day_parts.sql to place entries in a part of the day.')
-      const res = await sb.from('items').upsert(toRow(item, hasEndDay, hasEndTime, hasPinned, hasPart))
+      if (item.chapter && !hasChapter) throw new Error('Run supabase/migrations/014_title_cards.sql to make title cards.')
+      const res = await sb.from('items').upsert(toRow(item, hasEndDay, hasEndTime, hasPinned, hasPart, hasChapter))
       if (res.error && /items_type_check/.test(res.error.message)) throw new Error('Run supabase/migrations/006_labels.sql to use your own types.')
       if (res.error && /place_id/.test(res.error.message)) throw new Error('Run supabase/migrations/005_google_places.sql to save Google places.')
       if (res.error && /image_url/.test(res.error.message)) throw new Error('Run supabase/migrations/003_link_previews.sql to save preview images.')
@@ -444,7 +459,12 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       return data.signedUrl
     },
     saveLabels: async (labels) => {
-      const res = await sb.from('labels').upsert(labels.map(toLabelRow))
+      let res = await sb.from('labels').upsert(labels.map(toLabelRow))
+      // Before migration 013 there is no icon_color column: styles without an icon colour still save.
+      if (res.error && /icon_color/.test(res.error.message)) {
+        if (labels.some((l) => l.iconColor)) throw new Error('Run supabase/migrations/013_icon_colour_and_background.sql to choose icon colours.')
+        res = await sb.from('labels').upsert(labels.map(toLabelRow).map(({ icon_color: _ic, ...r }) => r))
+      }
       if (res.error) throw new Error(/labels/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
     },
     deleteLabel: async (id) => {
@@ -453,6 +473,10 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     renameLabel: async (tripId, kind, from, to) => {
       const res = await sb.rpc('rename_label', { p_trip: tripId, p_kind: kind, p_from: from, p_to: to })
       if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
+    saveBackground: async (tripId, background) => {
+      const res = await sb.from('trips').update({ background }).eq('id', tripId)
+      if (res.error) throw new Error(/background/.test(res.error.message) ? 'Run supabase/migrations/013_icon_colour_and_background.sql to set a trip background.' : res.error.message)
     },
     saveDays: async (tripId, days) => {
       const keep = days.filter((d) => d.title || d.tag || d.color || d.image)

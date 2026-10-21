@@ -19,6 +19,8 @@ export interface Label {
   name: string
   color: string | null
   icon: string | null
+  /** Colour of the icon (and text) on the tag's colour; null picks white or ink automatically. */
+  iconColor?: string | null
   sort: number
 }
 
@@ -27,6 +29,8 @@ export interface Trip {
   name: string
   startDate: string // YYYY-MM-DD
   endDate: string
+  /** Page background for everyone on the trip: a colour (#RRGGBB), or an uploaded image reference or image URL. */
+  background?: string | null
 }
 
 /** Parts of a day: entries without an exact time can still be placed in one. */
@@ -54,6 +58,8 @@ export interface Item {
   booked: boolean
   /** Shown at the top of its day (or the ideas), above entries with times. */
   pinned: boolean
+  /** A title card: shown as a big picture with its title, marking a new chapter (arriving somewhere). */
+  chapter: boolean
   bookingRef: string | null
   place: string | null
   /** Google place id when the place was picked from Google search. */

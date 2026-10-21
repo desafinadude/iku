@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { onColor } from '../colors'
 import { isCoverRef, type LinkPreview } from '../data/backend'
 import { addDays, DAY_PARTS, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
@@ -280,7 +279,7 @@ export function ItemSheet(props: Props) {
           {draft.tags.map((t) => {
             const st = tagStyle(t)
             return (
-              <button key={t} type="button" className={`tag-chip${st.color ? '' : ' is-plain'}`} style={st.color ? { background: st.color, color: onColor(st.color) } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
+              <button key={t} type="button" className={`tag-chip${st.color ? '' : ' is-plain'}`} style={st.color ? { background: st.color, color: st.fg } : undefined} aria-label={`Remove ${t}`} onClick={() => set({ tags: draft.tags.filter((x) => x !== t) })}>
                 {st.icon && <LabelIconView name={st.icon} size={14} />}
                 {t} ×
               </button>
@@ -423,6 +422,9 @@ export function ItemSheet(props: Props) {
           </div>
         </div>
       )}
+      <label className="check">
+        <input type="checkbox" checked={draft.chapter} onChange={(e) => set({ chapter: e.target.checked })} /> Title card: show it as a big picture with its title, to mark a new chapter (e.g. arriving in a city)
+      </label>
       <label className="check">
         <input type="checkbox" checked={draft.pinned} onChange={(e) => set({ pinned: e.target.checked })} /> Pin to the top{draft.day ? ' of its day' : ' of the ideas'}
       </label>

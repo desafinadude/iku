@@ -25,6 +25,8 @@ const PATHS = {
   edit: 'M4 20h4L19 9l-4-4L4 16z M14 6l4 4',
   pushpin: 'M9 3h6 M10 3v6l-3 4h10l-3-4V3 M12 13v8',
   more: 'M5 12h.01 M12 12h.01 M19 12h.01',
+  clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2',
+  sunrise: 'M12 3v3 M5.6 7.6l1.4 1.4 M18.4 7.6L17 9 M3 16h18 M7 16a5 5 0 0 1 10 0 M8 20h8',
   shrink: 'M4 14h6v6 M20 10h-6V4 M14 10l7-7 M3 21l7-7',
   cardsFull: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M4 12h16 M8 15.5h8',
   titles: 'M4 6h16 M4 12h16 M4 18h16',

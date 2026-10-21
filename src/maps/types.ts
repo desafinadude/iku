@@ -5,6 +5,8 @@ export interface MapPin {
   /** Number or short text on the pin; empty for unplanned ideas. */
   label: string
   color: string
+  /** Icon colour on the pin. */
+  fg: string
   /** Label icon name drawn in the pin. */
   icon: string
   idea: boolean

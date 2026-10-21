@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useSwipe } from '../useSwipe'
 import { inkColor, onColor } from '../colors'
-import { dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
+import { bands, dayLabel, displayTitle, isPhotoCard, partLabel, itemsForDay, onDay, spanLabel } from '../lib'
 import { CardImage } from './CardImage'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
@@ -36,6 +36,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
   const today = itemsForDay(items, selectedDay, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === selectedDay)
   const l = dayLabel(selectedDay)
   const index = days.indexOf(selectedDay)
+  let num = 0
   // Swipe left or right to go to the next or previous day; the day strip keeps the chosen day in view.
   const swipe = useSwipe(
     () => index > 0 && onSelectDay(days[index - 1]),
@@ -61,13 +62,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           <span className="spacer" />
           {controls}
         </div>
-        {ds.image && (
-          <div className="day-cover day-cover-phone">
-            <CardImage imageUrl={ds.image} />
-            {(ds.title || ds.tag) && <span className="day-cover-title">{ds.title ?? ds.tag}</span>}
-          </div>
-        )}
-        {!ds.image && (ds.title || ds.tag) && (
+        {(ds.title || ds.tag) && (
           <span className="day-banner" style={ds.color ? { background: ds.color, color: onColor(ds.color) } : undefined}>
             {ds.title ?? ds.tag}
           </span>
@@ -89,8 +84,29 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
           })}
         </div>
       </div>
+      {/* Numbered through the day, grouped under All day / Morning / Afternoon / Evening / Night. */}
       <ol className="timeline">
-        {today.map((item, i) => {
+        {bands(today, selectedDay)
+          .filter((g) => g.items.length)
+          .flatMap((g) => [
+            <li key={'band-' + (g.part ?? 'allday')} className={`tl-band ${g.part ? 'part-' + g.part : 'part-allday'}`}>
+              {g.part ? partLabel(g.part) : 'All day'}
+            </li>,
+            ...g.items.map((item) => {
+          if (item.chapter && item.day === selectedDay)
+            return (
+              <li key={item.id} className="tl-chapter">
+                <button type="button" className={`chapter-face${item.imageUrl ? ' has-image' : ''}`} style={item.imageUrl ? undefined : { background: itemStyle(item).color, color: itemStyle(item).fg }} onClick={() => onOpen(item)}>
+                  {item.imageUrl && <CardImage imageUrl={item.imageUrl} />}
+                  <span className="chapter-text">
+                    {(item.time || item.part) && <span className="card-time">{item.time ?? partLabel(item.part)}</span>}
+                    <b>{displayTitle(item)}</b>
+                    {item.note && <span className="chapter-note">{item.note}</span>}
+                  </span>
+                </button>
+              </li>
+            )
+          const i = num++
           const c = itemStyle(item)
           const otherTags = item.tags.filter((t) => t !== c.name)
           const creator = memberFor(members, item.createdBy)
@@ -108,7 +124,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               <button className={`tl-card${photo ? ' has-image' : ''}${compact ? ' is-compact' : ''}${show.tagIcons ? ' has-icons' : ''}`} onClick={() => onOpen(item)}>
                 {show.tagIcons && <TagIcons tags={continuing && !prefs.tagsOnRepeats ? item.tags.slice(0, 1) : item.tags} />}
                 {photo && <CardImage className={`tl-photo${pictureOnly ? ' is-whole' : ''}`} imageUrl={item.imageUrl!} />}
-                <span className="tl-num" style={{ background: c.color, color: onColor(c.color) }}>
+                <span className="tl-num" style={{ background: c.color, color: c.fg }}>
                   {i + 1}
                 </span>
                 <span className="tl-body">
@@ -158,7 +174,8 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
               </button>
             </li>
           )
-        })}
+        })
+          ])}
         {today.length === 0 && <p className="empty">Nothing planned yet.</p>}
       </ol>
       <button className="add-from-ideas" onClick={onShowIdeas}>

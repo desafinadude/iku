@@ -1,3 +1,4 @@
+import { onColor } from '../colors'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { normalizeLabels } from '../data/normalize'
 import type { DayInfo, Item, Label } from '../types'
@@ -5,6 +6,8 @@ import type { DayInfo, Item, Label } from '../types'
 export interface Style {
   name: string
   color: string
+  /** Icon and text colour on `color`. */
+  fg: string
   /** Light tint of the colour, for card and block backgrounds. */
   bg: string
   icon: string
@@ -15,6 +18,8 @@ export interface TagStyle {
   color: string | null
   bg: string | null
   icon: string | null
+  /** Icon and text colour on `color` (the chosen one, else white or ink). */
+  fg: string
   /** Saved style row (null when the tag has no style yet). */
   label: Label | null
 }
@@ -58,18 +63,18 @@ export function LabelsProvider({ tripId, labels, items, days = [], children }: {
     const byName = new Map(styled.map((l) => [l.name.toLowerCase(), l]))
     const tagStyle = (tag: string): TagStyle => {
       const l = byName.get(tag.toLowerCase()) ?? null
-      return { name: tag, color: l?.color ?? null, bg: l?.color ? tint(l.color) : null, icon: l?.icon ?? null, label: l }
+      return { name: tag, color: l?.color ?? null, bg: l?.color ? tint(l.color) : null, icon: l?.icon ?? null, fg: l?.iconColor ?? (l?.color ? onColor(l.color) : 'var(--ink-2)'), label: l }
     }
     const counts = new Map<string, number>()
     items.forEach((x) => x.tags.forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)))
     const unstyled = [...counts.keys()].filter((t) => !byName.has(t.toLowerCase())).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b))
-    const neutral: Style = { name: '', color: NEUTRAL, bg: tint(NEUTRAL, 0.08), icon: 'location_on' }
+    const neutral: Style = { name: '', color: NEUTRAL, fg: '#fff', bg: tint(NEUTRAL, 0.08), icon: 'location_on' }
     return {
       tags: [...styled.map((l) => tagStyle(l.name)), ...unstyled.map(tagStyle)],
       tagStyle,
       itemStyle: (item) => {
         const t = item.tags.map(tagStyle).find((s) => s.color)
-        return t ? { name: t.name, color: t.color!, bg: t.bg!, icon: t.icon ?? 'location_on' } : neutral
+        return t ? { name: t.name, color: t.color!, fg: t.fg, bg: t.bg!, icon: t.icon ?? 'location_on' } : neutral
       },
       dayStyle: (day) => {
         const info = days.find((d) => d.day === day) ?? null
