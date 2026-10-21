@@ -29,6 +29,8 @@ export interface Trip {
   name: string
   startDate: string // YYYY-MM-DD
   endDate: string
+  /** Page background for everyone on the trip: a colour (#RRGGBB), or an uploaded image reference or image URL. */
+  background?: string | null
 }
 
 /** Parts of a day: entries without an exact time can still be placed in one. */

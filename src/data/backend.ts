@@ -57,6 +57,8 @@ export interface Backend {
   deleteTag(tripId: string, tag: string): Promise<void>
   /** Saves day titles/tags/colours (a day with nothing set is cleared). */
   saveDays(tripId: string, days: DayInfo[]): Promise<void>
+  /** Sets (or clears, with null) the trip's page background. */
+  saveBackground(tripId: string, background: string | null): Promise<void>
   /** Stores a card image you chose; returns the reference to save as the entry's imageUrl. */
   uploadCover(tripId: string, file: File): Promise<string>
   /** A displayable URL for an uploaded card image reference. */
@@ -167,6 +169,10 @@ function localBackend(): Backend {
       const exists = data.labels.some((l) => l.name === to)
       const labels = exists ? data.labels.filter((l) => l.name !== from) : data.labels.map((l) => (l.name === from ? { ...l, name: to } : l))
       write({ ...data, items, labels })
+    },
+    saveBackground: async (_tripId, background) => {
+      const data = read()
+      write({ ...data, trip: { ...data.trip, background } })
     },
     saveDays: async (_tripId, days) => {
       const data = read()
@@ -362,7 +368,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       const trips = must(await sb.from('trips').select('*').order('start_date').limit(1)) ?? []
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
-      const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date }
+      const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date, background: t.background ?? null }
       const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes, pinnedProbe, partProbe] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
@@ -459,6 +465,10 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     renameLabel: async (tripId, kind, from, to) => {
       const res = await sb.rpc('rename_label', { p_trip: tripId, p_kind: kind, p_from: from, p_to: to })
       if (res.error) throw new Error(/function|rename_label/.test(res.error.message) ? LABELS_MIGRATION : res.error.message)
+    },
+    saveBackground: async (tripId, background) => {
+      const res = await sb.from('trips').update({ background }).eq('id', tripId)
+      if (res.error) throw new Error(/background/.test(res.error.message) ? 'Run supabase/migrations/013_icon_colour_and_background.sql to set a trip background.' : res.error.message)
     },
     saveDays: async (tripId, days) => {
       const keep = days.filter((d) => d.title || d.tag || d.color || d.image)

@@ -743,3 +743,9 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 
 /* Phone day list: part-of-day headings */
 .timeline .tl-band { list-style: none; display: block; align-self: flex-start; margin: 6px 0 -2px 0; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+
+/* Trip background behind the planner */
+.app.has-bg-image { background-size: cover; background-position: center; background-attachment: fixed; }
+.app.has-bg .workspace > .pane > .pane-head h2, .app.has-bg .workspace > .pane > .pane-head > .muted, .app.has-bg .pane-dayplan .dayplan-head > .muted { align-self: center; padding: 2px 10px; border-radius: 8px; background: rgba(255, 255, 255, .82); box-shadow: var(--shadow); }
+.app.has-bg .day-col:not(.has-color) { background: rgba(237, 238, 234, .9); }
+.bg-preview img { max-height: 160px; object-fit: cover; }

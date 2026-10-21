@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CardShowMenu, DAY_ORDERS, DRAG_HINT, IDEA_ORDERS, SortMenu, ColumnsControl } from './components/CardControls'
 import { DropHintContext, type CardZone } from './dnd'
 import { Avatar, memberFor } from './components/Avatar'
+import { useImageSrc } from './components/CardImage'
 import { DayPlan } from './components/DayPlan'
 import { DaySheet } from './components/DaySheet'
 import { DaySelect, IdeaPicker } from './components/DayAssign'
@@ -82,12 +83,21 @@ export default function App() {
 
 function Planner() {
   const {
-    dayInfos, saveDays,
+    dayInfos, saveDays, saveBackground,
     labels, saveLabels, deleteLabel, renameLabel, deleteTag,
     trip, items, members, attachments, me, error, setError, offlineSince, offlineIds, uploading,
     save, remove, moveTo, placeIn, arrange, saveProfile, upload, deleteAttachment, toggleOffline, fileUrl
   } = useTrip(backend, true)
   const [online, setOnline] = useState(() => navigator.onLine)
+  // The trip's page background: a colour, or a photo (lightly washed so the planner stays readable).
+  const bg = trip?.background ?? null
+  const bgIsColour = !!bg && /^#[0-9a-f]{6}$/i.test(bg)
+  const bgImage = useImageSrc(bg && !bgIsColour ? bg : null)
+  const pageStyle = bgIsColour
+    ? { backgroundColor: bg! }
+    : bgImage
+      ? { backgroundImage: `linear-gradient(rgba(244, 245, 241, .3), rgba(244, 245, 241, .3)), url("${bgImage.replace(/"/g, '%22')}")` }
+      : undefined
   useEffect(() => {
     const on = () => setOnline(navigator.onLine)
     window.addEventListener('online', on)
@@ -376,7 +386,7 @@ function Planner() {
 
   return (
     <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
-      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}`}>
+      <div className={`app ${wide ? 'is-wide' : 'is-narrow'}${pageStyle ? ' has-bg' : ''}${bgImage && !bgIsColour ? ' has-bg-image' : ''}`} style={pageStyle}>
         <header className="top-bar">
           <div className="brand">
             <span className="brand-mark">
@@ -653,6 +663,9 @@ function Planner() {
             onChange={setFilters} onClose={() => setSheet(null)} />}
         {sheet?.kind === 'profile' && meMember && (
           <ProfileSheet
+            background={trip.background ?? null}
+            onBackground={saveBackground}
+            onUploadCover={(file) => backend.uploadCover(trip.id, file)}
             me={meMember}
             members={members}
             items={items}

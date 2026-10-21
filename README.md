@@ -101,6 +101,7 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 The Days area has three views, switched at the top (Columns / Parts / Month on wide screens, List / Parts / Month on phones):
 
 - **Columns / List:** a card per entry, with photos.
+- **Columns / List** are split into the same parts of the day: All day, Morning, Afternoon, Evening and Night. Drop onto a band to place an entry there. Times show as a dark tag with a clock.
 - **Parts:** the selected day in loose blocks: *All day* (stays, and entries with no particular time), then *Morning* (until 1pm), *Afternoon* (1–4pm), *Evening* (4–7pm) and *Night* (after 7pm), as one planner page coloured by part of the day. Entries with a time sit in their block and show it. Drag an idea or entry into a block to place it there without committing to an hour (an exact time that doesn't fit that block is cleared), or tap a block's + to add something there. In the editor, an entry with no time has a *Time of day* choice. Elsewhere such entries show their part (e.g. "Morning") instead of a time and sort within the day by it. Run `supabase/migrations/012_day_parts.sql` to save parts.
 - **Month:** a calendar of the trip. Stays run as bars, entries show their icon or photo, and you can drop ideas onto a date. Tap a date to open its hours.
 
@@ -118,6 +119,10 @@ The Days area has three views, switched at the top (Columns / Parts / Month on w
 - **Pane widths:** on tablets and desktop, drag the thin handles between the ideas, days and map (or beside an open idea on the Ideas board) to resize them. Double-click a handle to reset it. The ideas tile into as many columns as fit, down to one. Widths are kept per device.
 - **Whole screen:** on tablets and desktop, the expand arrow on the Columns, Parts and Month views hides the ideas and map so the days get the full width. Press it again, or Esc, to go back.
 
+## Trip background
+
+Open your profile (the avatars, top right) and set a **Trip background**: a photo (upload or paste a link) or a colour. Everyone on the trip sees it behind the planner. Run `supabase/migrations/013_icon_colour_and_background.sql` to save it.
+
 ## Day titles, tags and colours
 
 Tap the pencil on a day column (next to the date on phones, or in the Parts header) to give a day a **title** (say "Tokyo → Kyoto"), a **day tag** (say Kyoto) and a **colour**. Use **Same for the following days, through** to set a run of days in one go, which helps when you move between cities. The column is tinted with the colour and its header shows the day, date, title and tag. Month cells, the phone day strip and the full-screen map chips show it too. Leave the colour on "tag colour" to borrow the day tag's colour from Manage tags. **Opening image:** add a picture (upload or link) to show at the top of the day, like the opening of a chapter. It stays on that day only, even when you set a run of days. Run `supabase/migrations/010_day_images.sql` to save it. Run `supabase/migrations/009_trip_days.sql` to save day settings.
@@ -128,7 +133,7 @@ The filter bar has search, a **Tags** dropdown (coloured tags with checkboxes, a
 
 The colour picker (tags, people and days) has 16 hues around the colour wheel in four shades each (pastel, light, bright, deep), the original muted colours, and a rainbow swatch that opens your device's own picker for any colour. Text and icons switch to dark on pale colours so they stay readable.
 
-Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry. All tags are in one list: tap a row's swatch to pick a colour or its icon to pick any [Material Symbol](https://fonts.google.com/icons), edit the name in place (renaming to an existing name merges the two), delete with the bin, and add new tags in the box at the bottom. Drag the ⋮⋮ handle (or focus it and use the arrow keys) to reorder; the order is used in the Tags filter and tag suggestions. Changes save straight away.
+Entries just have tags (plain words, no `#`). Open **Manage tags** from the filter sheet, or **Edit tags** in an entry. All tags are in one list: tap a row's swatch to pick a colour or its icon to pick any [Lucide icon](https://lucide.dev/icons/) and the icon's own colour (automatic white or dark if you don't choose one; needs migration 013), edit the name in place (renaming to an existing name merges the two), delete with the bin, and add new tags in the box at the bottom. Drag the ⋮⋮ handle (or focus it and use the arrow keys) to reorder; the order is used in the Tags filter and tag suggestions. Changes save straight away.
 
 - **An entry's look:** its first coloured tag sets the colour and icon of its card label, blocks in the hours and month views, and its map pin. Its other tags show as chips.
 - **Stays:** multi-day entries tagged Stay, Hotel, Ryokan, Airbnb or similar get Check-in / Night / Check-out wording.

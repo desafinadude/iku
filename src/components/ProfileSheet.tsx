@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { avatarFromFile, displayName } from '../lib'
+import { avatarFromFile, displayName, isUrl, prepareUpload } from '../lib'
+import { CardImage } from './CardImage'
+import { Icon } from './Icon'
 import { ColorSwatches } from './ColorSwatches'
 import type { Item, Member } from '../types'
 import type { Profile } from '../data/backend'
@@ -15,9 +17,13 @@ interface Props {
   onSave: (profile: Profile) => void
   onClose: () => void
   onShowPerson: (email: string) => void
+  /** The trip's shared page background: a colour, an image reference or URL, or null. */
+  background: string | null
+  onBackground: (background: string | null) => void
+  onUploadCover: (file: File) => Promise<string>
 }
 
-export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onShowPerson }: Props) {
+export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onShowPerson, background, onBackground, onUploadCover }: Props) {
   const [name, setName] = useState(me.name ?? '')
   const [avatar, setAvatar] = useState(me.avatar)
   const [color, setColor] = useState(me.color)
@@ -77,6 +83,7 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
         <legend>Colour</legend>
         <ColorSwatches value={color} onChange={(c) => c && setColor(c)} />
       </fieldset>
+      <TripBackground value={background} onChange={onBackground} onUploadCover={onUploadCover} />
       {installMode && (
         <div className="group">
           <h3 className="group-title">This device</h3>
@@ -114,5 +121,80 @@ export function ProfileSheet({ me, members, items, welcome, onSave, onClose, onS
         </div>
       )}
     </Sheet>
+  )
+}
+
+const isColour = (v: string | null) => !!v && /^#[0-9a-f]{6}$/i.test(v)
+
+/** The page background everyone on the trip sees: a colour, or a photo (uploaded or by link). Saves straight away. */
+function TripBackground({ value, onChange, onUploadCover }: { value: string | null; onChange: (v: string | null) => void; onUploadCover: (file: File) => Promise<string> }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [link, setLink] = useState('')
+  const image = value && !isColour(value) ? value : null
+  return (
+    <fieldset className="group">
+      <legend>Trip background</legend>
+      <span className="muted small">Everyone on the trip sees this behind the planner.</span>
+      {image && (
+        <div className="sheet-image bg-preview">
+          <CardImage imageUrl={image} loading="eager" />
+          <div className="sheet-image-actions">
+            <button type="button" className="chip" onClick={() => onChange(null)}>
+              <Icon name="close" size={15} /> Remove
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="image-empty">
+        <button type="button" className="secondary-btn" disabled={busy} onClick={() => fileRef.current?.click()}>
+          <Icon name="image" size={16} /> {busy ? 'Uploading…' : image ? 'Change photo' : 'Use a photo'}
+        </button>
+        <input
+          className="image-link-input"
+          type="url"
+          placeholder="or paste an image link"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && isUrl(link.trim())) {
+              e.preventDefault()
+              onChange(link.trim())
+              setLink('')
+            }
+          }}
+          onBlur={() => {
+            if (isUrl(link.trim())) {
+              onChange(link.trim())
+              setLink('')
+            }
+          }}
+        />
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (!file) return
+          setBusy(true)
+          setError(null)
+          try {
+            onChange(await onUploadCover(await prepareUpload(file)))
+          } catch (err) {
+            setError((err as Error).message)
+          } finally {
+            setBusy(false)
+          }
+        }}
+      />
+      {error && <p className="error">{error}</p>}
+      <span className="muted small">Or a colour:</span>
+      <ColorSwatches value={isColour(value) ? value : null} onChange={onChange} none={{ label: 'No background' }} />
+    </fieldset>
   )
 }
