@@ -595,9 +595,10 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .day-image-pick img { max-height: 180px; object-fit: cover; }
 
 /* Tag icons along the top of a card */
-.tag-icons { display: flex; flex: none; }
+.tag-icons { display: flex; flex: none; justify-content: flex-start; background: #f6f4ee; border-bottom: 1px solid var(--line); }
 /* Solid, flush blocks of colour that share the card's full width (De Stijl rather than rounded badges). */
-.tag-icon { flex: 1 1 0; min-width: 28px; height: 30px; display: grid; place-items: center; }
+/* Square, flush blocks from the left on an off-white header bar. */
+.tag-icon { flex: none; width: 30px; height: 30px; display: grid; place-items: center; }
 .tag-icon-letter { font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .tl-card.has-icons { flex-wrap: wrap; overflow: hidden; }
 .tl-card > .tag-icons { flex: 0 0 calc(100% + 24px); margin: -12px -12px 0; }
@@ -763,3 +764,22 @@ body.is-sorting { cursor: grabbing; user-select: none; -webkit-user-select: none
 .timeline .tl-chapter { display: block; }
 .tl-chapter .chapter-face { border-radius: var(--radius); box-shadow: var(--shadow); min-height: 120px; }
 .tl-chapter .chapter-face.has-image { min-height: 160px; }
+
+/* Day columns: the bands run edge to edge under the header (no block in a block in a block) */
+.day-col { gap: 0; overflow: hidden; }
+.day-col .day-col-items { margin: 0 -10px -10px; gap: 0; padding-bottom: 8px; }
+.day-col .col-band { border-radius: 0; padding: 6px 10px 8px; border-top: 1px solid rgba(23, 32, 29, .06); }
+.day-col .col-band:first-child { border-top: 0; }
+.day-col .col-band.is-empty { padding-top: 4px; padding-bottom: 4px; }
+.day-col .col-band.part-allday { background: transparent; }
+.day-col .day-col-items > .ghost-btn { margin: 6px 10px 0; }
+.icon-letter { display: inline-grid; place-items: center; flex: none; font-family: var(--display); font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.icon-letters { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.icon-letters .field-label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.icon-letters input { width: 90px; min-height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 16px; font-weight: 700; }
+.day-col-top[style] .muted, .day-col-top[style] .day-edit { color: inherit; opacity: .8; }
+/* In columns the band tints are see-through, so the day's colour (and a blend) shows through them. */
+.day-col .col-band.part-morning { background: rgba(244, 200, 80, .14); }
+.day-col .col-band.part-afternoon { background: rgba(240, 150, 90, .12); }
+.day-col .col-band.part-evening { background: rgba(130, 110, 200, .11); }
+.day-col .col-band.part-night { background: rgba(60, 80, 120, .12); }

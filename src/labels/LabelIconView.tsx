@@ -1,10 +1,17 @@
 import { createElement } from 'react'
-import { iconName, lucideName } from './icons'
+import { iconLetters, iconName, lucideName } from './icons'
 import { lucideNode, useLucide, type IconNode } from './lucide'
 
 /** A tag icon from Lucide (colour comes from the surrounding text colour); unknown names fall back to Material Symbols. */
 export function LabelIconView({ name, size = 16 }: { name: string | null | undefined; size?: number; filled?: boolean }) {
   const ready = useLucide()
+  const letters = iconLetters(name)
+  if (letters !== null)
+    return (
+      <span className="icon-letter" style={{ width: size, height: size, fontSize: Math.round(size * (letters.length > 1 ? 0.62 : 0.82)) }} aria-hidden="true">
+        {letters}
+      </span>
+    )
   const node = lucideNode(lucideName(name))
   if (node) return <LucideSvg node={node} size={size} />
   // While the set loads, keep the space so nothing jumps.

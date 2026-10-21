@@ -29,6 +29,11 @@ const TO_LUCIDE: Record<string, string> = {
   ticket: 'ticket', music: 'music', heart: 'heart', sun: 'sun', rain: 'cloud-rain', moon: 'moon', kids: 'baby', money: 'banknote'
 }
 
+/** An icon can also be one or two letters (stored as "text:AB"); returns them, or null for a real icon. */
+export function iconLetters(name: string | null | undefined): string | null {
+  return name?.startsWith('text:') ? name.slice(5, 7) : null
+}
+
 /** The Lucide name to draw for a stored icon name (old Material names are translated). */
 export function lucideName(name: string | null | undefined): string {
   if (!name) return 'map-pin'
@@ -54,6 +59,8 @@ export function iconName(name: string | null | undefined): string {
 
 /** Icon markup for places that need an HTML string (Leaflet map pins). */
 export function iconHtml(name: string | null | undefined, size: number, color: string) {
+  const letters = iconLetters(name)
+  if (letters !== null) return `<span class="icon-letter" style="width:${size}px;height:${size}px;font-size:${Math.round(size * (letters.length > 1 ? 0.62 : 0.82))}px;color:${color}" aria-hidden="true">${letters.replace(/[<&"]/g, '')}</span>`
   const node = lucideNode(lucideName(name))
   if (node) return lucideSvg(node, size, color)
   return `<span class="msr filled" style="font-size:${size}px;color:${color}" aria-hidden="true">${iconName(name)}</span>`
