@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Attachment, DayInfo, Item, Label, Member, Trip } from '../types'
+import type { Attachment, DayInfo, Item, Label, Member, PanelColors, Trip } from '../types'
 import { clearSnapshot, removeFile, savedFileIds } from './offline'
 import { cleanTags } from '../lib'
 import { normalizeItem } from './normalize'
@@ -59,6 +59,8 @@ export interface Backend {
   saveDays(tripId: string, days: DayInfo[]): Promise<void>
   /** Sets (or clears, with null) the trip's page background. */
   saveBackground(tripId: string, background: string | null): Promise<void>
+  /** Sets the Ideas, Days and Map panel colours. */
+  savePanels(tripId: string, panels: PanelColors): Promise<void>
   /** Renames the trip or changes its dates. */
   saveTrip(tripId: string, patch: { name: string; startDate: string; endDate: string }): Promise<void>
   /** Stores a card image you chose; returns the reference to save as the entry's imageUrl. */
@@ -179,6 +181,10 @@ function localBackend(): Backend {
     saveBackground: async (_tripId, background) => {
       const data = read()
       write({ ...data, trip: { ...data.trip, background } })
+    },
+    savePanels: async (_tripId, panels) => {
+      const data = read()
+      write({ ...data, trip: { ...data.trip, panels } })
     },
     saveDays: async (_tripId, days) => {
       const data = read()
@@ -384,7 +390,7 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
       const trips = must(await sb.from('trips').select('*').order('start_date').limit(1)) ?? []
       if (!trips.length) throw new Error('No trip yet. Add a row to the trips table (see supabase/schema.sql).')
       const t = trips[0]
-      const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date, background: t.background ?? null }
+      const trip: Trip = { id: t.id, name: t.name, startDate: t.start_date, endDate: t.end_date, background: t.background ?? null, panels: t.panels ?? null }
       const [rows, memberRows, attachmentRes, endDayProbe, labelRes, endTimeProbe, dayRes, pinnedProbe, partProbe, chapterProbe, peopleProbe] = await Promise.all([
         sb.from('items').select('*').eq('trip_id', trip.id).then(must),
         sb.from('trip_members').select('*').then(must),
@@ -495,6 +501,10 @@ function supabaseBackend(sb: SupabaseClient, tripEmail: string | undefined): Bac
     saveBackground: async (tripId, background) => {
       const res = await sb.from('trips').update({ background }).eq('id', tripId)
       if (res.error) throw new Error(/background/.test(res.error.message) ? 'Run supabase/migrations/013_icon_colour_and_background.sql to set a trip background.' : res.error.message)
+    },
+    savePanels: async (tripId, panels) => {
+      const res = await sb.from('trips').update({ panels }).eq('id', tripId)
+      if (res.error) throw new Error(/panels/.test(res.error.message) ? 'Run supabase/migrations/019_panel_colours.sql to colour the panels.' : res.error.message)
     },
     saveDays: async (tripId, days) => {
       const has = (d: DayInfo) => !!(d.title || d.tag || d.color || d.image || d.headerColor || d.blendColor || d.headerText || d.columnStrength != null)
