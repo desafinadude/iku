@@ -60,7 +60,8 @@ export function DaysBoard({ days, items, members, attachments, prefs, viewSwitch
   )
 }
 
-function DayColumn(props: {
+/** One day as a column: its header band, then All day and the parts of the day. The phone shows one at a time. */
+export function DayColumn(props: {
   day: string
   index: number
   items: Item[]

@@ -304,7 +304,7 @@ function Planner() {
     <div className="seg seg-small view-switch" role="group" aria-label="Days view">
       {(
         [
-          ['board', wide ? 'Columns' : 'List'],
+          ['board', wide ? 'Columns' : 'Day'],
           ['hours', 'Parts'],
           ['month', 'Month']
         ] as const
@@ -475,7 +475,7 @@ function Planner() {
           setDropHint(null)
         }}>
           <DropHintContext.Provider value={dropHint}>
-          <main className={`workspace${daysMax && wide && prefs.mainView === 'plan' ? ' is-max' : ''}`}>
+          <main className={`workspace${daysMax && wide && prefs.mainView === 'plan' ? ' is-max' : ''}${wide ? '' : ' tab-' + tab}`}>
             {ideasBoard ? (
               <>
                 <IdeasPane
@@ -585,6 +585,7 @@ function Planner() {
                   onOpen={open}
                   onShowIdeas={() => setSheet({ kind: 'pick', day: selectedDay })}
                   onEditDay={editDay}
+                  onAdd={(day) => setSheet({ kind: 'item', item: blank({ day }), isNew: true })}
                   controls={daysControls}
                 />
               )}
