@@ -163,6 +163,18 @@ export function ItemSheet(props: Props) {
         }
       })
       if (found || maps.lat != null) setPreviewState('idle')
+      // Google's photo links don't last: keep a copy with the trip's pictures, then swap it in.
+      if (found?.photo) {
+        const photo = found.photo
+        try {
+          const blob = await (await fetch(photo)).blob()
+          if (!blob.type.startsWith('image/')) return
+          const ref = await props.onUploadCover(await prepareUpload(new File([blob], 'place.jpg', { type: blob.type })))
+          setDraft((d) => (d.imageUrl === photo ? { ...d, imageUrl: ref } : d))
+        } catch {
+          /* keep Google's link */
+        }
+      }
     }
   }
   useEffect(() => {
