@@ -96,3 +96,52 @@ export function useGoogleSuggest(): SuggestFn | null {
   )
   return places ? suggest : null
 }
+
+export interface FoundPlace {
+  name: string
+  address: string | null
+  lat: number
+  lng: number
+  placeId: string | null
+  /** A photo of the place, if there is one. */
+  photo: string | null
+}
+
+/**
+ * Looks up a place by name (near a point), e.g. the one a pasted Google Maps link points to: its name,
+ * address, coordinates, Google place and a photo. Null until the Places library has loaded.
+ */
+export function useGooglePlaceLookup() {
+  const places = useMapsLibrary('places')
+  return useCallback(
+    async (name: string, near: Near): Promise<FoundPlace | null> => {
+      if (!places) return null
+      const { places: found } = await places.Place.searchByText({
+        textQuery: name,
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'photos'],
+        maxResultCount: 1,
+        language: 'en',
+        ...(near ? { locationBias: { center: near, radius: 2_000 } } : {})
+      })
+      const place = found[0]
+      if (!place?.location) return null
+      return {
+        name: place.displayName ?? name,
+        address: place.formattedAddress ?? null,
+        lat: place.location.lat(),
+        lng: place.location.lng(),
+        placeId: place.id,
+        photo: place.photos?.[0]?.getURI({ maxWidth: 1200 }) ?? null
+      }
+    },
+    [places]
+  )
+}
+
+/** The same without a Google key: the best OpenStreetMap match (no photo). */
+export async function photonLookup(name: string, near: Near): Promise<FoundPlace | null> {
+  const [hit] = await photonSuggest(name, near, new AbortController().signal)
+  if (!hit) return null
+  const h = await hit.resolve()
+  return { name: h.name, address: h.detail || null, lat: h.lat, lng: h.lng, placeId: null, photo: null }
+}

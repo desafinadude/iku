@@ -175,6 +175,40 @@ export async function avatarFromFile(file: File, size = 160): Promise<string> {
  * Previews that need no server: YouTube thumbnails from the video id, and
  * coordinates from Google Maps links (".../@35.6812,139.7671,15z" or "?q=lat,lng").
  */
+/** A Google Maps link (google.com/maps/…, maps.google.com, or a maps.app.goo.gl short link). */
+export function isGoogleMapsUrl(url: string) {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\.|^m\./, '')
+    return host === 'maps.app.goo.gl' || host === 'goo.gl' || /^maps\.google\./.test(host) || (/^google\.[a-z.]+$/.test(host) && u.pathname.startsWith('/maps'))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * What a Google Maps link says about its place: the name (from /place/<name>/ or the search query) and the
+ * coordinates (the pin's own !3d…!4d…, else the map's @lat,lng centre). Unwraps Google's consent page.
+ */
+export function googleMapsLink(url: string): { name: string | null; lat: number | null; lng: number | null } | null {
+  try {
+    let u = new URL(url)
+    if (/^consent\.google\./.test(u.hostname) && u.searchParams.get('continue')) u = new URL(u.searchParams.get('continue')!)
+    if (!isGoogleMapsUrl(u.href)) return null
+    const href = decodeURIComponent(u.href)
+    const pin = href.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)
+    const centre = href.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+    const query = u.searchParams.get('query') ?? u.searchParams.get('q') ?? u.searchParams.get('ll') ?? ''
+    const queryCoords = query.match(/^(-?\d+\.\d+),\s*(-?\d+\.\d+)$/)
+    const m = pin ?? queryCoords ?? centre
+    const placeName = u.pathname.match(/\/place\/([^/]+)/)?.[1]
+    const name = placeName ? decodeURIComponent(placeName.replace(/\+/g, ' ')) : query && !queryCoords ? query : null
+    return { name: name?.trim() || null, lat: m ? Number(m[1]) : null, lng: m ? Number(m[2]) : null }
+  } catch {
+    return null
+  }
+}
+
 export function quickPreview(url: string): { image: string | null; lat: number | null; lng: number | null } {
   let image: string | null = null
   let lat: number | null = null
@@ -185,12 +219,10 @@ export function quickPreview(url: string): { image: string | null; lat: number |
     const yt =
       host === 'youtu.be' ? u.pathname.slice(1) : host.endsWith('youtube.com') ? (u.searchParams.get('v') ?? u.pathname.match(/\/(?:shorts|embed|live)\/([\w-]{6,})/)?.[1]) : null
     if (yt) image = `https://i.ytimg.com/vi/${yt.split('/')[0]}/hqdefault.jpg`
-    if (/(^|\.)google\.[a-z.]+$/.test(host) || host === 'maps.app.goo.gl') {
-      const m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ?? (u.searchParams.get('q') ?? u.searchParams.get('ll') ?? '').match(/^(-?\d+\.\d+),\s*(-?\d+\.\d+)$/)
-      if (m) {
-        lat = Number(m[1])
-        lng = Number(m[2])
-      }
+    const maps = googleMapsLink(url)
+    if (maps) {
+      lat = maps.lat
+      lng = maps.lng
     }
   } catch {
     /* not a URL */
