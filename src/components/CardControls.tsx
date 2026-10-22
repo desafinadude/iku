@@ -47,12 +47,29 @@ const PRESETS: { label: string; show: CardShow }[] = [
 ]
 
 /** Which parts the cards show: tick any combination, or pick a preset. */
-export function CardShowMenu({ label, show, onChange }: { label: string; show: CardShow; onChange: (show: CardShow) => void }) {
+export function CardShowMenu({ label, show, onChange, layout, onLayout }: { label: string; show: CardShow; onChange: (show: CardShow) => void; layout?: 'grid' | 'list'; onLayout?: (layout: 'grid' | 'list') => void }) {
   const same = (a: CardShow, b: CardShow) => PARTS.every((p) => a[p.key] === b[p.key])
   return (
     <MenuButton label={`${label}: what cards show`} icon="cardsFull">
       {() => (
         <>
+          {layout && onLayout && (
+            <>
+              <p className="menu-head">Layout</p>
+              <div className="seg seg-small menu-layout" role="group" aria-label="Layout">
+                {(
+                  [
+                    ['grid', 'Tiles'],
+                    ['list', 'List']
+                  ] as const
+                ).map(([v, text]) => (
+                  <button key={v} type="button" className={layout === v ? 'is-on' : ''} aria-pressed={layout === v} onClick={() => onLayout(v)}>
+                    <Icon name={v} size={15} /> {text}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
           <p className="menu-head">Cards show</p>
           {PARTS.map((p) => (
             <label key={p.key} className="menu-item menu-check-item">

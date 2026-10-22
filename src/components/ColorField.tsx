@@ -123,6 +123,11 @@ export function ColorField({ label, value, onChange, none, gradient, quick, empt
   // The device's picker fires as you drag; pass on the colour once it settles.
   const timer = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(timer.current), [])
+  const pop = useRef<HTMLDivElement>(null)
+  // Bring the whole palette into view when it opens (e.g. on the last row of a list).
+  useEffect(() => {
+    if (open) pop.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [open])
   useEffect(() => {
     if (!open) return
     // While the device's colour picker is open (its input has focus), clicks in it aren't "outside".
@@ -148,7 +153,7 @@ export function ColorField({ label, value, onChange, none, gradient, quick, empt
         <Icon name="chevronDown" size={14} />
       </button>
       {open && (
-        <div className="color-pop">
+        <div className="color-pop" ref={pop}>
           <ColorPalette
             value={value}
             gradient={gradient}

@@ -21,13 +21,15 @@ interface Props {
   /** Extra controls in the header (e.g. "Include planned"). */
   headExtra?: ReactNode
   show?: CardShow
+  /** Tiles, or a list with the picture beside the text. */
+  layout?: 'grid' | 'list'
   /** How many columns of tiles. */
   columns?: number
   /** Wide screens: the pane's width in px (from its resize handle). */
   width?: number
 }
 
-export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, columns = 2 }: Props) {
+export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, onCaptureImages, onOpen, full = false, selectedId = null, headExtra, show, width, layout = 'grid', columns = 2 }: Props) {
   const [fileOver, setFileOver] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
@@ -116,9 +118,9 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
         />
       </form>
       {ideas.length ? (
-        <Masonry columns={columns} gap={full ? (selectedId ? 12 : 14) : 10}>
+        <Masonry columns={columns} gap={layout === 'list' ? 8 : full ? (selectedId ? 12 : 14) : 10}>
           {ideas.map((item) => (
-            <ItemCard key={item.id} item={item} members={members} variant="pin" selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
+            <ItemCard key={item.id} item={item} members={members} variant="pin" row={layout === 'list'} selected={item.id === selectedId} show={show} fileCount={attachments.filter((a) => a.itemId === item.id).length} onOpen={onOpen} />
           ))}
         </Masonry>
       ) : (

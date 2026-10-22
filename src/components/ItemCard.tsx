@@ -1,6 +1,6 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { inkColor } from '../colors'
-import { useContext, useState } from 'react'
+import { useContext, useState, type ReactNode } from 'react'
 import { DropHintContext, type CardZone } from '../dnd'
 import { SHOW_ALL, type CardShow } from '../usePrefs'
 import { TagIcons } from './TagIcons'
@@ -27,11 +27,13 @@ interface Props {
   selected?: boolean
   /** Which parts of the card to show. */
   show?: CardShow
+  /** List layout: the picture on the left, the text beside it. */
+  row?: boolean
   /** Day-parts view: the part this card sits in (null: All day), so drops onto it land there too. */
   part?: DayPart | null
 }
 
-export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, show = SHOW_ALL, part }: Props) {
+export function ItemCard({ item, members, variant, onOpen, draggable = true, day, fileCount = 0, tagsOnRepeats = false, selected = false, show = SHOW_ALL, part, row = false }: Props) {
   // A multi-day entry shows in several columns; only its first day's card can be dragged.
   const continuing = !!day && !!item.day && day !== item.day
   const span = day ? spanLabel(item, day) : null
@@ -55,16 +57,17 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
   // Repeat day cards of multi-day entries never show the picture.
   const imageShown = !!image && !(variant === 'plan' && continuing)
   // Nothing but the picture (a photo with no title, or title and details turned off): show it whole, alone.
-  const photoOnly = imageShown && (isPhotoCard(item) || (!show.title && !show.details))
+  // (Never in a list: there the picture stays a thumbnail beside the title.)
+  const photoOnly = imageShown && !row && (isPhotoCard(item) || (!show.title && !show.details))
   const time = variant === 'plan' && !!item.time && !continuing
   // Outside the day-parts view, an entry placed in a part (no exact time) shows the part instead of a time.
   const partText = variant === 'plan' && !item.time && !continuing && part === undefined ? partLabel(item.part) : null
-  const fullMeta = show.details && (item.pinned || time || !!partText || !!span || (variant === 'pin' && imageShown && !!domain) || fileCount > 0 || item.booked)
+  const fullMeta = show.details && (item.pinned || time || !!partText || !!span || (variant === 'pin' && (imageShown || row) && !!domain) || fileCount > 0 || item.booked)
   const note = show.details && !!item.note && !continuing
   const footShown = show.tags && (shownTags.length > 0 || people.length > 0)
   const iconsShown = show.tagIcons && shownTags.some((t) => tagStyle(t).color || tagStyle(t).icon)
   // The title shows when it's ticked, or when the card would otherwise be empty.
-  const titleShown = !photoOnly && (show.title || (!imageShown && !fullMeta && !note && !footShown && !iconsShown))
+  const titleShown = !photoOnly && (show.title || (!imageShown && !fullMeta && !note && !footShown && !iconsShown) || (row && !fullMeta && !note && !footShown))
   const shortMeta = !show.details && titleShown && (item.pinned || time || !!partText || !!span)
   const compact = !show.details
 
@@ -74,7 +77,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         setNodeRef(node)
         drop.setNodeRef(node)
       }}
-      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}${compact ? ' is-compact' : ''}${item.chapter && !continuing ? ' is-chapter' : ''}${dropClass}`}
+      className={`card ${variant === 'pin' ? 'card-pin' : 'card-plan'}${row ? ' card-row' : ''}${isDragging ? ' is-dragging' : ''}${continuing ? ' is-continuing' : ''}${selected ? ' is-selected' : ''}${compact ? ' is-compact' : ''}${item.chapter && !continuing ? ' is-chapter' : ''}${dropClass}`}
       {...listeners}
       {...attributes}
       // Repeat cards can't be dragged, but they still open: don't announce them as disabled.
@@ -104,13 +107,22 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
         </div>
       ) : (
         <>
+        {row && imageShown && (
+          <div className="card-row-thumb">
+            <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
+          </div>
+        )}
+        {row && !imageShown && show.image && (
+          <div className="card-row-thumb is-empty" style={{ background: c.bg }} aria-hidden="true" />
+        )}
+        <RowText row={row}>
         {show.tagIcons && <TagIcons tags={shownTags} people={people} members={members} />}
-        {imageShown && (
+        {imageShown && !row && (
           <div className={`card-photo${variant === 'plan' ? ' card-photo-plan' : ''}${photoOnly ? ' is-whole' : ''}`}>
             <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
           </div>
         )}
-        {variant === 'pin' && !image && domain && show.image && show.details && (
+        {variant === 'pin' && !row && !image && domain && show.image && show.details && (
           <div className="card-media" style={{ background: c.bg }}>
             <span className="card-domain" style={{ color: inkColor(c.color) }}>
               {domain}
@@ -140,7 +152,7 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
                   </span>
                 )}
                 {span && <span className="span-label">{span}</span>}
-                {fullMeta && variant === 'pin' && imageShown && domain && <span className="card-domain">{domain}</span>}
+                {fullMeta && variant === 'pin' && (imageShown || row) && domain && <span className="card-domain">{domain}</span>}
                 {fullMeta && fileCount > 0 && (
                   <span className="file-badge" aria-label={`${fileCount} attachments`}>
                     <Icon name="paperclip" size={13} />
@@ -173,8 +185,14 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
             <PeopleBadges people={people} members={members} small />
           </div>
         )}
+        </RowText>
         </>
       )}
     </article>
   )
+}
+
+/** In a list, everything but the thumbnail sits in one column beside it. */
+function RowText({ row, children }: { row: boolean; children: ReactNode }) {
+  return row ? <div className="card-row-text">{children}</div> : <>{children}</>
 }
