@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { isCoverRef, type LinkPreview } from '../data/backend'
-import { addDays, DAY_PARTS, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate } from '../lib'
+import { addDays, DAY_PARTS, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate, googleMapsLink } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
@@ -10,6 +10,7 @@ import { Lightbox } from './Lightbox'
 import { PlaceSearch } from './PlaceSearch'
 import { PlaceInfo } from './PlaceInfo'
 import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
+import { photonLookup, useGooglePlaceLookup, type FoundPlace } from '../maps/places'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -90,6 +91,7 @@ export function ItemSheet(props: Props) {
   const [pending, setPending] = useState<PendingFile[]>([])
   const googleOk = useGoogleOk()
   const { tags: knownTags, tagStyle } = useLabels()
+  const lookupPlace = useGooglePlaceLookup()
   const [tagText, setTagText] = useState('')
   // The tag list opens under the box while you pick; tap a tag to tick or untick it.
   const [tagsOpen, setTagsOpen] = useState(false)
@@ -132,6 +134,36 @@ export function ItemSheet(props: Props) {
       }
     })
     setPreviewState(p || quick.image ? 'idle' : 'none')
+    // A Google Maps link: the page itself only has a generic map picture, so look the place up instead
+    // for its name, address, photo and exact spot (it then shows on the map).
+    const maps = googleMapsLink(p?.pageUrl ?? url) ?? googleMapsLink(url)
+    if (maps?.name) {
+      const near = maps.lat != null && maps.lng != null ? { lat: maps.lat, lng: maps.lng } : (props.near ?? null)
+      let found: FoundPlace | null = null
+      try {
+        found = (googleOk ? await lookupPlace(maps.name, near) : null) ?? (await photonLookup(maps.name, near))
+      } catch {
+        /* no match: keep what the link gave */
+      }
+      setDraft((d) => {
+        if (d.url !== url) return d
+        const placeholderTitle = !d.title.trim() || d.title === domainOf(url) || d.title === 'Google Maps'
+        const genericImage = !d.imageUrl || /maps\/api\/staticmap|google\.com\/images\/branding/.test(d.imageUrl)
+        // Google's own name for the place; otherwise the name in the link (OpenStreetMap's can be vaguer).
+        const name = found?.placeId ? found.name : maps.name!
+        return {
+          ...d,
+          title: placeholderTitle ? name : d.title,
+          imageUrl: found?.photo && (replaceImage || genericImage) ? found.photo : genericImage && d.imageUrl && /staticmap/.test(d.imageUrl) ? null : d.imageUrl,
+          place: d.place?.trim() ? d.place : found?.address ? `${name}, ${found.address}` : name,
+          // The link's own pin is exact; the lookup fills in when the link has none.
+          lat: maps.lat ?? found?.lat ?? d.lat,
+          lng: maps.lng ?? found?.lng ?? d.lng,
+          placeId: found?.placeId ?? d.placeId
+        }
+      })
+      if (found || maps.lat != null) setPreviewState('idle')
+    }
   }
   useEffect(() => {
     if (isNew && item.url) fetchPreview(item.url)
