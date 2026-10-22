@@ -43,6 +43,7 @@ export function DaysBoard({ days, items, members, attachments, prefs, controls, 
             items={itemsForDay(items, day, prefs.dayOrder).filter((x) => !prefs.hideRepeats || x.day === day)}
             tagsOnRepeats={prefs.tagsOnRepeats}
             show={prefs.daysShow}
+            row={prefs.daysLayout === 'list'}
             members={members}
             attachments={attachments}
             selected={day === selectedDay}
@@ -66,6 +67,8 @@ export function DayColumn(props: {
   attachments: Attachment[]
   tagsOnRepeats: boolean
   show: CardShow
+  /** List layout: each card a row, its picture beside the text. */
+  row?: boolean
   selected: boolean
   onSelect: () => void
   onOpen: (item: Item) => void
@@ -105,7 +108,7 @@ export function DayColumn(props: {
         {bands(props.items, props.day).map((b) => (
           <ColumnBand key={b.part ?? 'allday'} day={props.day} part={b.part}>
             {b.items.map((item) => (
-              <ItemCard key={item.id} item={item} members={props.members} variant="plan" day={props.day} part={b.part} tagsOnRepeats={props.tagsOnRepeats} show={props.show} fileCount={props.attachments.filter((a) => a.itemId === item.id).length} onOpen={props.onOpen} />
+              <ItemCard key={item.id} item={item} members={props.members} variant="plan" day={props.day} part={b.part} tagsOnRepeats={props.tagsOnRepeats} show={props.show} row={props.row} fileCount={props.attachments.filter((a) => a.itemId === item.id).length} onOpen={props.onOpen} />
             ))}
           </ColumnBand>
         ))}

@@ -112,7 +112,8 @@ export function ItemCard({ item, members, variant, onOpen, draggable = true, day
             <CardImage imageUrl={image!} onBroken={() => setImgBroken(true)} />
           </div>
         )}
-        {row && !imageShown && show.image && (
+        {/* Ideas keep a tinted square where there's no picture; day cards without one are just text. */}
+        {row && !imageShown && show.image && variant === 'pin' && (
           <div className="card-row-thumb is-empty" style={{ background: c.bg }} aria-hidden="true" />
         )}
         <RowText row={row}>

@@ -76,6 +76,7 @@ export function DayPlan({ tripName, days, items, members, attachments, prefs, se
         attachments={attachments}
         tagsOnRepeats={prefs.tagsOnRepeats}
         show={prefs.daysShow}
+        row={prefs.daysLayout === 'list'}
         selected={false}
         onSelect={() => onEditDay(selectedDay)}
         onOpen={onOpen}
