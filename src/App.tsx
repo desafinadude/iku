@@ -300,7 +300,7 @@ function Planner() {
 
   const daysControls = (
     <>
-      <CardShowMenu label="Days" show={prefs.daysShow} onChange={(v) => setPrefs({ daysShow: v })} />
+      <CardShowMenu label="Days" show={prefs.daysShow} onChange={(v) => setPrefs({ daysShow: v })} layout={prefs.daysLayout} onLayout={(v) => setPrefs({ daysLayout: v })} />
       <SortMenu label="Days" order={prefs.dayOrder} orders={wide ? DAY_ORDERS : DAY_ORDERS.map((o) => (o.value === 'custom' ? { ...o, label: 'Custom (as arranged)' } : o))} onOrder={(v) => setPrefs({ dayOrder: v })} hint={wide ? DRAG_HINT : undefined} />
     </>
   )

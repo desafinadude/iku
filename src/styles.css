@@ -913,3 +913,5 @@ button.trip-title:hover { background: var(--soft); }
 .card-row-text > .tag-icons { margin: 0; }
 .menu-layout { display: flex; margin: 0 8px 6px; }
 .menu-layout button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+/* Day cards as rows: a smaller picture, to suit a day column. */
+.card-plan.card-row .card-row-thumb { flex-basis: 72px; min-height: 72px; }
