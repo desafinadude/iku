@@ -306,8 +306,9 @@ function Planner() {
   )
   const ideasControls = (
     <>
-      {ideasBoard ? <ColumnsControl cols={prefs.boardCols} onChange={(n) => setPrefs({ boardCols: n })} /> : <ColumnsControl cols={prefs.ideasCols} onChange={(n) => setPrefs({ ideasCols: n })} />}
-      <CardShowMenu label="Ideas" show={prefs.ideasShow} onChange={(v) => setPrefs({ ideasShow: v })} />
+      {/* A list is one column in the side pane; the full board can still spread it over several. */}
+      {ideasBoard ? <ColumnsControl cols={prefs.boardCols} onChange={(n) => setPrefs({ boardCols: n })} /> : prefs.ideasLayout === 'grid' && <ColumnsControl cols={prefs.ideasCols} onChange={(n) => setPrefs({ ideasCols: n })} />}
+      <CardShowMenu label="Ideas" show={prefs.ideasShow} onChange={(v) => setPrefs({ ideasShow: v })} layout={prefs.ideasLayout} onLayout={(v) => setPrefs({ ideasLayout: v })} />
       <SortMenu label="Ideas" order={prefs.ideasOrder} orders={IDEA_ORDERS} onOrder={(v) => setPrefs({ ideasOrder: v })} hint={DRAG_HINT} />
     </>
   )
@@ -347,7 +348,7 @@ function Planner() {
       }}
     />
   )
-  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} columns={prefs.ideasCols} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
+  const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} layout={prefs.ideasLayout} columns={prefs.ideasLayout === 'list' ? 1 : prefs.ideasCols} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
   const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
 
   return (
@@ -449,6 +450,7 @@ function Planner() {
                     </>
                   }
                   show={prefs.ideasShow}
+                  layout={prefs.ideasLayout}
                   columns={prefs.boardCols}
                 />
                 {activeEntry && resizer('detail', 'Resize the open idea', 'right', 320, 0.7)}
