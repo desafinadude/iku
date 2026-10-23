@@ -122,18 +122,20 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, l
       ))}
       {pins.map((p) => (
         <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} title={p.title} zIndex={p.id === selectedId ? 1000 : undefined} onClick={() => onPinClick(p.id)}>
-          {p.idea ? (
-            <span className={`map-pin map-pin-idea${p.id === selectedId ? ' is-selected' : ''}`} style={{ borderColor: inkColor(p.color), color: inkColor(p.color) }}>
-              <LabelIconView name={p.icon} size={14} />
-              {labels && <span className="pin-label">{p.title}</span>}
-            </span>
-          ) : (
-            <span className={`map-pin${p.id === selectedId ? ' is-selected' : ''}`} style={{ background: p.color, color: p.fg }}>
-              <LabelIconView name={p.icon} size={18} />
-              {p.label && <b className="pin-num">{p.label}</b>}
-              {labels && <span className="pin-label">{p.title}</span>}
-            </span>
-          )}
+          <span className={`map-pin${p.idea ? ' map-pin-idea' : ''}${p.id === selectedId ? ' is-selected' : ''}`} style={{ background: p.color, color: p.fg, ['--ring' as string]: inkColor(p.color) }}>
+            <LabelIconView name={p.icon} size={20} />
+            {p.label && <b className="pin-num">{p.label}</b>}
+            {p.extras.length > 0 && (
+              <span className="pin-extras">
+                {p.extras.map((x, i) => (
+                  <span key={i} className="pin-extra" style={{ background: x.color, color: x.fg }}>
+                    <LabelIconView name={x.icon} size={11} />
+                  </span>
+                ))}
+              </span>
+            )}
+            {labels && <span className="pin-label">{p.title}</span>}
+          </span>
         </AdvancedMarker>
       ))}
       <TrackView onView={onView} onPoiClick={onPoiClick} onMapClick={onMapClick} />

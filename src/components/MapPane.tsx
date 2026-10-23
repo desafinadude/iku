@@ -51,11 +51,17 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
   const [layersOpen, setLayersOpen] = useState(false)
   // The simple style is a quiet light map (CARTO), which Google's map can't be made into with our Map ID.
   const useGoogle = googleOk && prefs.mapStyle !== 'simple'
-  const { itemStyle, tags, dayStyle } = useLabels()
-  // Pins take their colour and icon from the entry's first coloured tag.
+  const { itemStyle, tagStyle, tags, dayStyle } = useLabels()
+  // Pins take their colour and icon from the entry's first coloured tag; its other coloured tags ride along as badges.
   const pinStyle = (x: Item) => {
     const s = itemStyle(x)
-    return { color: s.color, fg: s.fg, icon: s.icon }
+    const extras = x.tags
+      .filter((t) => t !== s.name)
+      .map((t) => tagStyle(t))
+      .filter((t) => t.color && t.icon)
+      .slice(0, 3)
+      .map((t) => ({ color: t.color!, fg: t.fg, icon: t.icon! }))
+    return { color: s.color, fg: s.fg, icon: s.icon, extras }
   }
 
 
@@ -181,7 +187,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
           <div className="map-legend">
             <ul>
               {tags
-                .filter((t) => t.color && pins.some((p) => itemStyle(items.find((x) => x.id === p.id)!).name === t.name))
+                .filter((t) => t.color && pins.some((p) => items.find((x) => x.id === p.id)?.tags.includes(t.name)))
                 .map((s) => (
                   <li key={s.name}>
                     <span className="legend-pin" style={{ background: s.color!, color: s.fg }}>

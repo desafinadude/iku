@@ -9,6 +9,8 @@ export interface MapPin {
   fg: string
   /** Label icon name drawn in the pin. */
   icon: string
+  /** The entry's other coloured tags, as small badges on the same pin (the pin is the same whatever the filter). */
+  extras: { color: string; fg: string; icon: string }[]
   idea: boolean
   title: string
 }

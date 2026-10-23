@@ -10,15 +10,15 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 function icon(pin: MapPin, label: boolean, selected: boolean) {
   const name = label ? `<span class="pin-label">${esc(pin.title)}</span>` : ''
-  const cls = selected ? ' is-selected' : ''
-  return pin.idea
-    ? L.divIcon({ className: '', html: `<span class="map-pin map-pin-idea${cls}" style="border-color:${inkColor(pin.color)};color:${inkColor(pin.color)}">${iconHtml(pin.icon, 14, 'currentColor')}${name}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })
-    : L.divIcon({
-        className: '',
-        html: `<span class="map-pin${cls}" style="background:${pin.color}">${iconHtml(pin.icon, 18, pin.fg)}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}${name}</span>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      })
+  const extras = pin.extras.length
+    ? `<span class="pin-extras">${pin.extras.map((x) => `<span class="pin-extra" style="background:${x.color}">${iconHtml(x.icon, 11, x.fg)}</span>`).join('')}</span>`
+    : ''
+  return L.divIcon({
+    className: '',
+    html: `<span class="map-pin${pin.idea ? ' map-pin-idea' : ''}${selected ? ' is-selected' : ''}" style="background:${pin.color};--ring:${inkColor(pin.color)}">${iconHtml(pin.icon, 20, pin.fg)}${pin.label ? `<b class="pin-num">${pin.label}</b>` : ''}${extras}${name}</span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19]
+  })
 }
 
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
