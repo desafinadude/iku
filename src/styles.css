@@ -993,3 +993,17 @@ button.trip-title:hover { background: var(--soft); }
 .photo-offer .small { flex: 1; }
 .photo-offer .secondary-btn { min-height: 34px; padding: 0 12px; font-size: 13px; }
 .photo-offer .icon-btn { width: 32px; height: 32px; }
+
+/* Find photos: the place's Google photos, Google place and Wikimedia searches, and a way out to Google Images. */
+.photo-picker { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-hover); }
+.pp-head { display: flex; gap: 6px; align-items: center; }
+.pp-search { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 4px 0 10px; border: 1px solid var(--line); border-radius: 10px; }
+.pp-search input { flex: 1; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; font-size: 15px; }
+.pp-search .secondary-btn { min-height: 32px; padding: 0 10px; font-size: 13px; }
+.pp-head .icon-btn { width: 36px; height: 36px; }
+.pp-title { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.pp-photo { position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: var(--soft); cursor: pointer; }
+.pp-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s; }
+.pp-photo:hover img, .pp-photo:focus-visible img { transform: scale(1.05); }
+.pp-google { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 14px; font-weight: 600; color: var(--accent-dark); text-decoration: none; }

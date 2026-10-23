@@ -7,6 +7,7 @@ import type { Attachment, Item, Member } from '../types'
 import { AttachmentList, type PendingFile } from './AttachmentList'
 import { CardImage } from './CardImage'
 import { Lightbox } from './Lightbox'
+import { PhotoPicker } from './PhotoPicker'
 import { PlaceSearch } from './PlaceSearch'
 import { PlaceInfo } from './PlaceInfo'
 import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
@@ -100,6 +101,7 @@ export function ItemSheet(props: Props) {
   const placeDetails = useGooglePlaceDetails()
   // A picked place's photo, offered when the entry already has a picture of its own.
   const [photoOffer, setPhotoOffer] = useState<string | null>(null)
+  const [findPhotos, setFindPhotos] = useState(false)
   const [tagText, setTagText] = useState('')
   // The tag list opens under the box while you pick; tap a tag to tick or untick it.
   const [tagsOpen, setTagsOpen] = useState(false)
@@ -288,6 +290,9 @@ export function ItemSheet(props: Props) {
               <button type="button" className="chip" onClick={() => imageInput.current?.click()} disabled={imageBusy}>
                 <Icon name="image" size={15} /> Replace
               </button>
+              <button type="button" className="chip" onClick={() => setFindPhotos((v) => !v)} aria-expanded={findPhotos}>
+                <Icon name="search" size={15} /> Find photos
+              </button>
               <button type="button" className="chip" aria-label="Remove image" onClick={() => set({ imageUrl: '' })}>
                 <Icon name="close" size={15} /> Remove
               </button>
@@ -297,6 +302,9 @@ export function ItemSheet(props: Props) {
           <div className="image-empty">
             <button type="button" className="secondary-btn" onClick={() => imageInput.current?.click()} disabled={imageBusy}>
               <Icon name="image" size={16} /> {imageBusy ? 'Uploading…' : 'Add photo'}
+            </button>
+            <button type="button" className="secondary-btn" onClick={() => setFindPhotos((v) => !v)} aria-expanded={findPhotos}>
+              <Icon name="search" size={16} /> Find photos
             </button>
             <button type="button" className="secondary-btn" onClick={() => setLinkOpen((v) => !v)}>
               <Icon name="link" size={16} /> Image link
@@ -323,6 +331,19 @@ export function ItemSheet(props: Props) {
                 setLinkOpen(false)
               }
             }}
+          />
+        )}
+        {findPhotos && (
+          <PhotoPicker
+            query={(draft.place?.split(',')[0] || draft.title || '').trim()}
+            placeId={draft.placeId || null}
+            near={draft.lat != null && draft.lng != null ? { lat: draft.lat, lng: draft.lng } : (props.near ?? null)}
+            onPick={(p) => {
+              setFindPhotos(false)
+              if (p.google) usePhoto(p.full)
+              else set({ imageUrl: p.full })
+            }}
+            onClose={() => setFindPhotos(false)}
           />
         )}
         {imageBusy && draft.imageUrl && <span className="muted small">Uploading…</span>}
