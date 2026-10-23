@@ -105,12 +105,10 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
   - **Simple:** Esri's light grey map, quiet so your pins stand out.
   - **Satellite.**
 
-  It also has **Names beside pins**, the **Route line** through the day, **Walking rings** (10 and 20 minutes around the pin you tap), and overlays:
-  - **Neighbourhoods:** district and neighbourhood names, plus ward borders when zoomed in. They come from OpenStreetMap via the free Overpass API, with three servers tried in turn. A note on the map says when they're loading, need a closer zoom, or couldn't load.
-  - **Train and metro lines.**
-  - **Cycling routes.**
+  It also has **Names beside pins**, the **Route line** through the day, **Walking rings** (10 and 20 minutes around the pin you tap), and:
   - **Traffic** (Google).
   - **Nearby** (Google): stations, convenience stores, cafés, ATMs and toilets around the middle of the map once zoomed in. Tap one for its place card. Each search is a billed Places request, and results are reused for the session.
+
   Kept per device.
 - **Place card:** tap a pin for a card like Google Maps:
   - photos, rating, type and price

@@ -2,7 +2,6 @@ import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, use
 import { dayLabel, displayTitle, itemsForDay } from '../lib'
 import { markGoogleBroken, useGoogleOk } from '../maps/config'
 import type { Bounds, MapPin, MapStyle } from '../maps/types'
-import { useAreas } from '../maps/areas'
 import { NEARBY, useNearby } from '../maps/nearby'
 import type { FoundPlace } from '../maps/places'
 import type { Prefs } from '../usePrefs'
@@ -27,7 +26,7 @@ interface Props {
   /** Wide screens: the pane's width in px (from its resize handle). */
   width?: number
   /** Map style and layers (kept per device). */
-  prefs: Pick<Prefs, 'mapStyle' | 'mapLabels' | 'mapRoute' | 'mapAreas' | 'mapTransit' | 'mapBike' | 'mapTraffic' | 'mapWalk' | 'mapNearby'>
+  prefs: Pick<Prefs, 'mapStyle' | 'mapLabels' | 'mapRoute' | 'mapTraffic' | 'mapWalk' | 'mapNearby'>
   onPrefs: (patch: Partial<Prefs>) => void
   /** Saves a place tapped on the map as a new idea. */
   onSavePlace: (place: FoundPlace) => Promise<void>
@@ -48,7 +47,6 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
   const onView = useCallback((bounds: Bounds, zoom: number) => setVisibleArea({ bounds, zoom }), [])
   const onPoiClick = useCallback((placeId: string) => setSelected({ placeId }), [])
   const onMapClick = useCallback(() => setSelected(null), [])
-  const { areas, state: areasState } = useAreas(prefs.mapAreas, visibleArea)
   const { pins: nearby, state: nearbyState } = useNearby(googleOk ? prefs.mapNearby : [], visibleArea)
   const [layersOpen, setLayersOpen] = useState(false)
   // The simple style is a quiet light map (CARTO), which Google's map can't be made into with our Map ID.
@@ -103,10 +101,7 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
     onPinClick: (id: string) => setSelected({ id }),
     style: prefs.mapStyle,
     labels: prefs.mapLabels,
-    transit: prefs.mapTransit,
-    bike: prefs.mapBike,
     traffic: prefs.mapTraffic,
-    areas,
     rings: prefs.mapWalk && entry?.lat != null && entry.lng != null ? { lat: entry.lat, lng: entry.lng } : null,
     nearby,
     selectedId: selected && 'id' in selected ? selected.id : null,
@@ -167,8 +162,8 @@ export function MapPane({ items, days, selectedDay, onSelectDay, onOpen, full = 
             <LeafletView {...view} />
           )}
         </Suspense>
-        <MapLayers open={layersOpen} onToggle={() => setLayersOpen((v) => !v)} prefs={prefs} onPrefs={onPrefs} googleOk={googleOk} useGoogle={useGoogle} areasState={prefs.mapAreas ? areasState : 'idle'} nearbyState={nearbyState} />
-        <MapStatus areas={prefs.mapAreas ? areasState : 'idle'} nearby={nearbyState} />
+        <MapLayers open={layersOpen} onToggle={() => setLayersOpen((v) => !v)} prefs={prefs} onPrefs={onPrefs} googleOk={googleOk} useGoogle={useGoogle} nearbyState={nearbyState} />
+        <MapStatus nearby={nearbyState} />
         {selected ? (
           <PlaceCard
             entry={entry}
@@ -223,11 +218,8 @@ const STYLES: { value: MapStyle; label: string; hint: string }[] = [
 type LoadState = 'idle' | 'busy' | 'error' | 'zoom'
 
 /** A small note over the map while overlays load, or when they need a closer zoom or couldn't load. */
-function MapStatus({ areas, nearby }: { areas: LoadState; nearby: LoadState }) {
+function MapStatus({ nearby }: { nearby: LoadState }) {
   const notes = [
-    areas === 'busy' && 'Loading neighbourhoods…',
-    areas === 'zoom' && 'Zoom in to see neighbourhoods',
-    areas === 'error' && 'Couldn’t load neighbourhoods (OpenStreetMap’s servers are busy). Try again in a bit.',
     nearby === 'busy' && 'Finding nearby places…',
     nearby === 'zoom' && 'Zoom in to see nearby places',
     nearby === 'error' && 'Couldn’t find nearby places just now.'
@@ -242,7 +234,7 @@ function MapStatus({ areas, nearby }: { areas: LoadState; nearby: LoadState }) {
   )
 }
 
-function MapLayers({ open, onToggle, prefs, onPrefs, googleOk, useGoogle, areasState, nearbyState }: { open: boolean; onToggle: () => void; prefs: Props['prefs']; onPrefs: Props['onPrefs']; googleOk: boolean; useGoogle: boolean; areasState: LoadState; nearbyState: LoadState }) {
+function MapLayers({ open, onToggle, prefs, onPrefs, googleOk, useGoogle, nearbyState }: { open: boolean; onToggle: () => void; prefs: Props['prefs']; onPrefs: Props['onPrefs']; googleOk: boolean; useGoogle: boolean; nearbyState: LoadState }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -250,7 +242,7 @@ function MapLayers({ open, onToggle, prefs, onPrefs, googleOk, useGoogle, areasS
     document.addEventListener('pointerdown', onDown)
     return () => document.removeEventListener('pointerdown', onDown)
   }, [open, onToggle])
-  const check = (key: 'mapLabels' | 'mapRoute' | 'mapAreas' | 'mapTransit' | 'mapBike' | 'mapTraffic' | 'mapWalk', label: string, hint?: string) => (
+  const check = (key: 'mapLabels' | 'mapRoute' | 'mapTraffic' | 'mapWalk', label: string, hint?: string) => (
     <label className="menu-item menu-check-item">
       <input type="checkbox" checked={prefs[key]} onChange={(e) => onPrefs({ [key]: e.target.checked })} />
       <span>
@@ -263,7 +255,7 @@ function MapLayers({ open, onToggle, prefs, onPrefs, googleOk, useGoogle, areasS
     <div className="map-layers" ref={ref}>
       <button type="button" className={`map-layers-btn${open ? ' is-on' : ''}`} aria-expanded={open} aria-label="Map style and layers" title="Map style and layers" onClick={onToggle}>
         <Icon name="layers" size={18} />
-        {(areasState === 'busy' || nearbyState === 'busy') && <span className="layers-busy" aria-label="Loading" />}
+        {nearbyState === 'busy' && <span className="layers-busy" aria-label="Loading" />}
       </button>
       {open && (
         <div className="menu map-layers-menu" role="dialog" aria-label="Map style and layers">
@@ -282,10 +274,6 @@ function MapLayers({ open, onToggle, prefs, onPrefs, googleOk, useGoogle, areasS
           {check('mapLabels', 'Names beside pins')}
           {check('mapRoute', 'Route line through the day')}
           {check('mapWalk', 'Walking rings', '10 and 20 minutes’ walk around the pin you tap')}
-          <p className="menu-head">Overlays</p>
-          {check('mapAreas', 'Neighbourhoods', 'Names and borders, from OpenStreetMap')}
-          {check('mapTransit', 'Train and metro lines')}
-          {check('mapBike', 'Cycling routes')}
           {useGoogle && check('mapTraffic', 'Traffic')}
           {googleOk && (
             <>

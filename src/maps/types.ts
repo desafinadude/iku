@@ -30,21 +30,12 @@ export type MapStyle = 'detailed' | 'simple' | 'satellite'
 /** The visible area, as south, west, north, east. */
 export type Bounds = [number, number, number, number]
 
-/** Neighbourhood (and ward) boundaries to draw: lines, plus a name for each area. */
-export interface Areas {
-  lines: { level: number; path: [number, number][] }[]
-  labels: { name: string; lat: number; lng: number; level: number }[]
-}
-
 /** What both map renderers (Google and OpenStreetMap) take. */
 export interface MapViewProps {
   style: MapStyle
   /** The entry's name beside each pin. */
   labels: boolean
-  transit: boolean
-  bike: boolean
   traffic: boolean
-  areas: Areas | null
   /** 10- and 20-minute walking rings around this point (the open pin). */
   rings: { lat: number; lng: number } | null
   nearby: NearbyPin[]

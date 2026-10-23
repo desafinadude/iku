@@ -62,7 +62,7 @@ function TrackView({ onView, onMapClick }: Pick<MapViewProps, 'onView' | 'onMapC
   return null
 }
 
-export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, labels, transit, bike, areas, rings, nearby, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
+export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, labels, rings, nearby, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
   const tiles = TILES[style]
   return (
     <MapContainer center={[35.68, 139.76]} zoom={12} className={`map map-${style}`} zoomControl={false}>
@@ -70,8 +70,6 @@ export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, 
       {expanded && <ZoomControl position="bottomright" />}
       <TileLayer key={style} attribution={tiles.attribution} url={tiles.url} maxNativeZoom={style === 'detailed' ? 19 : 16} maxZoom={19} />
       {tiles.labels && <TileLayer key={style + '-labels'} url={tiles.labels} maxNativeZoom={16} maxZoom={19} pane="overlayPane" />}
-      {transit && <TileLayer url="https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>' opacity={0.8} />}
-      {bike && <TileLayer url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm-lite/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.cyclosm.org/">CyclOSM</a>' />}
       {rings &&
         [1600, 800].map((r) => (
           <Circle key={r} center={[rings.lat, rings.lng]} radius={r} interactive={false} pathOptions={{ color: '#0E6B60', weight: 1.5, opacity: 0.7, fillColor: '#0E6B60', fillOpacity: r === 800 ? 0.08 : 0.04 }} />
@@ -91,12 +89,6 @@ export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, 
           icon={L.divIcon({ className: '', html: `<span class="nearby-pin" style="background:${n.color}">${iconHtml(n.icon, 13, '#fff')}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })}
           eventHandlers={{ click: () => onPoiClick?.(n.id) }}
         />
-      ))}
-      {areas?.lines.map((l, i) => (
-        <Polyline key={i} positions={l.path} interactive={false} pathOptions={{ color: style === 'satellite' ? '#fff' : '#6d3fc0', weight: l.level <= 8 ? 2.5 : 1.5, opacity: 0.75, dashArray: l.level <= 8 ? undefined : '4 4' }} />
-      ))}
-      {areas?.labels.map((a) => (
-        <Marker key={`${a.name}${a.lat}`} position={[a.lat, a.lng]} interactive={false} keyboard={false} icon={L.divIcon({ className: '', html: `<span class="area-label lvl-${a.level <= 8 ? 'big' : 'small'}">${esc(a.name)}</span>`, iconSize: [0, 0] })} />
       ))}
       {route.length > 1 && <Polyline positions={route} pathOptions={{ color: style === 'satellite' ? '#fde047' : '#0E6B60', weight: 3, dashArray: '2 8' }} />}
       {pins.map((p) => (

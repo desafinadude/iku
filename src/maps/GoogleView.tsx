@@ -3,7 +3,7 @@ import { inkColor } from '../colors'
 import { useEffect } from 'react'
 import { LabelIconView } from '../labels/LabelIconView'
 import { GOOGLE_MAP_ID } from './config'
-import type { Areas, MapViewProps } from './types'
+import type { MapViewProps } from './types'
 
 function Route({ route, light }: { route: [number, number][]; light: boolean }) {
   const map = useMap()
@@ -64,8 +64,8 @@ function TrackView({ onView, onPoiClick, onMapClick }: Pick<MapViewProps, 'onVie
   return null
 }
 
-/** One of Google's own layers (transit, cycling, traffic), while on. */
-function GoogleLayer({ on, make }: { on: boolean; make: () => google.maps.TransitLayer | google.maps.BicyclingLayer | google.maps.TrafficLayer }) {
+/** One of Google's own layers (traffic), while on. */
+function GoogleLayer({ on, make }: { on: boolean; make: () => google.maps.TrafficLayer }) {
   const map = useMap()
   useEffect(() => {
     if (!map || !on) return
@@ -90,29 +90,7 @@ function WalkRings({ at }: { at: { lat: number; lng: number } | null }) {
   return null
 }
 
-function AreaLines({ areas, light }: { areas: Areas | null; light: boolean }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!map || !areas) return
-    const lines = areas.lines.map(
-      (l) =>
-        new google.maps.Polyline({
-          map,
-          path: l.path.map(([lat, lng]) => ({ lat, lng })),
-          clickable: false,
-          strokeColor: light ? '#ffffff' : '#6d3fc0',
-          strokeOpacity: l.level <= 8 ? 0.75 : 0,
-          strokeWeight: l.level <= 8 ? 2.5 : 1.5,
-          // Smaller areas get a dashed line.
-          icons: l.level <= 8 ? undefined : [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, strokeColor: light ? '#ffffff' : '#6d3fc0', scale: 1.5 }, offset: '0', repeat: '8px' }]
-        })
-    )
-    return () => lines.forEach((l) => l.setMap(null))
-  }, [map, areas, light])
-  return null
-}
-
-export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, labels, transit, bike, traffic, areas, rings, nearby, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
+export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, labels, traffic, rings, nearby, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
   return (
     <Map
       className="map"
@@ -128,8 +106,6 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, l
       clickableIcons
     >
       <Route route={route} light={style === 'satellite'} />
-      <GoogleLayer on={transit} make={() => new google.maps.TransitLayer()} />
-      <GoogleLayer on={bike} make={() => new google.maps.BicyclingLayer()} />
       <GoogleLayer on={traffic} make={() => new google.maps.TrafficLayer()} />
       <WalkRings at={rings} />
       {rings && (
@@ -147,12 +123,6 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, l
           <span className="nearby-pin" style={{ background: n.color }}>
             <LabelIconView name={n.icon} size={13} />
           </span>
-        </AdvancedMarker>
-      ))}
-      <AreaLines areas={areas} light={style === 'satellite'} />
-      {areas?.labels.map((a) => (
-        <AdvancedMarker key={`${a.name}${a.lat}`} position={{ lat: a.lat, lng: a.lng }} clickable={false} zIndex={-1}>
-          <span className={`area-label lvl-${a.level <= 8 ? 'big' : 'small'}`}>{a.name}</span>
         </AdvancedMarker>
       ))}
       {pins.map((p) => (
