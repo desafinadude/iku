@@ -167,9 +167,9 @@ h1, h2 { margin: 0; }
 
 /* ---------- Days board ---------- */
 .day-columns { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 4px; }
-.day-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px; border-radius: 8px; background: #edeeea; border: 1px solid transparent; transition: background .15s; }
-.day-col.is-selected { background: var(--surface); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
-.day-col.is-over { background: var(--drop); border-color: var(--drop-line); border-style: dashed; }
+.day-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px; border-radius: 8px; background: #edeeea; border: 0; transition: background .15s; }
+.day-col.is-selected { background: var(--surface); outline: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.day-col.is-over { background: var(--drop); outline: 2px dashed var(--drop-line); outline-offset: -2px; }
 .day-col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 4px; border: 0; background: transparent; text-align: left; }
 .day-num { font-family: var(--display); font-size: 26px; font-weight: 700; line-height: 1; }
 .day-col-label { display: flex; flex-direction: column; font-size: 13px; flex: 1; }
@@ -542,12 +542,10 @@ h1, h2 { margin: 0; }
 .view-note { margin: 0; white-space: pre-wrap; line-height: 1.5; font-size: 15px; }
 
 /* ---------- Day titles & colours ---------- */
-.day-col { border-top: 4px solid transparent; }
-.day-col.has-color { border-left-color: transparent; border-right-color: transparent; border-bottom-color: transparent; }
-.day-col.is-selected.has-color { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), var(--shadow); }
 .day-col-top { display: flex; align-items: flex-start; gap: 4px; }
 /* The day's date and title sit in a grey band across the top of the column. */
-.day-col .day-col-top { flex: none; margin: -10px -10px 0; padding: 8px 8px 6px 6px; background: #dfe1dc; border-radius: 7px 7px 0 0; }
+/* Flush with the column's top and sides (the column's rounded corners clip it). */
+.day-col .day-col-top { flex: none; margin: -10px -10px 0; padding: 8px 8px 6px 6px; background: #dfe1dc; border-radius: 0; }
 .day-col .day-cover + .day-col-top { margin-top: -8px; border-radius: 0; }
 .day-col.has-color .day-col-top { border-radius: 0; }
 .day-col-top .day-col-head { flex: 1; min-width: 0; }
@@ -676,7 +674,6 @@ body.is-resizing iframe, body.is-resizing .map { pointer-events: none; }
 .card { transition: box-shadow .15s; }
 .card.drop-before:hover { box-shadow: 0 -4px 0 0 var(--accent), var(--shadow); }
 .card.drop-after:hover { box-shadow: 0 4px 0 0 var(--accent), var(--shadow); }
-.day-col.is-selected.has-color { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), var(--shadow); }
 
 /* Tag manager: one editable row per tag */
 .tag-table { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }

@@ -83,7 +83,7 @@ export function DayColumn(props: {
     <div
       ref={setNodeRef}
       className={`day-col${props.selected ? ' is-selected' : ''}${isOver ? ' is-over' : ''}${ds.color ? ' has-color' : ''}`}
-      style={ds.background || ds.color ? { background: ds.background ?? undefined, borderTopColor: ds.color ?? undefined } : undefined}
+      style={ds.background ? { background: ds.background } : undefined}
     >
       <div className="day-col-top" style={ds.header || ds.headerFg ? { background: ds.header ?? undefined, color: ds.headerFg ?? undefined } : undefined}>
         <button className="day-col-head" onClick={props.onSelect} aria-pressed={props.selected}>
