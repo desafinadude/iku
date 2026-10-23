@@ -98,6 +98,27 @@ Without a key, or if Google rejects it, the app uses OpenStreetMap tiles and [Ph
 6. In the GitHub repo, go to **Settings → Secrets and variables → Actions → Secrets** tab → **New repository secret**. Name it `VITE_GOOGLE_MAPS_API_KEY` and paste the key (optionally add `VITE_GOOGLE_MAP_ID` too). Use **Repository secrets**, not an environment's secrets. Then re-run the deploy (Actions → Deploy to GitHub Pages → Run workflow). This keeps the key out of git, but browser keys always end up readable in the published site, so the website restriction is what really protects it. For local development, put it in `.env.local`, which git ignores.
 7. Run `supabase/migrations/005_google_places.sql`, so entries remember their Google place.
 
+## The map
+
+- **Map style and layers:** the layers button (top right of the map) picks the **map style**:
+  - **Detailed:** Google, or OpenStreetMap without a key.
+  - **Simple:** Esri's light grey map, quiet so your pins stand out.
+  - **Satellite.**
+
+  It also has **Names beside pins**, the **Route line** through the day, and two overlays:
+  - **Neighbourhoods:** ward and neighbourhood borders and names from OpenStreetMap via the free Overpass API. Zoom in for smaller areas.
+  - **Train and metro lines:** Google's transit layer, or OpenRailwayMap.
+
+  Kept per device.
+- **Place card:** tap a pin for a card like Google Maps:
+  - photos, rating, type and price
+  - open now / today's hours (tap for the week)
+  - address, phone and website
+  - the entry's day, time, tags and note
+  - **Open entry**, **Directions** and **Google Maps**
+
+  Arrows step through the day's stops. With Google, tapping any of the map's own places (a café, a shrine) opens the same card with **Save as idea**, which adds it to Ideas with its photo, address and pin.
+
 ## Day views
 
 The Days area has one view: a column per day, each split into the parts of the day: *All day* (stays, and entries with no particular time), then *Morning* (until 1pm), *Afternoon* (1–4pm), *Evening* (4–7pm) and *Night* (after 7pm). Drop onto a band to place an entry there (an exact time that doesn't fit that band is cleared); times show as a dark tag with a clock. In the editor, an entry with no time has a *Time of day* choice. Run `supabase/migrations/012_day_parts.sql` to save parts. Wide screens show the columns side by side; phones show the same column one day at a time, with a day strip above it (tap a day, or swipe).

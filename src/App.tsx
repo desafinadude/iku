@@ -6,6 +6,7 @@ import { Avatar, memberFor } from './components/Avatar'
 import { useImageSrc } from './components/CardImage'
 import { colorCss, firstColor, onColor, PANEL_DEFAULTS } from './colors'
 import { DayPlan } from './components/DayPlan'
+import type { FoundPlace } from './maps/places'
 import { DaySheet } from './components/DaySheet'
 import { TripSheet } from './components/TripSheet'
 import { DaySelect, IdeaPicker } from './components/DayAssign'
@@ -349,7 +350,21 @@ function Planner() {
     />
   )
   const ideasPane = <IdeasPane width={wide ? widths.ideas : undefined} ideas={ideas} show={prefs.ideasShow} layout={prefs.ideasLayout} columns={prefs.ideasLayout === 'list' ? 1 : prefs.ideasCols} headExtra={ideasControls} members={members} attachments={attachments} totalIdeas={unplannedCount} onCapture={capture} onCaptureImages={captureImages} onOpen={open} />
-  const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
+  /** A place tapped on the map, saved as an idea (with a copy of its photo, as Google's photo links expire). */
+  const savePlace = async (p: FoundPlace) => {
+    let imageUrl: string | null = null
+    if (p.photo) {
+      try {
+        const blob = await (await fetch(p.photo)).blob()
+        imageUrl = await backend.uploadCover(trip.id, await prepareUpload(new File([blob], 'place.jpg', { type: blob.type || 'image/jpeg' })))
+      } catch {
+        imageUrl = p.photo
+      }
+    }
+    await save(blank({ title: p.name, place: p.address ? `${p.name}, ${p.address}` : p.name, lat: p.lat, lng: p.lng, placeId: p.placeId, imageUrl }))
+  }
+  const mapProps = { prefs, onPrefs: setPrefs, onSavePlace: savePlace }
+  const mapPane = <MapPane width={wide ? widths.map : undefined} items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} {...mapProps} />
 
   return (
     <LabelsProvider tripId={trip.id} labels={labels} items={items} days={dayInfos}>
@@ -482,7 +497,7 @@ function Planner() {
                 )}
               </>
             ) : wide && prefs.mainView === 'map' ? (
-              <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
+              <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} {...mapProps} />
             ) : wide ? (
               <>
                 {!daysMax && prefs.planIdeas && ideasPane}
@@ -538,7 +553,7 @@ function Planner() {
                 <DocsPane {...docsProps} />
               </section>
             ) : (
-              <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} />
+              <MapPane full items={visible} days={days} selectedDay={selectedDay} onSelectDay={setSelectedDay} onOpen={open} {...mapProps} />
             )}
           </main>
           </DropHintContext.Provider>

@@ -13,8 +13,32 @@ export interface MapPin {
   title: string
 }
 
+export type MapStyle = 'detailed' | 'simple' | 'satellite'
+
+/** The visible area, as south, west, north, east. */
+export type Bounds = [number, number, number, number]
+
+/** Neighbourhood (and ward) boundaries to draw: lines, plus a name for each area. */
+export interface Areas {
+  lines: { level: number; path: [number, number][] }[]
+  labels: { name: string; lat: number; lng: number; level: number }[]
+}
+
 /** What both map renderers (Google and OpenStreetMap) take. */
 export interface MapViewProps {
+  style: MapStyle
+  /** The entry's name beside each pin. */
+  labels: boolean
+  transit: boolean
+  areas: Areas | null
+  /** The pin whose card is open (drawn on top, a little bigger). */
+  selectedId: string | null
+  /** Reports the visible area after the map stops moving. */
+  onView: (bounds: Bounds, zoom: number) => void
+  /** A tap on one of the map's own places (Google only). */
+  onPoiClick?: (placeId: string) => void
+  /** A tap on empty map. */
+  onMapClick?: () => void
   pins: MapPin[]
   /** Dotted line through the day's stops, in order. */
   route: [number, number][]
