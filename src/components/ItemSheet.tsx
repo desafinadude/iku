@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { isCoverRef, type LinkPreview } from '../data/backend'
-import { addDays, DAY_PARTS, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate, googleMapsLink } from '../lib'
+import { addDays, DAY_PARTS, dayLabel, daysBetween, displayTitle, isStay, fromMinutes, prepareUpload, toMinutes, displayName, domainOf, isUrl, normalizeTag, quickPreview, shortDate, googleMapsLink, clipboardImages } from '../lib'
 import { useLabels } from '../labels/LabelsContext'
 import { LabelIconView } from '../labels/LabelIconView'
 import type { Attachment, Item, Member } from '../types'
@@ -10,7 +10,7 @@ import { Lightbox } from './Lightbox'
 import { PlaceSearch } from './PlaceSearch'
 import { PlaceInfo } from './PlaceInfo'
 import { directionsUrl, googleMapsUrl, useGoogleOk } from '../maps/config'
-import { photonLookup, useGooglePlaceLookup, type FoundPlace } from '../maps/places'
+import { photonLookup, useGooglePlaceDetails, useGooglePlaceLookup, type FoundPlace } from '../maps/places'
 import { Avatar, memberFor } from './Avatar'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
@@ -79,10 +79,15 @@ export function ItemSheet(props: Props) {
   // Paste an image anywhere in the sheet to use it as the card image.
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'))
-      if (!file) return
-      e.preventDefault()
-      useImageFile(file)
+      const { files, url } = clipboardImages(e.clipboardData)
+      if (files[0]) {
+        e.preventDefault()
+        useImageFile(files[0])
+      } else if (url && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        // An image copied from a web page (not text pasted into a field).
+        e.preventDefault()
+        setDraft((d) => ({ ...d, imageUrl: url }))
+      }
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
@@ -92,6 +97,9 @@ export function ItemSheet(props: Props) {
   const googleOk = useGoogleOk()
   const { tags: knownTags, tagStyle } = useLabels()
   const lookupPlace = useGooglePlaceLookup()
+  const placeDetails = useGooglePlaceDetails()
+  // A picked place's photo, offered when the entry already has a picture of its own.
+  const [photoOffer, setPhotoOffer] = useState<string | null>(null)
   const [tagText, setTagText] = useState('')
   // The tag list opens under the box while you pick; tap a tag to tick or untick it.
   const [tagsOpen, setTagsOpen] = useState(false)
@@ -163,19 +171,53 @@ export function ItemSheet(props: Props) {
         }
       })
       if (found || maps.lat != null) setPreviewState('idle')
-      // Google's photo links don't last: keep a copy with the trip's pictures, then swap it in.
-      if (found?.photo) {
-        const photo = found.photo
-        try {
-          const blob = await (await fetch(photo)).blob()
-          if (!blob.type.startsWith('image/')) return
-          const ref = await props.onUploadCover(await prepareUpload(new File([blob], 'place.jpg', { type: blob.type })))
-          setDraft((d) => (d.imageUrl === photo ? { ...d, imageUrl: ref } : d))
-        } catch {
-          /* keep Google's link */
-        }
-      }
+      if (found?.photo) keepPhotoCopy(found.photo)
     }
+  }
+  /** Google's photo links don't last: keep a copy with the trip's pictures, then swap it in. */
+  const keepPhotoCopy = async (photo: string) => {
+    try {
+      const blob = await (await fetch(photo)).blob()
+      if (!blob.type.startsWith('image/')) return
+      const ref = await props.onUploadCover(await prepareUpload(new File([blob], 'place.jpg', { type: blob.type })))
+      uploaded.current.push(ref)
+      setDraft((d) => (d.imageUrl === photo ? { ...d, imageUrl: ref } : d))
+    } catch {
+      /* keep Google's link */
+    }
+  }
+  const usePhoto = (photo: string) => {
+    setDraft((d) => ({ ...d, imageUrl: photo }))
+    setPhotoOffer(null)
+    keepPhotoCopy(photo)
+  }
+  /** A place picked in the search: its spot, and from Google its address, name (for an untitled entry) and photo. */
+  const pickPlace = async (h: { name: string; detail: string; lat: number; lng: number; placeId: string | null }) => {
+    set({
+      place: h.placeId ? h.name : h.detail ? `${h.name}, ${h.detail.split(', ').slice(-2).join(', ')}` : h.name,
+      lat: h.lat,
+      lng: h.lng,
+      // '' rather than null so a cleared Google place is saved as cleared.
+      placeId: h.placeId ?? (draft.placeId !== null ? '' : null)
+    })
+    setPhotoOffer(null)
+    if (!h.placeId || !googleOk) return
+    let info: Awaited<ReturnType<typeof placeDetails>> = null
+    try {
+      info = await placeDetails(h.placeId)
+    } catch {
+      return
+    }
+    if (!info) return
+    const name = info.name ?? h.name
+    setDraft((d) => ({
+      ...d,
+      title: !d.title.trim() || d.title === domainOf(d.url) ? name : d.title,
+      place: info!.address ? `${name}, ${info!.address}` : d.place
+    }))
+    if (!info.photo) return
+    if (!draft.imageUrl) usePhoto(info.photo)
+    else setPhotoOffer(info.photo)
   }
   useEffect(() => {
     if (isNew && item.url) fetchPreview(item.url)
@@ -560,17 +602,21 @@ export function ItemSheet(props: Props) {
         lng={draft.lng}
         near={props.near}
         onChange={(place) => set({ place })}
-        onPick={(h) =>
-          set({
-            place: h.placeId ? h.name : h.detail ? `${h.name}, ${h.detail.split(', ').slice(-2).join(', ')}` : h.name,
-            lat: h.lat,
-            lng: h.lng,
-            // '' rather than null so a cleared Google place is saved as cleared.
-            placeId: h.placeId ?? (draft.placeId !== null ? '' : null)
-          })
-        }
+        onPick={pickPlace}
         onClearLocation={() => set({ lat: null, lng: null, placeId: draft.placeId !== null ? '' : null })}
       />
+      {photoOffer && (
+        <div className="photo-offer">
+          <CardImage imageUrl={photoOffer} className="photo-offer-thumb" />
+          <span className="small">Use this place’s photo instead of the current picture?</span>
+          <button type="button" className="secondary-btn" onClick={() => usePhoto(photoOffer)}>
+            Use photo
+          </button>
+          <button type="button" className="icon-btn" aria-label="No thanks" onClick={() => setPhotoOffer(null)}>
+            <Icon name="close" size={14} />
+          </button>
+        </div>
+      )}
       {googleOk && draft.placeId && <PlaceInfo placeId={draft.placeId} />}
       {draft.lat != null && draft.lng != null && (
         <div className="maps-links">

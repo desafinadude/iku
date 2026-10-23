@@ -1,7 +1,8 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Attachment, Item, Member } from '../types'
 import type { CardShow } from '../usePrefs'
+import { clipboardImages } from '../lib'
 import { Icon } from './Icon'
 import { ItemCard } from './ItemCard'
 import { Masonry } from './Masonry'
@@ -35,6 +36,23 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
   const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
   const [text, setText] = useState('')
   const { setNodeRef, isOver } = useDroppable({ id: 'ideas' })
+
+  // Paste anywhere (not in a field, with nothing open): images become picture cards, a link starts an idea.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, [contenteditable="true"]') || document.querySelector('.sheet')) return
+      const { files, url } = clipboardImages(e.clipboardData)
+      const text = e.clipboardData?.getData('text').trim() ?? ''
+      if (files.length) onCaptureImages(files)
+      else if (url) onCapture(url)
+      else if (/^https?:\/\//i.test(text)) onCapture(text)
+      else return
+      e.preventDefault()
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [onCapture, onCaptureImages])
 
   const submit = (value: string) => {
     if (!value.trim()) return
@@ -88,10 +106,15 @@ export function IdeasPane({ ideas, members, attachments, totalIdeas, onCapture, 
           value={text}
           onChange={(e) => setText(e.target.value)}
           onPaste={(e) => {
-            const pastedImages = images(e.clipboardData.files)
+            const { files: pastedImages, url } = clipboardImages(e.clipboardData)
             if (pastedImages.length) {
               e.preventDefault()
               onCaptureImages(pastedImages)
+              return
+            }
+            if (url && !e.clipboardData.getData('text').trim()) {
+              e.preventDefault()
+              submit(url)
               return
             }
             const pasted = e.clipboardData.getData('text')

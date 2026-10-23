@@ -222,7 +222,9 @@ function Planner() {
   })
 
   const capture = (text: string) => {
-    if (isUrl(text)) setSheet({ kind: 'item', item: blank({ url: text, title: domainOf(text) ?? '' }), isNew: true })
+    // A link straight to a picture becomes a picture card.
+    if (isUrl(text) && /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(text)) save(blank({ imageUrl: text }))
+    else if (isUrl(text)) setSheet({ kind: 'item', item: blank({ url: text, title: domainOf(text) ?? '' }), isNew: true })
     else save(blank({ title: text }))
   }
   // Tapping an entry shows it read-only; Edit opens the editor. On the wide ideas board it opens beside the grid.

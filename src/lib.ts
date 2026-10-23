@@ -286,6 +286,25 @@ export function formatSize(bytes: number | null) {
 }
 
 /** Shrinks big photos before upload (a 4 MB phone photo becomes ~300 KB). Other files pass through. */
+/**
+ * Images on the clipboard: files, or items some browsers only offer that way (Safari, "Copy image"); failing
+ * that, the address of an image copied from a web page (it comes as HTML).
+ */
+export function clipboardImages(data: DataTransfer | null): { files: File[]; url: string | null } {
+  if (!data) return { files: [], url: null }
+  const files = [...data.files].filter((f) => f.type.startsWith('image/'))
+  if (!files.length) {
+    for (const item of [...data.items]) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const f = item.getAsFile()
+        if (f) files.push(f.name ? f : new File([f], `pasted.${item.type.split('/')[1] || 'png'}`, { type: item.type }))
+      }
+    }
+  }
+  const src = files.length ? null : (data.getData('text/html').match(/<img[^>]+src="(https?:[^"]+)"/i)?.[1] ?? null)
+  return { files, url: src ? src.replace(/&amp;/g, '&') : null }
+}
+
 export async function prepareUpload(file: File): Promise<File> {
   if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 400_000) return file
   try {

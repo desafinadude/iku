@@ -145,3 +145,17 @@ export async function photonLookup(name: string, near: Near): Promise<FoundPlace
   const h = await hit.resolve()
   return { name: h.name, address: h.detail || null, lat: h.lat, lng: h.lng, placeId: null, photo: null }
 }
+
+/** A Google place's name, address and first photo, by its id (e.g. one just picked in the place search). */
+export function useGooglePlaceDetails() {
+  const places = useMapsLibrary('places')
+  return useCallback(
+    async (placeId: string): Promise<{ name: string | null; address: string | null; photo: string | null } | null> => {
+      if (!places) return null
+      const place = new places.Place({ id: placeId })
+      await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'photos'] })
+      return { name: place.displayName ?? null, address: place.formattedAddress ?? null, photo: place.photos?.[0]?.getURI({ maxWidth: 1200 }) ?? null }
+    },
+    [places]
+  )
+}

@@ -946,7 +946,7 @@ button.trip-title:hover { background: var(--soft); }
 .map-pin.is-selected { transform: scale(1.3); box-shadow: 0 0 0 3px var(--ink), 0 4px 12px rgba(23,32,29,.4); }
 .map-pin { transition: transform .15s; }
 .pin-label { position: absolute; left: calc(100% + 4px); top: 50%; transform: translateY(-50%); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.95); color: var(--ink); font: 600 11px/16px var(--body); box-shadow: 0 1px 3px rgba(23,32,29,.25); pointer-events: none; }
-.map-satellite 
+
 /* The place card: over the bottom of the map, like Google Maps. */
 .place-card { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 650; max-height: calc(100% - 72px); overflow-y: auto; border-radius: 14px; background: var(--surface); box-shadow: 0 8px 28px rgba(23,32,29,.28); color: var(--ink); }
 .place-card.is-loading { padding: 16px 48px 16px 16px; }
@@ -989,3 +989,10 @@ button.trip-title:hover { background: var(--soft); }
 .ring-label { display: inline-block; transform: translate(-50%, -50%); white-space: nowrap; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.9); color: #0a4f47; font: 700 11px/16px var(--body); box-shadow: 0 1px 3px rgba(23,32,29,.2); pointer-events: none; }
 .map-status { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: calc(100% - 140px); pointer-events: none; }
 .map-status span { padding: 5px 12px; border-radius: 999px; background: rgba(23,32,29,.85); color: #fff; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 8px rgba(23,32,29,.2); }
+
+/* After picking a Google place for an entry that already has a picture: offer the place's photo. */
+.photo-offer { display: flex; align-items: center; gap: 10px; margin-top: -4px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.photo-offer-thumb { width: 56px; height: 56px; flex: none; border-radius: 8px; object-fit: cover; }
+.photo-offer .small { flex: 1; }
+.photo-offer .secondary-btn { min-height: 34px; padding: 0 12px; font-size: 13px; }
+.photo-offer .icon-btn { width: 32px; height: 32px; }
