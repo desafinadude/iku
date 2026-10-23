@@ -42,6 +42,10 @@ The app then shows the unlock screen, asking for email and password. If you also
 
 Pasting a link fills in its title and picture, Pinterest-style. YouTube thumbnails and Google Maps coordinates are read straight from the link. Everything else goes through the `unfurl` Supabase Edge Function (`supabase/functions/unfurl/`), which fetches the page and reads its `og:image` / `og:title` tags. Sites that block preview bots (TripAdvisor, Airbnb, Instagram…) fall back to Microlink's free API, about 50 lookups a day.
 
+**Place search fills in the rest:** picking a Google place in an entry's *Place* search also sets the title (if it's still empty), the full address and the place's photo. If the entry already has a picture, it offers the photo instead of replacing it.
+
+**Pasting images:** paste an image anywhere on the page (with nothing open and no text box selected) to make a picture card. Paste it into an open entry to make it the picture. Images copied from a web page work too.
+
 **Google Maps links** (including `maps.app.goo.gl` share links, which the edge function expands) only carry a generic map picture, so the app looks the place up instead. It uses Google Places with the Maps key (Places API (New) must be on), else OpenStreetMap. The entry gets the place's name, a photo (Google only), its address in *Place*, the exact pin from the link so it shows on the map, and the Google place (opening hours, rating).
 
 Deploy it once:
