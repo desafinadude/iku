@@ -54,7 +54,8 @@ export function CardImage({ imageUrl, onBroken, ...rest }: Props) {
       src={src}
       alt={rest.alt ?? ''}
       loading={rest.loading ?? 'lazy'}
-      referrerPolicy="no-referrer"
+      // Google's place photos check the page address against the Maps key; other sites get nothing.
+      referrerPolicy={/^https:\/\/(places|maps)\.googleapis\.com\//.test(src) ? 'no-referrer-when-downgrade' : 'no-referrer'}
       draggable={false}
       onError={() => {
         setBroken(true)

@@ -15,6 +15,16 @@ export interface MapPin {
   title: string
 }
 
+/** A place found nearby (a station, a convenience store…): a small pin that opens the place card. */
+export interface NearbyPin {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  icon: string
+  color: string
+}
+
 export type MapStyle = 'detailed' | 'simple' | 'satellite'
 
 /** The visible area, as south, west, north, east. */
@@ -32,7 +42,12 @@ export interface MapViewProps {
   /** The entry's name beside each pin. */
   labels: boolean
   transit: boolean
+  bike: boolean
+  traffic: boolean
   areas: Areas | null
+  /** 10- and 20-minute walking rings around this point (the open pin). */
+  rings: { lat: number; lng: number } | null
+  nearby: NearbyPin[]
   /** The pin whose card is open (drawn on top, a little bigger). */
   selectedId: string | null
   /** Reports the visible area after the map stops moving. */

@@ -64,14 +64,29 @@ function TrackView({ onView, onPoiClick, onMapClick }: Pick<MapViewProps, 'onVie
   return null
 }
 
-function Transit({ on }: { on: boolean }) {
+/** One of Google's own layers (transit, cycling, traffic), while on. */
+function GoogleLayer({ on, make }: { on: boolean; make: () => google.maps.TransitLayer | google.maps.BicyclingLayer | google.maps.TrafficLayer }) {
   const map = useMap()
   useEffect(() => {
     if (!map || !on) return
-    const layer = new google.maps.TransitLayer()
+    const layer = make()
     layer.setMap(map)
     return () => layer.setMap(null)
   }, [map, on])
+  return null
+}
+
+/** Walking distance from a point: about 800 m in 10 minutes, 1.6 km in 20. */
+function WalkRings({ at }: { at: { lat: number; lng: number } | null }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!map || !at) return
+    const rings = [1600, 800].map(
+      (radius) =>
+        new google.maps.Circle({ map, center: at, radius, clickable: false, strokeColor: '#0E6B60', strokeOpacity: 0.7, strokeWeight: 1.5, fillColor: '#0E6B60', fillOpacity: radius === 800 ? 0.08 : 0.04 })
+    )
+    return () => rings.forEach((r) => r.setMap(null))
+  }, [map, at?.lat, at?.lng])
   return null
 }
 
@@ -97,7 +112,7 @@ function AreaLines({ areas, light }: { areas: Areas | null; light: boolean }) {
   return null
 }
 
-export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, labels, transit, areas, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
+export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, labels, transit, bike, traffic, areas, rings, nearby, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
   return (
     <Map
       className="map"
@@ -113,7 +128,27 @@ export function GoogleView({ pins, route, fitKey, expanded, onPinClick, style, l
       clickableIcons
     >
       <Route route={route} light={style === 'satellite'} />
-      <Transit on={transit} />
+      <GoogleLayer on={transit} make={() => new google.maps.TransitLayer()} />
+      <GoogleLayer on={bike} make={() => new google.maps.BicyclingLayer()} />
+      <GoogleLayer on={traffic} make={() => new google.maps.TrafficLayer()} />
+      <WalkRings at={rings} />
+      {rings && (
+        <>
+          <AdvancedMarker position={{ lat: rings.lat + 800 / 111_000, lng: rings.lng }} clickable={false} zIndex={-1}>
+            <span className="ring-label">10 min walk</span>
+          </AdvancedMarker>
+          <AdvancedMarker position={{ lat: rings.lat + 1600 / 111_000, lng: rings.lng }} clickable={false} zIndex={-1}>
+            <span className="ring-label">20 min</span>
+          </AdvancedMarker>
+        </>
+      )}
+      {nearby.map((n) => (
+        <AdvancedMarker key={'n' + n.id} position={{ lat: n.lat, lng: n.lng }} title={n.name} zIndex={-1} onClick={() => onPoiClick?.(n.id)}>
+          <span className="nearby-pin" style={{ background: n.color }}>
+            <LabelIconView name={n.icon} size={13} />
+          </span>
+        </AdvancedMarker>
+      ))}
       <AreaLines areas={areas} light={style === 'satellite'} />
       {areas?.labels.map((a) => (
         <AdvancedMarker key={`${a.name}${a.lat}`} position={{ lat: a.lat, lng: a.lng }} clickable={false} zIndex={-1}>
