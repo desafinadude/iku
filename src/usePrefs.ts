@@ -24,6 +24,12 @@ export interface Prefs {
   ideasLayout: 'grid' | 'list'
   /** Day cards the same way: full cards, or rows with the picture beside the text. */
   daysLayout: 'grid' | 'list'
+  /** Map: detailed (Google/OpenStreetMap), a simple light map, or satellite; and what's drawn on it. */
+  mapStyle: 'detailed' | 'simple' | 'satellite'
+  mapLabels: boolean
+  mapRoute: boolean
+  mapAreas: boolean
+  mapTransit: boolean
   /** Plan view on wide screens: show the ideas and map panes. */
   planIdeas: boolean
   planMap: boolean
@@ -52,7 +58,7 @@ export const SHOW_ALL: CardShow = { image: true, title: true, details: true, tag
 export const PANE_DEFAULTS = { ideas: 320, map: 380, detail: 640 }
 
 const KEY = 'iku:prefs'
-const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysShow: SHOW_ALL, ideasShow: SHOW_ALL, ideasCols: 2, boardCols: 4, ideasLayout: 'grid', daysLayout: 'grid', planIdeas: true, planMap: true, ideasWidth: PANE_DEFAULTS.ideas, mapWidth: PANE_DEFAULTS.map, detailWidth: PANE_DEFAULTS.detail }
+const DEFAULTS: Prefs = { hideRepeats: false, tagsOnRepeats: false, mainView: 'plan', ideasIncludePlanned: false, dayOrder: 'time', ideasOrder: 'newest', daysShow: SHOW_ALL, ideasShow: SHOW_ALL, ideasCols: 2, boardCols: 4, ideasLayout: 'grid', daysLayout: 'grid', mapStyle: 'detailed', mapLabels: false, mapRoute: true, mapAreas: false, mapTransit: false, planIdeas: true, planMap: true, ideasWidth: PANE_DEFAULTS.ideas, mapWidth: PANE_DEFAULTS.map, detailWidth: PANE_DEFAULTS.detail }
 
 export function usePrefs() {
   const [prefs, setPrefs] = useState<Prefs>(() => {
