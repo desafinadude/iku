@@ -982,3 +982,13 @@ button.trip-title:hover { background: var(--soft); }
 .pane-map:not(.is-expanded):not(.is-full) .pc-photos { height: 110px; }
 @media (min-width: 900px) { .pane-map.is-expanded .place-card, .pane-map.is-full .place-card { right: auto; width: 380px; top: 12px; bottom: auto; max-height: calc(100% - 24px); } }
 .pane-map .leaflet-bottom.leaflet-right .leaflet-control-zoom { margin-bottom: 70px; }
+
+/* More map overlays: nearby places, walking rings, and a status note while they load. */
+.nearby-pin { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; color: #fff; display: grid; place-items: center; box-sizing: border-box; box-shadow: 0 1px 4px rgba(23,32,29,.35); }
+.nearby-pin svg, .nearby-dot svg { display: block; }
+.nearby-dot { width: 18px; height: 18px; border-radius: 50%; color: #fff; display: inline-grid; place-items: center; flex: none; }
+.layers-nearby { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 8px 4px; }
+.layers-nearby .chip { display: inline-flex; align-items: center; gap: 6px; }
+.ring-label { display: inline-block; transform: translate(-50%, -50%); white-space: nowrap; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.9); color: #0a4f47; font: 700 11px/16px var(--body); box-shadow: 0 1px 3px rgba(23,32,29,.2); pointer-events: none; }
+.map-status { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: calc(100% - 140px); pointer-events: none; }
+.map-status span { padding: 5px 12px; border-radius: 999px; background: rgba(23,32,29,.85); color: #fff; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 8px rgba(23,32,29,.2); }

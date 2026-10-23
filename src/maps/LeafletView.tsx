@@ -2,7 +2,7 @@ import L from 'leaflet'
 import { inkColor } from '../colors'
 import 'leaflet/dist/leaflet.css'
 import { useEffect } from 'react'
-import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents, ZoomControl } from 'react-leaflet'
+import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents, ZoomControl } from 'react-leaflet'
 import { iconHtml } from '../labels/icons'
 import type { MapPin, MapStyle, MapViewProps } from './types'
 
@@ -62,7 +62,7 @@ function TrackView({ onView, onMapClick }: Pick<MapViewProps, 'onView' | 'onMapC
   return null
 }
 
-export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, labels, transit, areas, selectedId, onView, onMapClick }: MapViewProps) {
+export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, labels, transit, bike, areas, rings, nearby, selectedId, onView, onPoiClick, onMapClick }: MapViewProps) {
   const tiles = TILES[style]
   return (
     <MapContainer center={[35.68, 139.76]} zoom={12} className={`map map-${style}`} zoomControl={false}>
@@ -71,6 +71,27 @@ export function LeafletView({ pins, route, fitKey, expanded, onPinClick, style, 
       <TileLayer key={style} attribution={tiles.attribution} url={tiles.url} maxNativeZoom={style === 'detailed' ? 19 : 16} maxZoom={19} />
       {tiles.labels && <TileLayer key={style + '-labels'} url={tiles.labels} maxNativeZoom={16} maxZoom={19} pane="overlayPane" />}
       {transit && <TileLayer url="https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>' opacity={0.8} />}
+      {bike && <TileLayer url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm-lite/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.cyclosm.org/">CyclOSM</a>' />}
+      {rings &&
+        [1600, 800].map((r) => (
+          <Circle key={r} center={[rings.lat, rings.lng]} radius={r} interactive={false} pathOptions={{ color: '#0E6B60', weight: 1.5, opacity: 0.7, fillColor: '#0E6B60', fillOpacity: r === 800 ? 0.08 : 0.04 }} />
+        ))}
+      {rings &&
+        [
+          [800, '10 min walk'],
+          [1600, '20 min']
+        ].map(([r, text]) => (
+          <Marker key={text} position={[rings.lat + Number(r) / 111_000, rings.lng]} interactive={false} keyboard={false} icon={L.divIcon({ className: '', html: `<span class="ring-label">${text}</span>`, iconSize: [0, 0] })} />
+        ))}
+      {nearby.map((n) => (
+        <Marker
+          key={'n' + n.id}
+          position={[n.lat, n.lng]}
+          title={n.name}
+          icon={L.divIcon({ className: '', html: `<span class="nearby-pin" style="background:${n.color}">${iconHtml(n.icon, 13, '#fff')}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] })}
+          eventHandlers={{ click: () => onPoiClick?.(n.id) }}
+        />
+      ))}
       {areas?.lines.map((l, i) => (
         <Polyline key={i} positions={l.path} interactive={false} pathOptions={{ color: style === 'satellite' ? '#fff' : '#6d3fc0', weight: l.level <= 8 ? 2.5 : 1.5, opacity: 0.75, dashArray: l.level <= 8 ? undefined : '4 4' }} />
       ))}
