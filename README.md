@@ -44,6 +44,13 @@ Pasting a link fills in its title and picture, Pinterest-style. YouTube thumbnai
 
 **Place search fills in the rest:** picking a Google place in an entry's *Place* search also sets the title (if it's still empty), the full address and the place's photo. If the entry already has a picture, it offers the photo instead of replacing it.
 
+**Find photos:** in an entry, **Find photos** (next to Add photo, or on the picture) opens a picker:
+- **This place on Google:** all of Google's photos of the entry's place, up to 10.
+- **Search:** Google's place photos and free Wikimedia Commons photos.
+- **Search Google Images:** opens in a new tab. Copy an image there and paste it into the entry.
+
+Google photos are stored as a copy when chosen, since Google's links expire.
+
 **Pasting images:** paste an image anywhere on the page (with nothing open and no text box selected) to make a picture card. Paste it into an open entry to make it the picture. Images copied from a web page work too.
 
 **Google Maps links** (including `maps.app.goo.gl` share links, which the edge function expands) only carry a generic map picture, so the app looks the place up instead. It uses Google Places with the Maps key (Places API (New) must be on), else OpenStreetMap. The entry gets the place's name, a photo (Google only), its address in *Place*, the exact pin from the link so it shows on the map, and the Google place (opening hours, rating).

@@ -159,3 +159,64 @@ export function useGooglePlaceDetails() {
     [places]
   )
 }
+
+export interface PhotoHit {
+  /** Small, for the picker grid. */
+  thumb: string
+  /** Large, for the card. */
+  full: string
+  /** Where it's from: the place's name, or Wikimedia Commons. */
+  source: string
+  /** Google's photo links expire, so these get copied when chosen; others are kept as links. */
+  google: boolean
+}
+
+/** Google's photos of one place (up to 10), or of the places matching a search (a few each). */
+export function useGooglePhotos() {
+  const places = useMapsLibrary('places')
+  return useCallback(
+    async (by: { placeId: string } | { query: string; near: Near }): Promise<PhotoHit[]> => {
+      if (!places) return []
+      const toHits = (p: google.maps.places.Place, max: number) =>
+        (p.photos ?? []).slice(0, max).map((ph) => ({ thumb: ph.getURI({ maxWidth: 400 }), full: ph.getURI({ maxWidth: 1600 }), source: p.displayName ?? 'Google', google: true }))
+      if ('placeId' in by) {
+        const place = new places.Place({ id: by.placeId })
+        await place.fetchFields({ fields: ['displayName', 'photos'] })
+        return toHits(place, 10)
+      }
+      const { places: found } = await places.Place.searchByText({
+        textQuery: by.query,
+        fields: ['displayName', 'photos'],
+        maxResultCount: 5,
+        language: 'en',
+        ...(by.near ? { locationBias: { center: by.near, radius: 20_000 } } : {})
+      })
+      return found.flatMap((p) => toHits(p, 4))
+    },
+    [places]
+  )
+}
+
+/** Free-to-use photos from Wikimedia Commons (no key; good for landmarks, temples, views). */
+export async function commonsPhotos(query: string, signal?: AbortSignal): Promise<PhotoHit[]> {
+  const params = new URLSearchParams({
+    action: 'query',
+    format: 'json',
+    origin: '*',
+    generator: 'search',
+    gsrnamespace: '6',
+    gsrsearch: `${query} filetype:bitmap`,
+    gsrlimit: '12',
+    prop: 'imageinfo',
+    iiprop: 'url',
+    iiurlwidth: '1200'
+  })
+  const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { signal })
+  if (!res.ok) throw new Error(`Wikimedia ${res.status}`)
+  const body = (await res.json()) as { query?: { pages?: Record<string, { index?: number; imageinfo?: { thumburl?: string; url?: string }[] }> } }
+  return Object.values(body.query?.pages ?? {})
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((p) => p.imageinfo?.[0])
+    .filter((i): i is { thumburl: string; url?: string } => !!i?.thumburl)
+    .map((i) => ({ thumb: i.thumburl, full: i.thumburl, source: 'Wikimedia Commons', google: false }))
+}
